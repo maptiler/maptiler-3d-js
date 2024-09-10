@@ -1,0 +1,51 @@
+{
+  "name": "@maptiler/3d-models",
+  "version": "2.1.0",
+  "description": "3D models for MapTiler SDK",
+  "module": "dist/maptiler-3d-mdoels.js",
+  "types": "dist/maptiler-3d-models.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/maptiler-3d-models.js",
+      "types": "./dist/maptiler-3d-models.d.ts"
+    }
+  },
+  "author": "MapTiler Team",
+  "keywords": [
+    "maptiler",
+    "plugin",
+    "3D",
+    "models"
+  ],
+  "scripts": {
+    "biome": "biome check --max-diagnostics=1000",
+    "biome:fix": "biome check --max-diagnostics=1000 --write",
+    "make": "npm run biome:fix && npm run build",
+    "dev": "vite -c vite.config-es.ts",
+    "build": "npm run build-es; npm run build-umd",
+    "build-dev": "NODE_ENV=development npm run build-es; NODE_ENV=development npm run build-umd",
+    "build-umd": "tsc && vite build -c vite.config-umd.ts",
+    "build-es": "tsc && vite build -c vite.config-es.ts",
+    "dev-umd": "tsc && NODE_ENV=development vite build -w -c vite.config-umd.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maptiler/maptiler-3d-models-js.git"
+  },
+  "license": "",
+  "devDependencies": {
+    "@biomejs/biome": "^1.8.3",
+    "@types/node": "^20.4.5",
+    "@types/three": "^0.168.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3",
+    "vite-plugin-dts": "^4.1.0",
+    "vite-plugin-glsl": "^1.3.0"
+  },
+  "dependencies": {
+    "@maptiler/sdk": "^2.2.2",
+    "lru-cache": "^11.0.1",
+    "three": "^0.168.0"
+  }
+}
