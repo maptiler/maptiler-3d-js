@@ -1,23 +1,25 @@
-import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, CustomRenderMethodInput } from "@maptiler/sdk";
+import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat, LngLat } from "@maptiler/sdk";
 import {
   Camera,
   Matrix4,
   Scene,
-  WebGLRenderer,
-  type AxesHelper,
+  WebGLRenderer, AxesHelper,
   Vector3,
   Mesh,
   type Group,
-  Object3D,
-  AmbientLight,
+  type Object3D,
+  // AmbientLight,
   Quaternion,
-  PointLight,
-  DoubleSide,
-  PlaneGeometry,
+  // PointLight,
+  // DoubleSide,
+  // PlaneGeometry,
   MeshBasicMaterial,
-  MeshPhongMaterial,
+  // MeshPhongMaterial,
   SphereGeometry,
-  DirectionalLight,
+  PointLight,
+  MeshPhongMaterial,
+  MeshLambertMaterial,
+  // DirectionalLight,
 } from "three";
 
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -59,13 +61,12 @@ export type SceneLayerOptions = {
    * Default: true
    */
   antiaslias?: boolean;
-
-  anchorLngLat?: LngLatLike;
 };
 
 export type Item3D = {
   id: string;
   mercatorCoord: MercatorCoordinate;
+  lngLat: LngLat;
   altitude: number;
   rotation: Quaternion;
   mesh: Mesh | AxesHelper | Group | Object3D | null;
@@ -83,7 +84,9 @@ export class SceneLayer implements CustomLayerInterface {
   private camera!: Camera;
   private antialias: boolean;
   private items3D = new Map<string, Item3D>();
-  public anchorLngLat: LngLatLike | null = null;
+  private sceneOrigin: LngLat | null = null;
+  private sceneOriginMercator: MercatorCoordinate | null = null;
+
 
   constructor(id: string, options: SceneLayerOptions = {}) {
     this.type = "custom";
@@ -92,29 +95,12 @@ export class SceneLayer implements CustomLayerInterface {
     this.minZoom = options.minZoom ?? 0;
     this.maxZoom = options.maxZoom ?? 22;
     this.antialias = options.antiaslias ?? true;
-    this.anchorLngLat = options.anchorLngLat ?? null;
   }
 
   private initScene() {
     this.camera = new Camera();
     this.camera.matrixWorldAutoUpdate = false;
     this.scene = new Scene();
-
-    // Adding ambien light for debugging
-    // const light = new AmbientLight(0xffffff, 10); // soft white light
-    // this.scene.add(light);
-
-    // const axisHelper = new AxesHelper(0.25);
-
-    // const mercatorCoordinates = MercatorCoordinate.fromLngLat(
-    //   [6.260483, 46.390981], // Leman lake
-    //   0, // altitude
-    // );
-
-    // axisHelper.position.x = mercatorCoordinates.x;
-    // axisHelper.position.y = mercatorCoordinates.y;
-
-    // this.scene.add(axisHelper);
   }
 
   private isInZoomRange(): boolean {
@@ -140,151 +126,64 @@ export class SceneLayer implements CustomLayerInterface {
     this.scene.clear();
   }
 
-  render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, options: CustomRenderMethodInput) {
-    // const mapFarZ = this.map.painter.transform.farZ;
-    // const mapNearZ = this.map.painter.transform.nearZ;
-    // const mapMVPMatrix = this.map.painter.transform.modelViewProjectionMatrix;
-    // const mapProjMatrix = this.map.painter.transform.projectionMatrix;
-
-    console.log("-------------");
-
-    // this.map.painter.transform.customLayerMatrix() // same as the matrix arg
-    
-    // console.log(options.projectionMatrix);
-    
-    // console.log(matrix, ); // view projection matrix
-    // console.log(this.map.painter.transform.modelViewProjectionMatrix); // model view projection matrix
-    
-
-    // console.log(">>> mapFarZ", mapFarZ);
-    // console.log(">>> mapNearZ", mapNearZ);
-    // console.log(">>> mapMVPMatrix", mapMVPMatrix);
-    // console.log(">>> mapProjMatrix", mapProjMatrix);
-
-    if (!this.anchorLngLat) return;
-
-    // // Render only if in zoom range
+  render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
+    if (!this.sceneOrigin) return;
     if (!this.isInZoomRange()) return;
 
-    // const center = this.map.getCenter();
-    const centerAltitude = 0; // to be fetched
-    const anchor = MercatorCoordinate.fromLngLat(this.anchorLngLat, centerAltitude);
+    this.reposition();
 
-    const anchorMercatorScale = anchor.meterInMercatorCoordinateUnits();
+    const offsetFromCenterElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
+    const sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin, offsetFromCenterElevation);
 
-    const anchorTransform = {
-      translateX: anchor.x,
-      translateY: anchor.y,
-      translateZ: anchor.z,
-      scale: new Vector3(anchorMercatorScale, -anchorMercatorScale, anchorMercatorScale),
+    const sceneTransform = {
+      translateX: sceneOriginMercator.x,
+      translateY: sceneOriginMercator.y,
+      translateZ: sceneOriginMercator.z,
+      scale: sceneOriginMercator.meterInMercatorCoordinateUnits()
     };
 
-    // console.log(anchorMercatorScale);
-
-    for (const [_itemId, item] of this.items3D) {
-      const mesh = item.mesh;
-      if (!mesh) continue;
-
-      const mercatorCoord = item.mercatorCoord;
-
-      // console.log(item);
-
-      // if ("isLight" in mesh && mesh.isLight === true) {
-      //   mesh.position.set(
-      //     ( mercatorCoord.x - anchor.x) / anchorMercatorScale,
-      //     (mercatorCoord.y - anchor.y) / -anchorMercatorScale,
-      //     (mercatorCoord.z - anchor.z) / anchorMercatorScale
-      //   );
-
-      // } else {
-      // applying on each mesh the offset relative to viewport center
-      mesh.position.set(
-        (mercatorCoord.x - anchor.x) / anchorMercatorScale,
-        (mercatorCoord.y - anchor.y) / -anchorMercatorScale,
-        (mercatorCoord.z - anchor.z) / anchorMercatorScale,
-      );
-
-      mesh.matrixWorldNeedsUpdate = true;
-    
-
-      // }
-    }
-
-    // Updating the threejs projection matrix so that it uses
-    // the 3D point at the center of the viewport as reference (anchor) point,
-    // meaning the models/mesh/light will have coordinates relative to this anchor.
     const m = new Matrix4().fromArray(matrix);
     const l = new Matrix4()
-      .makeTranslation(anchorTransform.translateX, anchorTransform.translateY, anchorTransform.translateZ)
-      .scale(anchorTransform.scale);
+      .makeTranslation(sceneTransform.translateX, sceneTransform.translateY, sceneTransform.translateZ)
+      .scale(new Vector3(sceneTransform.scale, -sceneTransform.scale, sceneTransform.scale));
 
     this.camera.projectionMatrix = m.multiply(l);
-
-    
-
-
-
-    // const mapProjectionMatrix = new Matrix4().fromArray(options.projectionMatrix);
-    // const mapInverseProjMatrix = mapProjectionMatrix.clone().invert();
-    // const mapViewMatrix = new Matrix4();
-    // mapViewMatrix.multiplyMatrices(mapInverseProjMatrix, m);
-    
-
-    // console.log(mapProjectionMatrix);
-    // console.log(mapInverseProjMatrix);
-    // console.log(mapViewMatrix);
-
-
-    // this.camera.projectionMatrix = mapProjectionMatrix
-
-    
-    
-
-
-
-
-
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
-    // this.map.triggerRepaint();
+    this.map.triggerRepaint(); // TODO test without
   }
 
-  // addItem(id: string, position: LngLatLike, options: {rotation?: Vector3, scale?: number, altitude?: number} = {}) {
-  //   // default rotation to go from ThreeJS's "Y up" convention to Maplibre's "Z up" convention by rotating
-  //   // a quarter around X axis
-  //   const rotation = options.rotation ?? new Vector3(Math.PI / 2, 0, 0);
-  //   const scale = options.scale ?? 1;
-  //   const altitude = options.altitude ?? 0;
-  //   const mercatorCoord = MercatorCoordinate.fromLngLat(
-  //     position,
-  //     altitude, // altitude
-  //   );
+ 
+  private reposition() {
+    if (!this.sceneOrigin || !this.sceneOriginMercator) return;
 
-  //   const item: Item3D = {
-  //     id,
-  //     mercatorCoord,
-  //     altitude,
-  //     rotation,
-  //     // mesh: new AxesHelper( 100 ),
-  //     mesh: null,
-  //   }
+    // Doing it at render time rather than init time in case this has changed.
+    // TODO: maybe debounce that.
+    const sceneElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
 
-  //   this.items3D.set(id, item);
+    for (const [_itemId, item] of this.items3D) {
+      // Get the elevation of the terrain at the location of the item
+      const itemElevationAtPosition = this.map.queryTerrainElevation(item.lngLat) || 0;
+      const itemUpShift = itemElevationAtPosition - sceneElevation + item.altitude;
+      const {dEastMeter: itemEast, dNorthMeter: itemNorth} = calculateDistanceMercatorToMeters(this.sceneOriginMercator, item.mercatorCoord);
+      item.mesh?.position.set(itemEast, itemNorth, itemUpShift);
 
-  //   // Load the mesh
-  //   const loader = new GLTFLoader();
-  //   loader.load(
-  //     'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-  //     (gltf: GLTF) => {
-  //       const model = gltf.scene;
-  //       item.mesh = model;
-  //       model.scale.set(scale, scale, scale);
-  //       model.rotation.set(rotation.x, rotation.y, rotation.z);
-  //       this.scene.add(model);
-  //     }
-  //   );
+      console.log(item.mesh?.position);
+      
+    }
 
-  // }
+  }
+
+
+
+
+
+
+
+
+
+
+
 
   addMesh(
     id: string,
@@ -307,10 +206,19 @@ export class SceneLayer implements CustomLayerInterface {
     const item: Item3D = {
       id,
       mercatorCoord,
+      lngLat: lngLatLikeToLngLat(lngLat),
       altitude,
       rotation,
       mesh,
     };
+
+
+    // The first mesh added defines the anchor point
+    if (this.items3D.size === 0) {
+      this.sceneOrigin = item.lngLat;
+      this.sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin);
+    }
+    
 
     this.items3D.set(id, item);
   }
@@ -368,9 +276,9 @@ export class SceneLayer implements CustomLayerInterface {
 
 
 
-    const directionalLight = new DirectionalLight(0xffffff, 5);
-    directionalLight.position.set(0, -70, 100).normalize();
-    this.scene.add(directionalLight);
+    // const directionalLight = new DirectionalLight(0xffffff, 5);
+    // directionalLight.position.set(0, -70, 100).normalize();
+    // this.scene.add(directionalLight);
 
     // console.log(directionalLight);
 
@@ -430,23 +338,30 @@ export class SceneLayer implements CustomLayerInterface {
     //   }
     // );
 
-    const quaternion = new Quaternion();
-    const rotationA = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
-    const rotationB = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
 
-    // Chain the rotations
-    quaternion.multiplyQuaternions(rotationA, rotationB);
 
-    this.addMeshFromURL(
-      "eiffel",
-      // "private_models/free__la_tour_eiffel.glb",
-      "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
-      [2.294530547874315, 48.85826142288141], // Paris
-      {
-        scale: new Vector3(2.2, 2.2, 2.2), // necessary because the sofa is too small (possibly metric system)
-        rotation: quaternion,
-      }
-    );
+
+
+    // const quaternion = new Quaternion();
+    // const rotationA = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+    // const rotationB = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
+
+    // // Chain the rotations
+    // quaternion.multiplyQuaternions(rotationA, rotationB);
+
+    // this.addMeshFromURL(
+    //   "eiffel",
+    //   // "private_models/free__la_tour_eiffel.glb",
+    //   "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
+    //   [2.294530547874315, 48.85826142288141], // Paris
+    //   {
+    //     scale: new Vector3(2.2, 2.2, 2.2), // necessary because the sofa is too small (possibly metric system)
+    //     rotation: quaternion,
+    //   }
+    // );
+
+
+
 
     // const geometry = new PlaneGeometry(500, 500);
     // const material = new MeshPhongMaterial({ color: 0x555555, side: DoubleSide, specular: 0xffffff, shininess: 1 });
@@ -467,14 +382,43 @@ export class SceneLayer implements CustomLayerInterface {
     //   // }
     // );
 
-    const sphereGeometry = new SphereGeometry(1);
-    const sphereMaterial = new MeshBasicMaterial({ color: 0xff0000 });
+    const sphereGeometry = new SphereGeometry(50);
+    const sphereMaterial = new MeshLambertMaterial({ color: 0xff0000 });
     const sphere = new Mesh(sphereGeometry, sphereMaterial);
 
     this.addMesh("sphere", sphere, [2.2945, 48.858], {
       altitude: 0,
       // rotation: new Quaternion(),
     });
+
+
+
+
+
+
+    const pointLight = new PointLight(
+      0xffffff, // color
+      70, // intensity
+      0, // distance (0 = no limit)
+      0.2, // decay
+    );
+
+
+    this.addMesh("light", pointLight, [0, 0], {
+      altitude: 2000000,
+      // rotation: new Quaternion(),
+    });
+
+
+    // const sphereLightGeometry = new SphereGeometry(10);
+    // const sphereLightMaterial = new MeshBasicMaterial({ color: 0x0000ff });
+    // const sphereLight = new Mesh(sphereLightGeometry, sphereLightMaterial);
+
+    this.addMesh("sphereLight", new AxesHelper(100000), [0, 0], {
+      altitude: 2000000,
+      // rotation: new Quaternion(),
+    });
+
 
     // this.addMeshFromURL(
     //   "camera",
@@ -501,4 +445,41 @@ export class SceneLayer implements CustomLayerInterface {
     //   // }
     // );
   }
+}
+
+
+export function lngLatLikeToLngLat(lngLatLike: LngLatLike): LngLat {
+  if (!lngLatLike) {
+    throw new Error("Invalid LngLatLike object.")
+  }
+
+  if (lngLatLike instanceof LngLat) {
+    return lngLatLike
+  }
+
+  if (Array.isArray(lngLatLike) && lngLatLike.length >= 2) {
+    return new LngLat(lngLatLike[0], lngLatLike[1]);
+  }
+
+  if (typeof lngLatLike === "object" && "lng" in lngLatLike && "lat" in lngLatLike) {
+    return new LngLat(lngLatLike.lng, lngLatLike.lat);
+  }
+
+  if (typeof lngLatLike === "object" && "lon" in lngLatLike && "lat" in lngLatLike) {
+    return new LngLat(lngLatLike.lon, lngLatLike.lat);
+  }
+
+  throw new Error("Invalid LngLatLike object.");
+}
+
+
+function calculateDistanceMercatorToMeters(from: MercatorCoordinate, to: MercatorCoordinate): {dEastMeter: number, dNorthMeter: number} {
+  const mercatorPerMeter = from.meterInMercatorCoordinateUnits();
+  // mercator x: 0=west, 1=east
+  const dEast = to.x - from.x;
+  const dEastMeter = dEast / mercatorPerMeter;
+  // mercator y: 0=north, 1=south
+  const dNorth = from.y - to.y;
+  const dNorthMeter = dNorth / mercatorPerMeter;
+  return {dEastMeter, dNorthMeter};
 }
