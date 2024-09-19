@@ -1,4 +1,4 @@
-import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat, LngLat } from "@maptiler/sdk";
+import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat } from "@maptiler/sdk";
 import {
   Camera,
   Matrix4,
@@ -13,17 +13,91 @@ import {
   // PointLight,
   // DoubleSide,
   // PlaneGeometry,
-  MeshBasicMaterial,
+  // MeshBasicMaterial,
   // MeshPhongMaterial,
   SphereGeometry,
   PointLight,
-  MeshPhongMaterial,
+  // MeshPhongMaterial,
   MeshLambertMaterial,
+  type ColorRepresentation,
+  AmbientLight,
+  Color,
   // DirectionalLight,
 } from "three";
 
 import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { USDZLoader } from "three/examples/jsm/loaders/USDZLoader";
+// import { USDZLoader } from "three/examples/jsm/loaders/USDZLoader";
+
+export const altitudeReference = {
+  GROUND: 1,
+  MEAN_SEA_LEVEL: 2
+} as const;
+
+
+/**
+ * Generic options that apply to both point lights and meshes
+ */
+export type GenericObject3DOptions = {
+  /**
+   * Position.
+   * Default: `[0, 0]` (Null Island)
+   */
+  lngLat?: LngLatLike,
+
+  /**
+   * Altitude above the reference (in meters).
+   * Default: `0` for meshes, or `2000000` for point lights.
+   */
+  altitude?: number,
+
+  /**
+   * Reference to compute and adjust the altitude.
+   * Default: `altitudeReference.GROUND` for both meshes and point lights.
+   */
+  altitudeReference?: number,
+};
+
+
+/**
+ * Options to add or modify a mesh
+ */
+export type MeshOptions = GenericObject3DOptions & {
+  /**
+   * Rotation to apply to the model to add, as a Quaternion.
+   * Default: no custom rotation applied
+   */
+  rotation?: Quaternion,
+
+  /**
+   * Scale the mesh by a factor.
+   * Default: no scaling added
+   */
+  scale?: number,
+};
+
+
+/**
+ * Options for adding a point light
+ */
+export type PointLightOptions = GenericObject3DOptions & {
+  /**
+   * Light color.
+   * Default: `0xffffff` (white)
+   */
+  color?: ColorRepresentation,
+
+  /**
+   * Intensity of the light.
+   * Default: `75`
+   */
+  intensity?: number,
+
+  /**
+   * Decay of the light relative to the distance to the subject.
+   * Default: `0.5`
+   */
+  decay?: number,
+};
 
 type Mat4 =
   | [
@@ -61,6 +135,18 @@ export type SceneLayerOptions = {
    * Default: true
    */
   antiaslias?: boolean;
+
+  /**
+   * Ambient light color.
+   * Default: `0xffffff` (white)
+   */
+  ambientLightColor?: ColorRepresentation,
+
+  /**
+   * Ambient light intensity.
+   * Default: `1`
+   */
+  ambientLightIntensity?: number,
 };
 
 export type Item3D = {
@@ -70,6 +156,7 @@ export type Item3D = {
   altitude: number;
   rotation: Quaternion;
   mesh: Mesh | AxesHelper | Group | Object3D | null;
+  altitudeReference: number,
 };
 
 export class SceneLayer implements CustomLayerInterface {
@@ -78,35 +165,42 @@ export class SceneLayer implements CustomLayerInterface {
   public renderingMode: "2d" | "3d" = "3d";
   public minZoom: number;
   public maxZoom: number;
-  public scene!: Scene;
-  public renderer!: WebGLRenderer;
-  public map!: MapSDK;
+  private scene!: Scene;
+  private renderer!: WebGLRenderer;
+  private map!: MapSDK;
   private camera!: Camera;
   private antialias: boolean;
   private items3D = new Map<string, Item3D>();
   private sceneOrigin: LngLat | null = null;
   private sceneOriginMercator: MercatorCoordinate | null = null;
+  private ambientLight!: AmbientLight;
 
 
   constructor(id: string, options: SceneLayerOptions = {}) {
     this.type = "custom";
     this.id = id;
-    this.initScene();
     this.minZoom = options.minZoom ?? 0;
     this.maxZoom = options.maxZoom ?? 22;
     this.antialias = options.antiaslias ?? true;
-  }
 
-  private initScene() {
     this.camera = new Camera();
     this.camera.matrixWorldAutoUpdate = false;
     this.scene = new Scene();
+
+    this.ambientLight = new AmbientLight(
+      options.ambientLightColor ?? 0xffffff,
+      options.ambientLightIntensity ?? 1
+    );
+
+    this.scene.add(this.ambientLight);
   }
+
 
   private isInZoomRange(): boolean {
     const z = this.map.getZoom();
     return z >= this.minZoom && z <= this.maxZoom;
   }
+
 
   onAdd?(map: MapSDK, gl: WebGL2RenderingContext): void {
     this.map = map;
@@ -153,6 +247,20 @@ export class SceneLayer implements CustomLayerInterface {
     this.map.triggerRepaint(); // TODO test without
   }
 
+
+  /**
+   * Adjust the settings of the ambient light
+   */
+  setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {}) {
+    if (typeof options.intensity === "number") {
+      this.ambientLight.intensity = options.intensity;
+    }
+
+    if ("color" in options) {
+      this.ambientLight.color = new Color(options.color as ColorRepresentation);
+    }
+  }
+
  
   private reposition() {
     if (!this.sceneOrigin || !this.sceneOriginMercator) return;
@@ -167,36 +275,28 @@ export class SceneLayer implements CustomLayerInterface {
       const itemUpShift = itemElevationAtPosition - sceneElevation + item.altitude;
       const {dEastMeter: itemEast, dNorthMeter: itemNorth} = calculateDistanceMercatorToMeters(this.sceneOriginMercator, item.mercatorCoord);
       item.mesh?.position.set(itemEast, itemNorth, itemUpShift);
-
-      console.log(item.mesh?.position);
-      
     }
-
   }
 
 
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Add an existing mesh to the map
+   */
   addMesh(
     id: string,
     mesh: Mesh | Group | Object3D,
-    lngLat: LngLatLike,
-    options: {
-      rotation?: Quaternion;
-      altitude?: number;
-    } = {},
+    options: MeshOptions = {},
   ) {
-    const rotation = options.rotation ?? new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2); // new Vector3(Math.PI / 2, 0, 0);
+    this.throwUniqueID(id);
+
+    const rotation = options.rotation ?? new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
     const altitude = options.altitude ?? 0;
+    const lngLat = options.lngLat ?? [0, 0];
     const mercatorCoord = MercatorCoordinate.fromLngLat(lngLat, altitude);
+
+    if (options.scale) {
+      mesh.scale.set(options.scale, options.scale, options.scale);
+    }
 
     // mesh.rotation.set(rotation.x, rotation.y, rotation.z);
     mesh.setRotationFromQuaternion(rotation);
@@ -210,8 +310,8 @@ export class SceneLayer implements CustomLayerInterface {
       altitude,
       rotation,
       mesh,
+      altitudeReference: options.altitudeReference ?? altitudeReference.GROUND,
     };
-
 
     // The first mesh added defines the anchor point
     if (this.items3D.size === 0) {
@@ -219,51 +319,65 @@ export class SceneLayer implements CustomLayerInterface {
       this.sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin);
     }
     
-
     this.items3D.set(id, item);
   }
 
+
+  /**
+   * Load a GLTF file from its URL and add it to the map
+   */
   addMeshFromURL(
     id: string,
     meshURL: string,
-    lngLat: LngLatLike,
-    options: {
-      rotation?: Quaternion;
-      altitude?: number;
-      scale?: Vector3;
-    } = {},
+    options: MeshOptions = {},
   ) {
+    this.throwUniqueID(id);
+
     const fileExt = meshURL.trim().toLowerCase().split(".").pop();
 
-    console.log("fileExt>>>>>>>", fileExt);
+    if (!(fileExt === "glb" || fileExt === "gltf")) {
+      throw new Error("Mesh files must be glTF/glb.");
+    }
 
-    if (fileExt === "glb" || fileExt === "gltf") {
-      const loader = new GLTFLoader();
-      loader.load(meshURL, (meshScene: GLTF) => {
-        const model = meshScene.scene;
+    const loader = new GLTFLoader();
+    loader.load(meshURL, (meshScene: GLTF) => {
+      this.addMesh(id, meshScene.scene, options);
+    });
+  }
 
-        console.log(model);
 
-        if (options.scale) {
-          model.scale.set(options.scale.x, options.scale.y, options.scale.z);
-        }
+  addPointLight(
+    id: string,
+    options: PointLightOptions = {}
+  ) {
+    this.throwUniqueID(id);
 
-        this.addMesh(id, model, lngLat, options);
-      });
-    } else if (fileExt === "usdz") {
-      const loader = new USDZLoader();
+    const pointLight = new PointLight(
+      options.color ?? 0xffffff, // color
+      options.intensity ?? 75, // intensity
+      0, // distance (0 = no limit)
+      options.decay ?? 0.2, // decay
+    );
 
-      loader.load(meshURL, (model: Mesh) => {
-        if (options.scale) {
-          model.scale.set(options.scale.x, options.scale.y, options.scale.z);
-        }
+    this.addMesh(id, pointLight, {
+      lngLat: options.lngLat ?? [0, 0],
+      altitude: options.altitude ?? 2000000,
+      altitudeReference: options.altitudeReference,
+    });
+  }
 
-        this.addMesh(id, model, lngLat, options);
-      });
-    } else {
-      throw new Error("Mesh file mush be glTF/glb or USDZ.");
+
+  /**
+   * Throw an error if a mesh with such ID already exists
+   */
+  private throwUniqueID(id: string) {
+    if (this.items3D.has(id)) {
+      throw new Error(`Mesh IDs are unique. A mesh or light with the id "${id}" already exist.`)
     }
   }
+
+
+  // addPointLight(id: string, options: )
 
   testAddingMeshes() {
     // const pointLight = new PointLight(
@@ -342,23 +456,23 @@ export class SceneLayer implements CustomLayerInterface {
 
 
 
-    // const quaternion = new Quaternion();
-    // const rotationA = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
-    // const rotationB = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
+    const quaternion = new Quaternion();
+    const rotationA = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+    const rotationB = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
 
-    // // Chain the rotations
-    // quaternion.multiplyQuaternions(rotationA, rotationB);
+    // Chain the rotations
+    quaternion.multiplyQuaternions(rotationA, rotationB);
 
-    // this.addMeshFromURL(
-    //   "eiffel",
-    //   // "private_models/free__la_tour_eiffel.glb",
-    //   "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
-    //   [2.294530547874315, 48.85826142288141], // Paris
-    //   {
-    //     scale: new Vector3(2.2, 2.2, 2.2), // necessary because the sofa is too small (possibly metric system)
-    //     rotation: quaternion,
-    //   }
-    // );
+    this.addMeshFromURL(
+      "eiffel",
+      "private_models/free__la_tour_eiffel.glb",
+      // "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
+      {
+        lngLat: [2.294530547874315, 48.85826142288141], // Paris
+        scale: 2.2, // necessary because the sofa is too small (possibly metric system)
+        rotation: quaternion,
+      }
+    );
 
 
 
@@ -386,27 +500,19 @@ export class SceneLayer implements CustomLayerInterface {
     const sphereMaterial = new MeshLambertMaterial({ color: 0xff0000 });
     const sphere = new Mesh(sphereGeometry, sphereMaterial);
 
-    this.addMesh("sphere", sphere, [2.2945, 48.858], {
+    this.addMesh("sphere", sphere, {
+      lngLat: [2.2945, 48.858],
       altitude: 0,
       // rotation: new Quaternion(),
     });
 
 
 
-
-
-
-    const pointLight = new PointLight(
-      0xffffff, // color
-      70, // intensity
-      0, // distance (0 = no limit)
-      0.2, // decay
-    );
-
-
-    this.addMesh("light", pointLight, [0, 0], {
+    this.addPointLight("light", {
+      lngLat: [0, 0],
       altitude: 2000000,
       // rotation: new Quaternion(),
+      intensity: 1000
     });
 
 
@@ -414,7 +520,8 @@ export class SceneLayer implements CustomLayerInterface {
     // const sphereLightMaterial = new MeshBasicMaterial({ color: 0x0000ff });
     // const sphereLight = new Mesh(sphereLightGeometry, sphereLightMaterial);
 
-    this.addMesh("sphereLight", new AxesHelper(100000), [0, 0], {
+    this.addMesh("sphereLight", new AxesHelper(100000), {
+      lngLat: [0, 0],
       altitude: 2000000,
       // rotation: new Quaternion(),
     });
