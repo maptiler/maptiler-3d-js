@@ -323,6 +323,44 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
 
+  modifyMesh(id: string, options: MeshOptions) {
+    const item = this.items3D.get(id);
+    if (!item) return;
+    if (!item.mesh) return;
+
+    if ("scale" in options && typeof options.scale === "number") {
+      item?.mesh?.scale.set(options.scale, options.scale, options.scale);
+    }
+
+    let adjustMercator = false;
+    if ("altitude" in options && typeof options.altitude === "number") {
+      item.altitude = options.altitude;
+      adjustMercator = true;
+    }
+
+    if ("lngLat" in options) {
+      item.lngLat = lngLatLikeToLngLat(options.lngLat as LngLatLike);
+      adjustMercator = true;
+    }
+
+    if ("rotation" in options) {
+      const rotation = options.rotation as Quaternion;
+      item.rotation = rotation;
+      item.mesh.setRotationFromQuaternion(rotation);
+    }
+
+    if ("altitudeReference" in options && typeof options.altitudeReference === "number") {
+      item.altitudeReference = options.altitudeReference;
+    }
+
+    if (adjustMercator) {
+      item.mercatorCoord = MercatorCoordinate.fromLngLat(item.lngLat, item.altitude);
+    }
+
+    this.map.triggerRepaint();
+  }
+
+
   /**
    * Load a GLTF file from its URL and add it to the map
    */
@@ -341,9 +379,7 @@ export class SceneLayer implements CustomLayerInterface {
 
     const loader = new GLTFLoader();
     const gltfContent = await loader.loadAsync(meshURL);
-    console.log(gltfContent);
-    const meshToAdd = gltfContent.scene.children[0]
-    this.addMesh(id, meshToAdd, options);
+    this.addMesh(id, gltfContent.scene, options);
   }
 
 
@@ -376,6 +412,8 @@ export class SceneLayer implements CustomLayerInterface {
       throw new Error(`Mesh IDs are unique. A mesh or light with the id "${id}" already exist.`)
     }
   }
+
+
 
 
   // addPointLight(id: string, options: )
@@ -458,25 +496,37 @@ export class SceneLayer implements CustomLayerInterface {
     // );
 
 
-    await this.addMeshFromURL(
-      "car",
-      // "private_models/free__la_tour_eiffel.glb",
-      "private_models/ToyCar.glb",
-      {
-        lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
-        scale: 1, // necessary because the sofa is too small (possibly metric system)
-        rotation: new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI),
-      }
-    );
+    // await this.addMeshFromURL(
+    //   "car",
+    //   // "private_models/free__la_tour_eiffel.glb",
+    //   "private_models/SheenChair.glb",
+    //   {
+    //     lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
+    //     scale: 10, // necessary because the sofa is too small (possibly metric system)
+    //     // rotation: new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI),
+    //   }
+    // );
 
    
 
-    this.addPointLight("light", {
-      lngLat: [0, 0],
+    this.addPointLight("light1", {
+      lngLat: [-130, 40],
       altitude: 2000000,
       // rotation: new Quaternion(),
       intensity: 50
     });
+
+    this.addPointLight("light2", {
+      lngLat: [130, 40],
+      altitude: 2000000,
+      // rotation: new Quaternion(),
+      intensity: 50
+    });
+
+    this.map.on("click", (e) => {
+      console.log("click", e);
+      this.modifyMesh("torus", {lngLat: e.lngLat})
+    })
 
 
   }
