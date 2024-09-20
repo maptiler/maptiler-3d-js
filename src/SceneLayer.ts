@@ -1,4 +1,4 @@
-import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat } from "@maptiler/sdk";
+import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat, LngLat, LngLat } from "@maptiler/sdk";
 import {
   Camera,
   Matrix4,
@@ -15,17 +15,18 @@ import {
   // PlaneGeometry,
   // MeshBasicMaterial,
   // MeshPhongMaterial,
-  SphereGeometry,
+  // SphereGeometry,
   PointLight,
   // MeshPhongMaterial,
   MeshLambertMaterial,
   type ColorRepresentation,
   AmbientLight,
   Color,
+  TorusKnotGeometry,
   // DirectionalLight,
 } from "three";
 
-import { type GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 // import { USDZLoader } from "three/examples/jsm/loaders/USDZLoader";
 
 export const altitudeReference = {
@@ -64,7 +65,7 @@ export type GenericObject3DOptions = {
 export type MeshOptions = GenericObject3DOptions & {
   /**
    * Rotation to apply to the model to add, as a Quaternion.
-   * Default: no custom rotation applied
+   * Default: a rotation of PI/2 around the x axis, to adjust from the default ThreeJS space (right-hand, Y up) to the Maplibre space (right-hand, Z up)
    */
   rotation?: Quaternion,
 
@@ -189,7 +190,7 @@ export class SceneLayer implements CustomLayerInterface {
 
     this.ambientLight = new AmbientLight(
       options.ambientLightColor ?? 0xffffff,
-      options.ambientLightIntensity ?? 1
+      options.ambientLightIntensity ?? 0.5
     );
 
     this.scene.add(this.ambientLight);
@@ -221,19 +222,21 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
   render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
-    if (!this.sceneOrigin) return;
     if (!this.isInZoomRange()) return;
+    if (this.items3D.size === 0) return;
+
+    const mapCenter = this.map.getCenter();
+    this.sceneOrigin = new LngLat(mapCenter.lng + 0.01, mapCenter.lat + 0.01)
+    const offsetFromCenterElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
+    this.sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin, offsetFromCenterElevation);
 
     this.reposition();
 
-    const offsetFromCenterElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
-    const sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin, offsetFromCenterElevation);
-
     const sceneTransform = {
-      translateX: sceneOriginMercator.x,
-      translateY: sceneOriginMercator.y,
-      translateZ: sceneOriginMercator.z,
-      scale: sceneOriginMercator.meterInMercatorCoordinateUnits()
+      translateX: this.sceneOriginMercator.x,
+      translateY: this.sceneOriginMercator.y,
+      translateZ: this.sceneOriginMercator.z,
+      scale: this.sceneOriginMercator.meterInMercatorCoordinateUnits()
     };
 
     const m = new Matrix4().fromArray(matrix);
@@ -244,7 +247,9 @@ export class SceneLayer implements CustomLayerInterface {
     this.camera.projectionMatrix = m.multiply(l);
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
-    this.map.triggerRepaint(); // TODO test without
+    // this.map.triggerRepaint(); // TODO test without
+    // console.log("repaint");
+    
   }
 
 
@@ -312,21 +317,16 @@ export class SceneLayer implements CustomLayerInterface {
       mesh,
       altitudeReference: options.altitudeReference ?? altitudeReference.GROUND,
     };
-
-    // The first mesh added defines the anchor point
-    if (this.items3D.size === 0) {
-      this.sceneOrigin = item.lngLat;
-      this.sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin);
-    }
     
     this.items3D.set(id, item);
+    this.map.triggerRepaint();
   }
 
 
   /**
    * Load a GLTF file from its URL and add it to the map
    */
-  addMeshFromURL(
+  async addMeshFromURL(
     id: string,
     meshURL: string,
     options: MeshOptions = {},
@@ -340,9 +340,10 @@ export class SceneLayer implements CustomLayerInterface {
     }
 
     const loader = new GLTFLoader();
-    loader.load(meshURL, (meshScene: GLTF) => {
-      this.addMesh(id, meshScene.scene, options);
-    });
+    const gltfContent = await loader.loadAsync(meshURL);
+    console.log(gltfContent);
+    const meshToAdd = gltfContent.scene.children[0]
+    this.addMesh(id, meshToAdd, options);
   }
 
 
@@ -379,178 +380,105 @@ export class SceneLayer implements CustomLayerInterface {
 
   // addPointLight(id: string, options: )
 
-  testAddingMeshes() {
-    // const pointLight = new PointLight(
-    //   0xffffff, // color
-    //   1000, // intensity
-    // );
+  async testAddingMeshes() {
 
-    // pointLight.position.set(10, 40, 0);
-    // this.scene.add(pointLight);
+    const torusGeometry = new TorusKnotGeometry( 10, 3, 100, 16 ); 
+    const torusMaterial = new MeshLambertMaterial( { color: 0xffff00 } ); 
+    const torusKnot = new Mesh( torusGeometry, torusMaterial );
+
+    this.addMesh("torus", torusKnot,
+    {
+      lngLat: [2.294530547874315 + 0.1, 48.85826142288141], // Paris
+      scale: 10, // necessary because the sofa is too small (possibly metric system)
+      // rotation: quaternion,
+    })
+
+    this.addMesh("torus2", torusKnot.clone(),
+    {
+      lngLat: [2.294530547874315, 48.85826142288141 + 0.1], // Paris
+      scale: 10, // necessary because the sofa is too small (possibly metric system)
+      // rotation: quaternion,
+    })
 
 
-
-    // const directionalLight = new DirectionalLight(0xffffff, 5);
-    // directionalLight.position.set(0, -70, 100).normalize();
-    // this.scene.add(directionalLight);
-
-    // console.log(directionalLight);
-
-    // const directionalLight2 = new DirectionalLight(0xffffff);
-    // directionalLight2.position.set(0, 70, 100).normalize();
-    // this.scene.add(directionalLight2);
-
-
-    
-
-    // this.addMesh(
-    //   "point light",
-    //   pointLight,
-    //   [2.2945, 48.858],
-    //   {
-    //     altitude: 30,
-    //     rotation: new Quaternion(),
-    //     // rotation: new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2)
-    //   }
-    // )
-
-    // const directionalLight2 = new DirectionalLight(0xffffff);
-    // directionalLight2.position.set(100, 100, 70).normalize();
-    // this.scene.add(directionalLight2);
-
-    // this.addItem(
-    //   "some mesh",
-    //   [148.9819, -35.39847],
-    //   // {
-    //   //   rotation?: Vector3,
-    //   //   scale?: number,
-    //   //   altitude?: number
-    //   // }
-    //   );
-
-    //   const loader = new GLTFLoader();
-    //   loader.load(
-    //     // 'https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf',
-    //     "private_models/tmp_SheenChair.glb",
-    //     (gltf: GLTF) => {
-    //       const model = gltf.scene;
-
-    //       console.log(model);
-    //       model.scale.set(100, 100, 100)
-
-    //       this.addMesh("sofa", model, [148.9819, -35.39847]);
-    //     }
-    //   );
-    // }
-
-    // this.addMeshFromURL(
-    //   "sofa",
-    //   "private_models/SheenChair.glb",
-    //   [2.349172, 48.853848], // Paris
-    //   {
-    //     scale: new Vector3(100, 100, 100), // necessary because the sofa is too small (possibly metric system)
-    //   }
-    // );
+    this.addMesh("axes", new AxesHelper(100),
+    {
+      lngLat: [2.294530547874315, 48.85826142288141], // Paris
+      // scale: 10, // necessary because the sofa is too small (possibly metric system)
+      rotation: new Quaternion(),
+    })
 
 
 
 
-
-    const quaternion = new Quaternion();
-    const rotationA = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
-    const rotationB = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
+    // const quaternion = new Quaternion();
+    // const rotationA = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+    // const rotationB = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
 
     // Chain the rotations
-    quaternion.multiplyQuaternions(rotationA, rotationB);
+    // quaternion.multiplyQuaternions(rotationA, rotationB);
 
-    this.addMeshFromURL(
-      "eiffel",
-      "private_models/free__la_tour_eiffel.glb",
-      // "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
+    // await this.addMeshFromURL(
+    //   "eiffel",
+    //   // "private_models/free__la_tour_eiffel.glb",
+    //   "private_models/SheenChair.glb",
+    //   // "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
+    //   {
+    //     lngLat: [2.294530547874315, 48.85826142288141], // Paris
+    //     scale: 2.2, // necessary because the sofa is too small (possibly metric system)
+    //     rotation: quaternion,
+    //   }
+    // );
+
+    // await this.addMeshFromURL(
+    //   "chair",
+    //   // "private_models/free__la_tour_eiffel.glb",
+    //   "private_models/SheenChair.glb",
+    //   // "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
+    //   {
+    //     lngLat: [2.294530547874315, 48.85826142288141], // Paris
+    //     scale: 10, // necessary because the sofa is too small (possibly metric system)
+    //     // rotation: quaternion,
+    //   }
+    // );
+
+    // console.log("DEBUG03");
+    
+
+
+    // await this.addMeshFromURL(
+    //   "eiffel2",
+    //   // "private_models/free__la_tour_eiffel.glb",
+    //   "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
+    //   {
+    //     lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
+    //     scale: 10, // necessary because the sofa is too small (possibly metric system)
+    //     // rotation: quaternion,
+    //   }
+    // );
+
+
+    await this.addMeshFromURL(
+      "car",
+      // "private_models/free__la_tour_eiffel.glb",
+      "private_models/ToyCar.glb",
       {
-        lngLat: [2.294530547874315, 48.85826142288141], // Paris
-        scale: 2.2, // necessary because the sofa is too small (possibly metric system)
-        rotation: quaternion,
+        lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
+        scale: 1, // necessary because the sofa is too small (possibly metric system)
+        rotation: new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI),
       }
     );
 
-
-
-
-    // const geometry = new PlaneGeometry(500, 500);
-    // const material = new MeshPhongMaterial({ color: 0x555555, side: DoubleSide, specular: 0xffffff, shininess: 1 });
-    // const planeA = new Mesh(geometry, material);
-    // const planeB = new Mesh(geometry, material);
-    // planeB.rotateY(Math.PI / 2);
-    // const planeGoup = new Object3D();
-    // planeGoup.add(planeA, planeB);
-
-    // this.addMesh(
-    //   "some planes",
-    //   planeGoup,
-    //   [2.294530547874315, 48.85826142288141],
-    //   // {
-    //   //   rotation?: Vector3,
-    //   //   scale?: number,
-    //   //   altitude?: number
-    //   // }
-    // );
-
-    const sphereGeometry = new SphereGeometry(50);
-    const sphereMaterial = new MeshLambertMaterial({ color: 0xff0000 });
-    const sphere = new Mesh(sphereGeometry, sphereMaterial);
-
-    this.addMesh("sphere", sphere, {
-      lngLat: [2.2945, 48.858],
-      altitude: 0,
-      // rotation: new Quaternion(),
-    });
-
-
+   
 
     this.addPointLight("light", {
       lngLat: [0, 0],
       altitude: 2000000,
       // rotation: new Quaternion(),
-      intensity: 1000
+      intensity: 50
     });
 
 
-    // const sphereLightGeometry = new SphereGeometry(10);
-    // const sphereLightMaterial = new MeshBasicMaterial({ color: 0x0000ff });
-    // const sphereLight = new Mesh(sphereLightGeometry, sphereLightMaterial);
-
-    this.addMesh("sphereLight", new AxesHelper(100000), {
-      lngLat: [0, 0],
-      altitude: 2000000,
-      // rotation: new Quaternion(),
-    });
-
-
-    // this.addMeshFromURL(
-    //   "camera",
-    //   // "private_models/ToyCar.glb",
-    //   "private_models/AntiqueCamera.glb",
-    //   [-73.968038, 40.777186], // New York (Central Park)
-    //   {
-    //     scale: new Vector3(10, 10, 10), // necessary because the sofa
-    //   }
-    // );
-
-    // this.addMeshFromURL(
-    //   "antena",
-    //   "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
-    //   [-0.112638, 51.51], // London
-    // );
-
-    // this.addMeshFromURL(
-    //   "flying car",
-    //   "private_models/fennec_-_rocket_league_car.glb",
-    //   [-0.13, 51.51], // London
-    //   // {
-    //   //   scale: new Vector3(100, 100, 100), // necessary because the sofa
-    //   // }
-    // );
   }
 }
 
