@@ -29,10 +29,15 @@ import {
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 // import { USDZLoader } from "three/examples/jsm/loaders/USDZLoader";
 
-export const altitudeReference = {
-  GROUND: 1,
-  MEAN_SEA_LEVEL: 2
-} as const;
+// export const altitudeReference = {
+//   GROUND: 1,
+//   MEAN_SEA_LEVEL: 2
+// } as const;
+
+export enum AltitudeReference {
+  GROUND = 1,
+  MEAN_SEA_LEVEL = 2
+};
 
 
 /**
@@ -53,9 +58,9 @@ export type GenericObject3DOptions = {
 
   /**
    * Reference to compute and adjust the altitude.
-   * Default: `altitudeReference.GROUND` for both meshes and point lights.
+   * Default: `altitudeReference.GROUND` for meshes and ``altitudeReference.MEAN_SEA_LEVEL` for point lights.
    */
-  altitudeReference?: number,
+  altitudeReference?: AltitudeReference,
 };
 
 
@@ -157,7 +162,7 @@ export type Item3D = {
   altitude: number;
   rotation: Quaternion;
   mesh: Mesh | AxesHelper | Group | Object3D | null;
-  altitudeReference: number,
+  altitudeReference: AltitudeReference,
 };
 
 export class SceneLayer implements CustomLayerInterface {
@@ -213,16 +218,23 @@ export class SceneLayer implements CustomLayerInterface {
 
     this.renderer.autoClear = false;
 
+    // this.map.on("move", () => {
+    //   console.log("---- MOVE");
+      
+    // })
+
     // TESTING
     this.testAddingMeshes();
   }
 
+  
   onRemove?(_map: MapSDK, _gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     this.scene.clear();
   }
 
+
   render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
-    console.log("RENDER");
+    // console.log("RENDER");
     if (!this.isInZoomRange()) return;
     if (this.items3D.size === 0) return;
 
@@ -264,11 +276,6 @@ export class SceneLayer implements CustomLayerInterface {
     }
   }
 
-  prerender(_gl: WebGLRenderingContext | WebGL2RenderingContext, _matrix: Mat4, _options: CustomRenderMethodInput) {
-    console.log(">> PRE RENDER");
-    
-  }
-
  
   /**
    * Adjust the position of all meshes and light relatively to the center of the scene
@@ -285,7 +292,7 @@ export class SceneLayer implements CustomLayerInterface {
 
       let itemUpShift = itemElevationAtPosition - sceneElevation + item.altitude;
 
-      if (item.altitudeReference === altitudeReference.MEAN_SEA_LEVEL) {
+      if (item.altitudeReference === AltitudeReference.MEAN_SEA_LEVEL) {
         const actualItemAltitude = targetElevation + itemElevationAtPosition;
         itemUpShift -= actualItemAltitude / terrainExag;
       }
@@ -327,7 +334,7 @@ export class SceneLayer implements CustomLayerInterface {
       altitude,
       rotation,
       mesh,
-      altitudeReference: options.altitudeReference ?? altitudeReference.GROUND,
+      altitudeReference: options.altitudeReference ?? AltitudeReference.GROUND,
     };
     
     this.items3D.set(id, item);
@@ -471,7 +478,7 @@ export class SceneLayer implements CustomLayerInterface {
     this.addMesh(id, pointLight, {
       lngLat: options.lngLat ?? [0, 0],
       altitude: options.altitude ?? 2000000,
-      altitudeReference: options.altitudeReference ?? altitudeReference.MEAN_SEA_LEVEL,
+      altitudeReference: options.altitudeReference ?? AltitudeReference.MEAN_SEA_LEVEL,
     });
   }
 
@@ -489,7 +496,7 @@ export class SceneLayer implements CustomLayerInterface {
 
 
   async testAddingMeshes() {
-    // this.setAmbientLight({intensity: 100})
+    this.setAmbientLight({intensity: 100})
 
     const torusGeometry = new TorusKnotGeometry( 10, 3, 100, 16 ); 
     const torusMaterial = new MeshLambertMaterial( { color: 0xff0000 } ); 
@@ -500,7 +507,7 @@ export class SceneLayer implements CustomLayerInterface {
       lngLat: [2.294530547874315 + 0.1, 48.85826142288141], // Paris
       scale: 5, // necessary because the sofa is too small (possibly metric system)
       // rotation: quaternion,
-      altitudeReference: altitudeReference.MEAN_SEA_LEVEL,
+      altitudeReference: AltitudeReference.GROUND,
     })
 
 
@@ -582,19 +589,19 @@ export class SceneLayer implements CustomLayerInterface {
 
    
 
-    this.addPointLight("light1", {
-      lngLat: [-130, 40],
-      altitude: 2000000,
-      // rotation: new Quaternion(),
-      intensity: 50
-    });
+    // this.addPointLight("light1", {
+    //   lngLat: [-130, 40],
+    //   altitude: 2000000,
+    //   // rotation: new Quaternion(),
+    //   intensity: 50
+    // });
 
-    this.addPointLight("light2", {
-      lngLat: [130, 40],
-      altitude: 2000000,
-      // rotation: new Quaternion(),
-      intensity: 50
-    });
+    // this.addPointLight("light2", {
+    //   lngLat: [130, 40],
+    //   altitude: 2000000,
+    //   // rotation: new Quaternion(),
+    //   intensity: 50
+    // });
 
     this.map.on("click", (e) => {
       console.log("click", e);
