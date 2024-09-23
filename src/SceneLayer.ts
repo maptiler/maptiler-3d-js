@@ -58,7 +58,7 @@ export type GenericObject3DOptions = {
 
   /**
    * Reference to compute and adjust the altitude.
-   * Default: `altitudeReference.GROUND` for meshes and ``altitudeReference.MEAN_SEA_LEVEL` for point lights.
+   * Default: `AltitudeReference.GROUND` for meshes and `AltitudeReference.MEAN_SEA_LEVEL` for point lights.
    */
   altitudeReference?: AltitudeReference,
 };
@@ -457,7 +457,7 @@ export class SceneLayer implements CustomLayerInterface {
    * Adding a point light. The default options are mimicking the sun:
    * lngLat: `[0, 0]` (null island)
    * altitude: `2_000_000` meters
-   * altitudeReference: `altitudeReference.MEAN_SEA_LEVEL`
+   * altitudeReference: `AltitudeReference.MEAN_SEA_LEVEL`
    * color: `0xffffff` (white)
    * intensity: `75`
    * decay: `0.2`
