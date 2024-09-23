@@ -1,9 +1,9 @@
-import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat, LngLat, LngLat } from "@maptiler/sdk";
+import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat, CustomRenderMethod } from "@maptiler/sdk";
 import {
   Camera,
   Matrix4,
   Scene,
-  WebGLRenderer, AxesHelper,
+  WebGLRenderer, type AxesHelper,
   Vector3,
   Mesh,
   type Group,
@@ -222,34 +222,32 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
   render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
+    console.log("RENDER");
     if (!this.isInZoomRange()) return;
     if (this.items3D.size === 0) return;
 
     const mapCenter = this.map.getCenter();
     this.sceneOrigin = new LngLat(mapCenter.lng + 0.01, mapCenter.lat + 0.01)
+    // this.sceneOrigin = new LngLat(mapCenter.lng, mapCenter.lat)
     const offsetFromCenterElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
     this.sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin, offsetFromCenterElevation);
 
+    // Adjust all the meshes and light according to the relative center of the scene
     this.reposition();
 
-    const sceneTransform = {
-      translateX: this.sceneOriginMercator.x,
-      translateY: this.sceneOriginMercator.y,
-      translateZ: this.sceneOriginMercator.z,
-      scale: this.sceneOriginMercator.meterInMercatorCoordinateUnits()
-    };
+    const sceneScale = this.sceneOriginMercator.meterInMercatorCoordinateUnits();
 
     const m = new Matrix4().fromArray(matrix);
     const l = new Matrix4()
-      .makeTranslation(sceneTransform.translateX, sceneTransform.translateY, sceneTransform.translateZ)
-      .scale(new Vector3(sceneTransform.scale, -sceneTransform.scale, sceneTransform.scale));
+      .makeTranslation(this.sceneOriginMercator.x, this.sceneOriginMercator.y, this.sceneOriginMercator.z)
+      .scale(new Vector3(sceneScale, -sceneScale, sceneScale));
 
     this.camera.projectionMatrix = m.multiply(l);
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
-    // this.map.triggerRepaint(); // TODO test without
-    // console.log("repaint");
     
+    // repainting all the time makes the idle event to never happen
+    // this.map.triggerRepaint();
   }
 
 
@@ -266,18 +264,32 @@ export class SceneLayer implements CustomLayerInterface {
     }
   }
 
+  prerender(_gl: WebGLRenderingContext | WebGL2RenderingContext, _matrix: Mat4, _options: CustomRenderMethodInput) {
+    console.log(">> PRE RENDER");
+    
+  }
+
  
+  /**
+   * Adjust the position of all meshes and light relatively to the center of the scene
+   */
   private reposition() {
     if (!this.sceneOrigin || !this.sceneOriginMercator) return;
-
-    // Doing it at render time rather than init time in case this has changed.
-    // TODO: maybe debounce that.
-    const sceneElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
+    const terrainExag = this.map.getTerrainExaggeration();    
+    const sceneElevation = (this.map.queryTerrainElevation(this.sceneOrigin) || 0);
+    const targetElevation = this.map.getCameraTargetElevation();
 
     for (const [_itemId, item] of this.items3D) {
       // Get the elevation of the terrain at the location of the item
-      const itemElevationAtPosition = this.map.queryTerrainElevation(item.lngLat) || 0;
-      const itemUpShift = itemElevationAtPosition - sceneElevation + item.altitude;
+      const itemElevationAtPosition = (this.map.queryTerrainElevation(item.lngLat) || 0);
+
+      let itemUpShift = itemElevationAtPosition - sceneElevation + item.altitude;
+
+      if (item.altitudeReference === altitudeReference.MEAN_SEA_LEVEL) {
+        const actualItemAltitude = targetElevation + itemElevationAtPosition;
+        itemUpShift -= actualItemAltitude / terrainExag;
+      }
+
       const {dEastMeter: itemEast, dNorthMeter: itemNorth} = calculateDistanceMercatorToMeters(this.sceneOriginMercator, item.mercatorCoord);
       item.mesh?.position.set(itemEast, itemNorth, itemUpShift);
     }
@@ -361,6 +373,57 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
 
+  modifyPointLight(id: string, options: PointLightOptions) {
+    const item = this.items3D.get(id);
+    if (!item) return;
+    if (!item.mesh) return;
+
+    // Not a light?
+    if (!("isLight" in item.mesh && item.mesh.isLight === true)) return;
+
+    const mesh = item.mesh as PointLight;
+
+    if ("decay" in options && typeof options.decay === "number") {
+      mesh.decay = options.decay;
+    }
+
+    if ("intensity" in options && typeof options.intensity === "number") {
+      mesh.intensity = options.intensity;
+    }
+
+    if ("color" in options) {
+      mesh.color.set(new Color(options.color)); // TODO: not optimal to call a constructor every time
+    }
+
+    let adjustMercator = false;
+    if ("altitude" in options && typeof options.altitude === "number") {
+      item.altitude = options.altitude;
+      adjustMercator = true;
+    }
+
+    if ("lngLat" in options) {
+      item.lngLat = lngLatLikeToLngLat(options.lngLat as LngLatLike);
+      adjustMercator = true;
+    }
+
+    if ("rotation" in options) {
+      const rotation = options.rotation as Quaternion;
+      item.rotation = rotation;
+      item.mesh.setRotationFromQuaternion(rotation);
+    }
+
+    if ("altitudeReference" in options && typeof options.altitudeReference === "number") {
+      item.altitudeReference = options.altitudeReference;
+    }
+
+    if (adjustMercator) {
+      item.mercatorCoord = MercatorCoordinate.fromLngLat(item.lngLat, item.altitude);
+    }
+
+    this.map.triggerRepaint();
+  }
+
+
   /**
    * Load a GLTF file from its URL and add it to the map
    */
@@ -383,6 +446,15 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
 
+  /**
+   * Adding a point light. The default options are mimicking the sun:
+   * lngLat: `[0, 0]` (null island)
+   * altitude: `2_000_000` meters
+   * altitudeReference: `altitudeReference.MEAN_SEA_LEVEL`
+   * color: `0xffffff` (white)
+   * intensity: `75`
+   * decay: `0.2`
+   */
   addPointLight(
     id: string,
     options: PointLightOptions = {}
@@ -399,7 +471,7 @@ export class SceneLayer implements CustomLayerInterface {
     this.addMesh(id, pointLight, {
       lngLat: options.lngLat ?? [0, 0],
       altitude: options.altitude ?? 2000000,
-      altitudeReference: options.altitudeReference,
+      altitudeReference: options.altitudeReference ?? altitudeReference.MEAN_SEA_LEVEL,
     });
   }
 
@@ -416,35 +488,36 @@ export class SceneLayer implements CustomLayerInterface {
 
 
 
-  // addPointLight(id: string, options: )
-
   async testAddingMeshes() {
+    // this.setAmbientLight({intensity: 100})
 
     const torusGeometry = new TorusKnotGeometry( 10, 3, 100, 16 ); 
-    const torusMaterial = new MeshLambertMaterial( { color: 0xffff00 } ); 
+    const torusMaterial = new MeshLambertMaterial( { color: 0xff0000 } ); 
     const torusKnot = new Mesh( torusGeometry, torusMaterial );
 
     this.addMesh("torus", torusKnot,
     {
       lngLat: [2.294530547874315 + 0.1, 48.85826142288141], // Paris
-      scale: 10, // necessary because the sofa is too small (possibly metric system)
+      scale: 5, // necessary because the sofa is too small (possibly metric system)
       // rotation: quaternion,
-    })
-
-    this.addMesh("torus2", torusKnot.clone(),
-    {
-      lngLat: [2.294530547874315, 48.85826142288141 + 0.1], // Paris
-      scale: 10, // necessary because the sofa is too small (possibly metric system)
-      // rotation: quaternion,
+      altitudeReference: altitudeReference.MEAN_SEA_LEVEL,
     })
 
 
-    this.addMesh("axes", new AxesHelper(100),
-    {
-      lngLat: [2.294530547874315, 48.85826142288141], // Paris
-      // scale: 10, // necessary because the sofa is too small (possibly metric system)
-      rotation: new Quaternion(),
-    })
+    // this.addMesh("torus2", torusKnot.clone(),
+    // {
+    //   lngLat: [2.294530547874315, 48.85826142288141 + 0.1], // Paris
+    //   scale: 10, // necessary because the sofa is too small (possibly metric system)
+    //   // rotation: quaternion,
+    // })
+
+
+    // this.addMesh("axes", new AxesHelper(100),
+    // {
+    //   lngLat: [2.294530547874315, 48.85826142288141], // Paris
+    //   // scale: 10, // necessary because the sofa is too small (possibly metric system)
+    //   rotation: new Quaternion(),
+    // })
 
 
 
@@ -525,7 +598,7 @@ export class SceneLayer implements CustomLayerInterface {
 
     this.map.on("click", (e) => {
       console.log("click", e);
-      this.modifyMesh("torus", {lngLat: e.lngLat})
+      this.modifyMesh("torus", {lngLat: e.lngLat, altitude: 2000})
     })
 
 
