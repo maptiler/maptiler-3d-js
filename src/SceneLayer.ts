@@ -239,7 +239,7 @@ export class SceneLayer implements CustomLayerInterface {
     // })
 
     // TESTING
-    this.testAddingMeshes();
+    // this.testAddingMeshes();
   }
 
   
@@ -355,7 +355,7 @@ export class SceneLayer implements CustomLayerInterface {
     const item: Item3D = {
       id,
       mercatorCoord,
-      lngLat: lngLatLikeToLngLat(lngLat),
+      lngLat: LngLat.convert(lngLat),
       altitude,
       sourceOrientation,
       heading,
@@ -384,7 +384,7 @@ export class SceneLayer implements CustomLayerInterface {
     }
 
     if ("lngLat" in options) {
-      item.lngLat = lngLatLikeToLngLat(options.lngLat as LngLatLike);
+      item.lngLat = LngLat.convert(options.lngLat as LngLatLike);
       adjustMercator = true;
     }
 
@@ -420,6 +420,31 @@ export class SceneLayer implements CustomLayerInterface {
 
     this.map.triggerRepaint();
   }
+  
+
+  /**
+   * 
+   * Clone an existing mesh. Extra options can be provided to overwrite the clone configuration
+   */
+  cloneMesh(sourceId: string, id: string, options: MeshOptions) {
+    this.throwUniqueID(id);
+    const sourceItem = this.items3D.get(sourceId);
+    if (!sourceItem) return;
+    if (!sourceItem.mesh) return;
+
+    const cloneOptions: MeshOptions = {
+      lngLat: sourceItem.lngLat,
+      altitude: sourceItem.altitude,
+      altitudeReference: sourceItem.altitudeReference,
+      visible: sourceItem.mesh.visible,
+      sourceOrientation: sourceItem.sourceOrientation,
+      scale: sourceItem.mesh.scale.x,
+      heading: sourceItem.heading,
+      ... options,
+    }
+
+    this.addMesh(id, sourceItem.mesh.clone(), cloneOptions);
+  }
 
 
   modifyPointLight(id: string, options: PointLightOptions) {
@@ -451,7 +476,7 @@ export class SceneLayer implements CustomLayerInterface {
     }
 
     if ("lngLat" in options) {
-      item.lngLat = lngLatLikeToLngLat(options.lngLat as LngLatLike);
+      item.lngLat = LngLat.convert(options.lngLat as LngLatLike);
       adjustMercator = true;
     }
 
@@ -490,6 +515,43 @@ export class SceneLayer implements CustomLayerInterface {
     const loader = new GLTFLoader();
     const gltfContent = await loader.loadAsync(meshURL);
     this.addMesh(id, gltfContent.scene, options);
+  }
+
+  removeMesh(id: string) {
+    const item = this.items3D.get(id);
+
+    console.log(this.items3D);
+    
+
+    if (!item) {
+      throw new Error(`Mesh with ID ${id} does not exist.`);
+    }
+
+    const mesh = item?.mesh;
+
+    if (mesh) {
+      // Removing the mesh from the scene
+      this.scene.remove(mesh);
+
+      // Traversing the tree of this Object3D/Group/Mesh
+      // and find all the sub nodes that are THREE.Mesh
+      // so that we can dispose (aka. free GPU memory) of their material and geometries
+      mesh.traverse((node) => {
+        if ("isMesh" in node && node.isMesh === true) {
+          const mesh = node as Mesh;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const mat of materials) {
+            mat.dispose();
+          }
+
+          mesh.geometry.dispose();
+        }
+      });
+    }
+
+    // Removing the item from the index.
+    this.items3D.delete(id);
+    this.map.triggerRepaint();
   }
 
 
@@ -532,181 +594,6 @@ export class SceneLayer implements CustomLayerInterface {
     }
   }
 
-
-
-
-  async testAddingMeshes() {
-    this.setAmbientLight({intensity: 2})
-
-    const torusGeometry = new TorusKnotGeometry( 10, 3, 100, 16 ); 
-    const torusMaterial = new MeshLambertMaterial( { color: 0xff0000 } ); 
-    const torusKnot = new Mesh( torusGeometry, torusMaterial );
-
-    this.addMesh("torus", torusKnot,
-    {
-      lngLat: [2.294530547874315 + 0.1, 48.85826142288141], // Paris
-      scale: 5, // necessary because the sofa is too small (possibly metric system)
-      // rotation: quaternion,
-      altitudeReference: AltitudeReference.GROUND,
-    })
-
-
-    // this.addMesh("torus2", torusKnot.clone(),
-    // {
-    //   lngLat: [2.294530547874315, 48.85826142288141 + 0.1], // Paris
-    //   scale: 10, // necessary because the sofa is too small (possibly metric system)
-    //   // rotation: quaternion,
-    // })
-
-
-    this.addMesh("axes", new AxesHelper(100),
-    {
-      // lngLat: [2.294530547874315, 48.85826142288141], // Paris
-      altitude: 100,
-      heading: -45,
-    })
-
-
-
-
-    // const quaternion = new Quaternion();
-    // const rotationA = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
-    // const rotationB = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), Math.PI / 4);
-
-    // Chain the rotations
-    // quaternion.multiplyQuaternions(rotationA, rotationB);
-
-    // await this.addMeshFromURL(
-    //   "eiffel",
-    //   // "private_models/free__la_tour_eiffel.glb",
-    //   "private_models/SheenChair.glb",
-    //   // "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
-    //   {
-    //     lngLat: [2.294530547874315, 48.85826142288141], // Paris
-    //     scale: 2.2, // necessary because the sofa is too small (possibly metric system)
-    //     rotation: quaternion,
-    //   }
-    // );
-
-    // await this.addMeshFromURL(
-    //   "chair",
-    //   // "private_models/free__la_tour_eiffel.glb",
-    //   "private_models/SheenChair.glb",
-    //   // "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
-    //   {
-    //     lngLat: [2.294530547874315, 48.85826142288141], // Paris
-    //     scale: 10, // necessary because the sofa is too small (possibly metric system)
-    //     // rotation: quaternion,
-    //   }
-    // );
-
-    // console.log("DEBUG03");
-    
-
-
-    // await this.addMeshFromURL(
-    //   "radar",
-    //   "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
-    //   {
-    //     lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
-    //     scale: 10, // necessary because the sofa is too small (possibly metric system)
-    //     // rotation: quaternion,
-    //     heading: 90,
-    //   }
-    // );
-
-    await this.addMeshFromURL(
-      "chair",
-      "private_models/SheenChair.glb",
-      {
-        // lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
-        scale: 100, // necessary because the sofa is too small (possibly metric system)
-        // rotation: quaternion,
-        heading: 0,
-        altitude: 100,
-      }
-    );
-
-    await this.addMeshFromURL(
-      "lantern",
-      "private_models/Lantern.glb",
-      {
-        // lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
-        scale: 0.1, // necessary because the sofa is too small (possibly metric system)
-        // rotation: quaternion,
-        heading: 0,
-        // altitude: 0,
-      }
-    );
-
-    
-
-
-    // await this.addMeshFromURL(
-    //   "car",
-    //   // "private_models/free__la_tour_eiffel.glb",
-    //   "private_models/SheenChair.glb",
-    //   {
-    //     lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
-    //     scale: 10, // necessary because the sofa is too small (possibly metric system)
-    //     // rotation: new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI),
-    //   }
-    // );
-
-   
-
-    this.addPointLight("light1", {
-      // lngLat: [-130, 40],
-      // altitude: 2000000,
-      // // rotation: new Quaternion(),
-      // intensity: 50
-    });
-
-    // this.addPointLight("light2", {
-    //   lngLat: [130, 40],
-    //   altitude: 2000000,
-    //   // rotation: new Quaternion(),
-    //   intensity: 50
-    // });
-
-    this.map.on("click", (e) => {
-      console.log("click", e);
-      this.modifyMesh("lantern", {lngLat: e.lngLat})
-    })
-
-
-    document.getElementById("slider")?.addEventListener("input", (e) => {
-      const sliderValue = Number.parseFloat((e.target as HTMLInputElement).value);
-      console.log(sliderValue);
-      this.modifyMesh("lantern", {heading: sliderValue})
-    });
-
-  }
-}
-
-
-export function lngLatLikeToLngLat(lngLatLike: LngLatLike): LngLat {
-  if (!lngLatLike) {
-    throw new Error("Invalid LngLatLike object.")
-  }
-
-  if (lngLatLike instanceof LngLat) {
-    return lngLatLike
-  }
-
-  if (Array.isArray(lngLatLike) && lngLatLike.length >= 2) {
-    return new LngLat(lngLatLike[0], lngLatLike[1]);
-  }
-
-  if (typeof lngLatLike === "object" && "lng" in lngLatLike && "lat" in lngLatLike) {
-    return new LngLat(lngLatLike.lng, lngLatLike.lat);
-  }
-
-  if (typeof lngLatLike === "object" && "lon" in lngLatLike && "lat" in lngLatLike) {
-    return new LngLat(lngLatLike.lon, lngLatLike.lat);
-  }
-
-  throw new Error("Invalid LngLatLike object.");
 }
 
 
