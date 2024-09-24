@@ -1,9 +1,9 @@
-import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat, CustomRenderMethod } from "@maptiler/sdk";
+import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat } from "@maptiler/sdk";
 import {
   Camera,
   Matrix4,
   Scene,
-  WebGLRenderer, type AxesHelper,
+  WebGLRenderer, AxesHelper,
   Vector3,
   Mesh,
   type Group,
@@ -29,15 +29,18 @@ import {
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 // import { USDZLoader } from "three/examples/jsm/loaders/USDZLoader";
 
-// export const altitudeReference = {
-//   GROUND: 1,
-//   MEAN_SEA_LEVEL: 2
-// } as const;
-
 export enum AltitudeReference {
   GROUND = 1,
   MEAN_SEA_LEVEL = 2
 };
+
+export enum SourceOrientation {
+  X_UP = 1,
+  Y_UP = 2,
+  Z_UP = 3,
+};
+
+const TO_RADIAN = Math.PI / 180;
 
 
 /**
@@ -61,6 +64,12 @@ export type GenericObject3DOptions = {
    * Default: `AltitudeReference.GROUND` for meshes and `AltitudeReference.MEAN_SEA_LEVEL` for point lights.
    */
   altitudeReference?: AltitudeReference,
+
+  /**
+   * Make the object visible or not.
+   * Default: `true`
+   */
+  visible?: boolean;
 };
 
 
@@ -72,13 +81,18 @@ export type MeshOptions = GenericObject3DOptions & {
    * Rotation to apply to the model to add, as a Quaternion.
    * Default: a rotation of PI/2 around the x axis, to adjust from the default ThreeJS space (right-hand, Y up) to the Maplibre space (right-hand, Z up)
    */
-  rotation?: Quaternion,
+  sourceOrientation?: SourceOrientation,
 
   /**
    * Scale the mesh by a factor.
    * Default: no scaling added
    */
   scale?: number,
+
+  /**
+   * Heading measured in degrees clockwise from true north.
+   */
+  heading?: number,
 };
 
 
@@ -160,7 +174,8 @@ export type Item3D = {
   mercatorCoord: MercatorCoordinate;
   lngLat: LngLat;
   altitude: number;
-  rotation: Quaternion;
+  heading: number;
+  sourceOrientation: SourceOrientation
   mesh: Mesh | AxesHelper | Group | Object3D | null;
   altitudeReference: AltitudeReference,
 };
@@ -233,6 +248,7 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
 
+
   render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
     // console.log("RENDER");
     if (!this.isInZoomRange()) return;
@@ -303,6 +319,12 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
 
+  
+
+
+
+
+
   /**
    * Add an existing mesh to the map
    */
@@ -313,18 +335,21 @@ export class SceneLayer implements CustomLayerInterface {
   ) {
     this.throwUniqueID(id);
 
-    const rotation = options.rotation ?? new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+    const sourceOrientation = options.sourceOrientation ?? SourceOrientation.X_UP;
+    const sourceOrientationQuaternion = sourceOrientationToQuaternion(sourceOrientation);
     const altitude = options.altitude ?? 0;
     const lngLat = options.lngLat ?? [0, 0];
     const mercatorCoord = MercatorCoordinate.fromLngLat(lngLat, altitude);
+    const heading = options.heading ?? 0;
+    const headingQuaternion = headingToQuaternion(heading)
+    const visible = options.visible ?? true;
 
     if (options.scale) {
       mesh.scale.set(options.scale, options.scale, options.scale);
     }
 
-    // mesh.rotation.set(rotation.x, rotation.y, rotation.z);
-    mesh.setRotationFromQuaternion(rotation);
-
+    mesh.visible = visible;
+    mesh.setRotationFromQuaternion(headingQuaternion.multiply(sourceOrientationQuaternion));
     this.scene.add(mesh);
 
     const item: Item3D = {
@@ -332,7 +357,8 @@ export class SceneLayer implements CustomLayerInterface {
       mercatorCoord,
       lngLat: lngLatLikeToLngLat(lngLat),
       altitude,
-      rotation,
+      sourceOrientation,
+      heading,
       mesh,
       altitudeReference: options.altitudeReference ?? AltitudeReference.GROUND,
     };
@@ -347,12 +373,12 @@ export class SceneLayer implements CustomLayerInterface {
     if (!item) return;
     if (!item.mesh) return;
 
-    if ("scale" in options && typeof options.scale === "number") {
+    if (typeof options.scale === "number") {
       item?.mesh?.scale.set(options.scale, options.scale, options.scale);
     }
 
     let adjustMercator = false;
-    if ("altitude" in options && typeof options.altitude === "number") {
+    if (typeof options.altitude === "number") {
       item.altitude = options.altitude;
       adjustMercator = true;
     }
@@ -362,18 +388,34 @@ export class SceneLayer implements CustomLayerInterface {
       adjustMercator = true;
     }
 
-    if ("rotation" in options) {
-      const rotation = options.rotation as Quaternion;
-      item.rotation = rotation;
-      item.mesh.setRotationFromQuaternion(rotation);
-    }
-
-    if ("altitudeReference" in options && typeof options.altitudeReference === "number") {
+    if (typeof options.altitudeReference === "number") {
       item.altitudeReference = options.altitudeReference;
     }
 
     if (adjustMercator) {
       item.mercatorCoord = MercatorCoordinate.fromLngLat(item.lngLat, item.altitude);
+    }
+
+    if (typeof options.visible === "boolean") {
+      item.mesh.visible = options.visible;
+    }
+
+    let quaternionNeedsUpdate = false;
+
+    if ("altitudeReference" in options) {
+      item.altitudeReference = options.altitudeReference as AltitudeReference;
+      quaternionNeedsUpdate = true;
+    }
+
+    if (typeof options.heading === "number") {
+      quaternionNeedsUpdate = true;
+      item.heading = options.heading;
+    }
+
+    if (quaternionNeedsUpdate) {
+      const sourceOrientationQuaternion = sourceOrientationToQuaternion(item.sourceOrientation);
+      const headingQuaternion = headingToQuaternion(item.heading);
+      item.mesh.setRotationFromQuaternion(headingQuaternion.multiply(sourceOrientationQuaternion));
     }
 
     this.map.triggerRepaint();
@@ -413,18 +455,16 @@ export class SceneLayer implements CustomLayerInterface {
       adjustMercator = true;
     }
 
-    if ("rotation" in options) {
-      const rotation = options.rotation as Quaternion;
-      item.rotation = rotation;
-      item.mesh.setRotationFromQuaternion(rotation);
-    }
-
     if ("altitudeReference" in options && typeof options.altitudeReference === "number") {
       item.altitudeReference = options.altitudeReference;
     }
 
     if (adjustMercator) {
       item.mercatorCoord = MercatorCoordinate.fromLngLat(item.lngLat, item.altitude);
+    }
+
+    if ("visible" in options && typeof options.visible === "boolean") {
+      mesh.visible = options.visible;
     }
 
     this.map.triggerRepaint();
@@ -496,7 +536,7 @@ export class SceneLayer implements CustomLayerInterface {
 
 
   async testAddingMeshes() {
-    this.setAmbientLight({intensity: 100})
+    this.setAmbientLight({intensity: 2})
 
     const torusGeometry = new TorusKnotGeometry( 10, 3, 100, 16 ); 
     const torusMaterial = new MeshLambertMaterial( { color: 0xff0000 } ); 
@@ -519,12 +559,12 @@ export class SceneLayer implements CustomLayerInterface {
     // })
 
 
-    // this.addMesh("axes", new AxesHelper(100),
-    // {
-    //   lngLat: [2.294530547874315, 48.85826142288141], // Paris
-    //   // scale: 10, // necessary because the sofa is too small (possibly metric system)
-    //   rotation: new Quaternion(),
-    // })
+    this.addMesh("axes", new AxesHelper(100),
+    {
+      // lngLat: [2.294530547874315, 48.85826142288141], // Paris
+      altitude: 100,
+      heading: -45,
+    })
 
 
 
@@ -565,15 +605,41 @@ export class SceneLayer implements CustomLayerInterface {
 
 
     // await this.addMeshFromURL(
-    //   "eiffel2",
-    //   // "private_models/free__la_tour_eiffel.glb",
+    //   "radar",
     //   "https://maplibre.org/maplibre-gl-js/docs/assets/34M_17/34M_17.gltf",
     //   {
     //     lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
     //     scale: 10, // necessary because the sofa is too small (possibly metric system)
     //     // rotation: quaternion,
+    //     heading: 90,
     //   }
     // );
+
+    await this.addMeshFromURL(
+      "chair",
+      "private_models/SheenChair.glb",
+      {
+        // lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
+        scale: 100, // necessary because the sofa is too small (possibly metric system)
+        // rotation: quaternion,
+        heading: 0,
+        altitude: 100,
+      }
+    );
+
+    await this.addMeshFromURL(
+      "lantern",
+      "private_models/Lantern.glb",
+      {
+        // lngLat: [2.294530547874315, 48.85826142288141 - 0.01], // Paris
+        scale: 0.1, // necessary because the sofa is too small (possibly metric system)
+        // rotation: quaternion,
+        heading: 0,
+        // altitude: 0,
+      }
+    );
+
+    
 
 
     // await this.addMeshFromURL(
@@ -589,12 +655,12 @@ export class SceneLayer implements CustomLayerInterface {
 
    
 
-    // this.addPointLight("light1", {
-    //   lngLat: [-130, 40],
-    //   altitude: 2000000,
-    //   // rotation: new Quaternion(),
-    //   intensity: 50
-    // });
+    this.addPointLight("light1", {
+      // lngLat: [-130, 40],
+      // altitude: 2000000,
+      // // rotation: new Quaternion(),
+      // intensity: 50
+    });
 
     // this.addPointLight("light2", {
     //   lngLat: [130, 40],
@@ -605,9 +671,15 @@ export class SceneLayer implements CustomLayerInterface {
 
     this.map.on("click", (e) => {
       console.log("click", e);
-      this.modifyMesh("torus", {lngLat: e.lngLat, altitude: 2000})
+      this.modifyMesh("lantern", {lngLat: e.lngLat})
     })
 
+
+    document.getElementById("slider")?.addEventListener("input", (e) => {
+      const sliderValue = Number.parseFloat((e.target as HTMLInputElement).value);
+      console.log(sliderValue);
+      this.modifyMesh("lantern", {heading: sliderValue})
+    });
 
   }
 }
@@ -647,4 +719,19 @@ function calculateDistanceMercatorToMeters(from: MercatorCoordinate, to: Mercato
   const dNorth = from.y - to.y;
   const dNorthMeter = dNorth / mercatorPerMeter;
   return {dEastMeter, dNorthMeter};
+}
+
+
+function sourceOrientationToQuaternion(so: SourceOrientation | undefined): Quaternion {
+  const xUp = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+  switch(so) {
+    case SourceOrientation.Y_UP: return new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+    case SourceOrientation.Z_UP: return new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+    default: return xUp;
+  }
+}
+
+
+function headingToQuaternion(heading: number): Quaternion {
+  return new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -heading * TO_RADIAN);
 }
