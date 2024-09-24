@@ -335,7 +335,7 @@ export class SceneLayer implements CustomLayerInterface {
   ) {
     this.throwUniqueID(id);
 
-    const sourceOrientation = options.sourceOrientation ?? SourceOrientation.X_UP;
+    const sourceOrientation = options.sourceOrientation ?? SourceOrientation.Y_UP;
     const sourceOrientationQuaternion = sourceOrientationToQuaternion(sourceOrientation);
     const altitude = options.altitude ?? 0;
     const lngLat = options.lngLat ?? [0, 0];
@@ -723,11 +723,12 @@ function calculateDistanceMercatorToMeters(from: MercatorCoordinate, to: Mercato
 
 
 function sourceOrientationToQuaternion(so: SourceOrientation | undefined): Quaternion {
-  const xUp = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+  // Most models and 3D environments are Y up (right hand), so we use this as a default
+  const yUp = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
   switch(so) {
-    case SourceOrientation.Y_UP: return new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
-    case SourceOrientation.Z_UP: return new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
-    default: return xUp;
+    case SourceOrientation.X_UP: return new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -Math.PI / 2);
+    case SourceOrientation.Z_UP: return new Quaternion();
+    default: return yUp;
   }
 }
 
