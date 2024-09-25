@@ -25,14 +25,39 @@ import {
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
+/**
+ * The altitude of a mesh can be relative to the ground surface, or to the mean sea level
+ */
 export enum AltitudeReference {
+  /**
+   * Use the ground as a reference point to compute the altitude
+   */
   GROUND = 1,
+
+  /**
+   * Uses mean sea level as a reference point to compute the altitude
+   */
   MEAN_SEA_LEVEL = 2
 };
 
+
+/**
+ * Going from the original 3D space a mesh was created in, to the map 3D space (Z up, right hand)
+ */
 export enum SourceOrientation {
+  /**
+   * The mesh was originaly created in a 3D space that uses the x axis as the up direction
+   */
   X_UP = 1,
+
+  /**
+   * The mesh was originaly created in a 3D space that uses the Y axis as the up direction
+   */
   Y_UP = 2,
+
+  /**
+   * The mesh was originaly created in a 3D space that uses the z axis as the up direction
+   */
   Z_UP = 3,
 };
 
@@ -162,11 +187,13 @@ type Mat4 =
 
 export type SceneLayerOptions = {
   /**
+   * Bellow this zoom level, the meshes are not visible
    * Default: 0
    */
   minZoom?: number;
 
   /**
+   * Beyond this zoom level, the meshes are not visible.
    * Default: 22
    */
   maxZoom?: number;
@@ -389,44 +416,44 @@ export class SceneLayer implements CustomLayerInterface {
   /**
    * Creates a payload that serializes an item (point light or mesh)
    */
-  private serializeItem(id: string): SerializedMesh | SerializedPointLight {
-    const item = this.items3D.get(id);
-    if (!item) throw new Error(`No item with ID ${id}.`);
-    if (!item.mesh) throw new Error(`The item with ID ${id} exists but does not contain any mesh object.`);
-    if (!item.mesh.userData._originalUrl) throw new Error(`The mesh of the item ${id} was not loaded from a URL.`);
+  // private serializeItem(id: string): SerializedMesh | SerializedPointLight {
+  //   const item = this.items3D.get(id);
+  //   if (!item) throw new Error(`No item with ID ${id}.`);
+  //   if (!item.mesh) throw new Error(`The item with ID ${id} exists but does not contain any mesh object.`);
+  //   if (!item.mesh.userData._originalUrl) throw new Error(`The mesh of the item ${id} was not loaded from a URL.`);
 
-    if (item.isLight) {
-      const mesh = (item.mesh as PointLight);
+  //   if (item.isLight) {
+  //     const mesh = (item.mesh as PointLight);
 
-      return {
-        id: item.id,
-        lngLat: item.lngLat.toArray(),
-        altitude: item.altitude,
-        altitudeReference: item.altitudeReference,
-        visible: item.mesh.visible,
-        sourceOrientation: item.sourceOrientation,
-        heading: item.heading,
-        isLight: item.isLight,
-        color: mesh.color.getHexString(),
-        intensity: mesh.intensity,
-        decay: mesh.decay,
-      } as SerializedPointLight
+  //     return {
+  //       id: item.id,
+  //       lngLat: item.lngLat.toArray(),
+  //       altitude: item.altitude,
+  //       altitudeReference: item.altitudeReference,
+  //       visible: item.mesh.visible,
+  //       sourceOrientation: item.sourceOrientation,
+  //       heading: item.heading,
+  //       isLight: item.isLight,
+  //       color: mesh.color.getHexString(),
+  //       intensity: mesh.intensity,
+  //       decay: mesh.decay,
+  //     } as SerializedPointLight
 
-    }
+  //   }
 
-    return {
-      id: item.id,
-      lngLat: item.lngLat.toArray(),
-      altitude: item.altitude,
-      altitudeReference: item.altitudeReference,
-      visible: item.mesh.visible,
-      sourceOrientation: item.sourceOrientation,
-      scale: item.mesh.scale.x,
-      heading: item.heading,
-      isLight: item.isLight,
-      url: item.url,
-    } as SerializedMesh;
-  }
+  //   return {
+  //     id: item.id,
+  //     lngLat: item.lngLat.toArray(),
+  //     altitude: item.altitude,
+  //     altitudeReference: item.altitudeReference,
+  //     visible: item.mesh.visible,
+  //     sourceOrientation: item.sourceOrientation,
+  //     scale: item.mesh.scale.x,
+  //     heading: item.heading,
+  //     isLight: item.isLight,
+  //     url: item.url,
+  //   } as SerializedMesh;
+  // }
 
 
   /**

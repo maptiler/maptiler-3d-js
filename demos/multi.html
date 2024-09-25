@@ -98,8 +98,19 @@
         {
           scale: 1,
           visible: false,
-          altitude: 3000,
+          altitude: 0,
           altitudeReference: maptiler3dmodels.AltitudeReference.MEAN_SEA_LEVEL,
+        }
+      );
+
+
+      const originalDragonID = "dragon";
+      await layer3D.addMeshFromURL(
+        originalDragonID,
+        "models/stanford_dragon_pbr.glb",
+        {
+          scale: 1,
+          visible: false,
         }
       );
 
@@ -109,6 +120,7 @@
         model: originalLanternID,
         heading: 0,
         scale: 1,
+        altitude: 0,
       }
       
       let lanternCounter = 0;
@@ -125,7 +137,7 @@
       })
 
       
-      gui.add(guiObj, "model", [originalLanternID, originalDuckID, originalPlaneID])
+      gui.add(guiObj, "model", [originalLanternID, originalDuckID, originalPlaneID, originalDragonID])
 
       // We can change the heading of the latest lantern added
       gui.add( guiObj, 'heading', 0, 360, 0.1 )
@@ -136,6 +148,11 @@
       gui.add( guiObj, 'scale', 0.01, 10, 0.01 )
       .onChange((scale) => {
         layer3D.modifyMesh(latestLanternID, {scale});
+      })
+
+      gui.add( guiObj, 'altitude', -100, 1000, 1 )
+      .onChange((altitude) => {
+        layer3D.modifyMesh(latestLanternID, {altitude});
       })
 
     })()
