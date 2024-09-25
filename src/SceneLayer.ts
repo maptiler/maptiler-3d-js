@@ -56,7 +56,7 @@ export enum SourceOrientation {
   Y_UP = 2,
 
   /**
-   * The mesh was originaly created in a 3D space that uses the z axis as the up direction
+   * The mesh was originaly created in a 3D space that uses the Z axis as the up direction
    */
   Z_UP = 3,
 };

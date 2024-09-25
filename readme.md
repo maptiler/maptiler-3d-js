@@ -164,7 +164,7 @@ enum SourceOrientation {
   Y_UP = 2,
 
   /**
-   * The mesh was originaly created in a 3D space that uses the z axis as the up direction
+   * The mesh was originaly created in a 3D space that uses the Z axis as the up direction
    */
   Z_UP = 3,
 };
@@ -263,14 +263,14 @@ Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) a
   * visible: `true`
 
 - `.modifyMesh(id: string, options: MeshOptions)`  
-Modify the settings of a mesh (scale, lntLat, etc.)
+Modify the settings of a mesh (scale, lntLat, etc.)  
 ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
 
 - `.cloneMesh(sourceId: string, id: string, options: MeshOptions)`  
 Clones a mesh that has a given ID (`sourceId`) and create another one with a new ID (`id`). The provided options will overwrite the settings of the source mesh.
 
 - `.addPointLight(id: string, options: PointLightOptions = {})`  
-Adds a point light with a unique ID (will throw if not unique) and some options.
+Adds a point light with a unique ID (will throw if not unique) and some options.  
 ℹ️ By default, the light will have some settings (if not overwritten by the options):
   * lngLat: `[0, 0]` (null island)
   * altitude: `2_000_000` meters
