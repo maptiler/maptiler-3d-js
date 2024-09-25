@@ -1,33 +1,29 @@
-import { type CustomLayerInterface, type Map as MapSDK, MercatorCoordinate, type LngLatLike, type CustomRenderMethodInput, LngLat } from "@maptiler/sdk";
+import { 
+  type CustomLayerInterface,
+  type Map as MapSDK,
+  MercatorCoordinate,
+  type LngLatLike,
+  type CustomRenderMethodInput,
+  LngLat
+} from "@maptiler/sdk";
+
 import {
   Camera,
   Matrix4,
   Scene,
-  WebGLRenderer, AxesHelper,
+  WebGLRenderer,
   Vector3,
-  Mesh,
+  type Mesh,
   type Group,
   type Object3D,
-  // AmbientLight,
   Quaternion,
-  // PointLight,
-  // DoubleSide,
-  // PlaneGeometry,
-  // MeshBasicMaterial,
-  // MeshPhongMaterial,
-  // SphereGeometry,
   PointLight,
-  // MeshPhongMaterial,
-  MeshLambertMaterial,
   type ColorRepresentation,
   AmbientLight,
   Color,
-  TorusKnotGeometry,
-  // DirectionalLight,
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-// import { USDZLoader } from "three/examples/jsm/loaders/USDZLoader";
 
 export enum AltitudeReference {
   GROUND = 1,
@@ -119,6 +115,30 @@ export type PointLightOptions = GenericObject3DOptions & {
   decay?: number,
 };
 
+export type SerializedGenericItem = {
+  id: string,
+  isLight: boolean,
+  lngLat: [number, number],
+  altitude: number,
+  altitudeReference: AltitudeReference,
+  visible: boolean,
+  sourceOrientation: SourceOrientation,
+};
+
+export type SerializedMesh = SerializedGenericItem & {
+  url: string,
+  heading: number,
+  scale: number,
+};
+
+export type SerializedPointLight = SerializedGenericItem & {
+  color: string, // hex string
+  intensity: number,
+  decay: number,
+}
+
+
+
 type Mat4 =
   | [
       number,
@@ -175,9 +195,11 @@ export type Item3D = {
   lngLat: LngLat;
   altitude: number;
   heading: number;
-  sourceOrientation: SourceOrientation
-  mesh: Mesh | AxesHelper | Group | Object3D | null;
-  altitudeReference: AltitudeReference,
+  sourceOrientation: SourceOrientation;
+  mesh: Mesh | Group | Object3D | null;
+  altitudeReference: AltitudeReference;
+  isLight: boolean;
+  url: string | null;
 };
 
 export class SceneLayer implements CustomLayerInterface {
@@ -217,12 +239,18 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
 
+  /**
+   * Tells if the meshes should be displayed, based on the zoom range provided as layer options
+   */
   private isInZoomRange(): boolean {
     const z = this.map.getZoom();
     return z >= this.minZoom && z <= this.maxZoom;
   }
 
 
+  /**
+   * Automatically called when the layer is added. (should not be called manually)
+   */
   onAdd?(map: MapSDK, gl: WebGL2RenderingContext): void {
     this.map = map;
     this.renderer = new WebGLRenderer({
@@ -232,23 +260,21 @@ export class SceneLayer implements CustomLayerInterface {
     });
 
     this.renderer.autoClear = false;
-
-    // this.map.on("move", () => {
-    //   console.log("---- MOVE");
-      
-    // })
-
-    // TESTING
-    // this.testAddingMeshes();
   }
 
   
+  /**
+   * Automatically called when the layer is removed. (should not be called manually)
+   */
   onRemove?(_map: MapSDK, _gl: WebGLRenderingContext | WebGL2RenderingContext): void {
-    this.scene.clear();
+    this.clear();
+    this.renderer.dispose();
   }
 
 
-
+  /**
+   * Automaticaly called by the rendering engine. (should not be called manually)
+   */
   render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
     // console.log("RENDER");
     if (!this.isInZoomRange()) return;
@@ -273,9 +299,6 @@ export class SceneLayer implements CustomLayerInterface {
     this.camera.projectionMatrix = m.multiply(l);
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
-    
-    // repainting all the time makes the idle event to never happen
-    // this.map.triggerRepaint();
   }
 
 
@@ -319,14 +342,8 @@ export class SceneLayer implements CustomLayerInterface {
   }
 
 
-  
-
-
-
-
-
   /**
-   * Add an existing mesh to the map
+   * Add an existing mesh to the map, with options.
    */
   addMesh(
     id: string,
@@ -361,13 +378,61 @@ export class SceneLayer implements CustomLayerInterface {
       heading,
       mesh,
       altitudeReference: options.altitudeReference ?? AltitudeReference.GROUND,
+      isLight: "isLight" in mesh && mesh.isLight === true,
+      url: mesh.userData._originalUrl ?? null
     };
     
     this.items3D.set(id, item);
     this.map.triggerRepaint();
   }
 
+  /**
+   * Creates a payload that serializes an item (point light or mesh)
+   */
+  private serializeItem(id: string): SerializedMesh | SerializedPointLight {
+    const item = this.items3D.get(id);
+    if (!item) throw new Error(`No item with ID ${id}.`);
+    if (!item.mesh) throw new Error(`The item with ID ${id} exists but does not contain any mesh object.`);
+    if (!item.mesh.userData._originalUrl) throw new Error(`The mesh of the item ${id} was not loaded from a URL.`);
 
+    if (item.isLight) {
+      const mesh = (item.mesh as PointLight);
+
+      return {
+        id: item.id,
+        lngLat: item.lngLat.toArray(),
+        altitude: item.altitude,
+        altitudeReference: item.altitudeReference,
+        visible: item.mesh.visible,
+        sourceOrientation: item.sourceOrientation,
+        heading: item.heading,
+        isLight: item.isLight,
+        color: mesh.color.getHexString(),
+        intensity: mesh.intensity,
+        decay: mesh.decay,
+      } as SerializedPointLight
+
+    }
+
+    return {
+      id: item.id,
+      lngLat: item.lngLat.toArray(),
+      altitude: item.altitude,
+      altitudeReference: item.altitudeReference,
+      visible: item.mesh.visible,
+      sourceOrientation: item.sourceOrientation,
+      scale: item.mesh.scale.x,
+      heading: item.heading,
+      isLight: item.isLight,
+      url: item.url,
+    } as SerializedMesh;
+  }
+
+
+  /**
+   * Modify an existing mesh. The provided options will overwrite
+   * their current state, the omited ones will remain the same.
+   */
   modifyMesh(id: string, options: MeshOptions) {
     const item = this.items3D.get(id);
     if (!item) return;
@@ -432,6 +497,7 @@ export class SceneLayer implements CustomLayerInterface {
     if (!sourceItem) return;
     if (!sourceItem.mesh) return;
 
+    // Cloning the source item options and overwriting some with the provided options
     const cloneOptions: MeshOptions = {
       lngLat: sourceItem.lngLat,
       altitude: sourceItem.altitude,
@@ -514,15 +580,28 @@ export class SceneLayer implements CustomLayerInterface {
 
     const loader = new GLTFLoader();
     const gltfContent = await loader.loadAsync(meshURL);
-    this.addMesh(id, gltfContent.scene, options);
+    const mesh = gltfContent.scene;
+    mesh.userData._originalUrl = meshURL;
+    this.addMesh(id, mesh, options);
   }
 
+
+  /**
+   * Remove all the meshes and point lights of the scene.
+   */
+  clear() {
+    for (const [k, _item] of this.items3D) {
+      this.removeMesh(k);
+    }
+  }
+
+
+  /**
+   * Remove a mesh from the scene using its ID.
+   */
   removeMesh(id: string) {
     const item = this.items3D.get(id);
-
-    console.log(this.items3D);
     
-
     if (!item) {
       throw new Error(`Mesh with ID ${id} does not exist.`);
     }
