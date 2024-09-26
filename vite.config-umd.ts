@@ -1,24 +1,20 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
-import glsl from 'vite-plugin-glsl';
 
 const isProduction = process.env.NODE_ENV === "production";
 
-const plugins = [
-  glsl({compress: isProduction})
-];
-
+const plugins = [];
 
 export default defineConfig({
   mode: isProduction ? "production" : "development",
   build: {
     outDir: "build",
     minify: isProduction,
-    sourcemap: !isProduction,
+    sourcemap: true,
     lib: {
       // Could also be a dictionary or array of multiple entry points
-      entry: resolve(__dirname, 'src/maptiler-3d-models.ts'),
-      name: 'maptiler3dmodels',
+      entry: resolve(__dirname, 'src/maptiler-3d.ts'),
+      name: 'maptiler3d',
       // the proper extensions will be added
       fileName: (format, entryName) => `${entryName}.${format}.js`,
       formats: ['umd'],
