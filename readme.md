@@ -1,56 +1,55 @@
 <p align="center">
-<a href="https://docs.maptiler.com/sdk-js/modules/3dmodels/">official page →</a><br>
-  <img src="images/maptiler-logo.svg" width="400px">
+<a href="https://docs.maptiler.com/sdk-js/modules/3d/">official page →</a><br>
+  <img src="images/maptiler-3d-logo.svg" width="400px">
 </p>
 
 <p align="center" style="color: #AAA">
-  Add 3D models and lighting to your <a href="https://docs.maptiler.com/sdk-js">MapTiler SDK JS</a> maps
+  Add 3D objects and lighting to your <a href="https://docs.maptiler.com/sdk-js">MapTiler SDK JS</a> maps
 </p>
 
 <p align="center">
   <img src="https://cdn.maptiler.com/assets/images/JS-logo.svg" width="20px">
   <img src="https://cdn.maptiler.com/assets/images/TS-logo.svg" width="20px">
-  <img src="https://img.shields.io/npm/v/@maptiler/3d-models"></img>
+  <img src="https://img.shields.io/npm/v/@maptiler/3d"></img>
   <img src="https://img.shields.io/twitter/follow/maptiler?style=social"></img>
 </p>
 
-## 3D models on MapTiler Maps
-With this MapTiler SDK plugin, you can add 3D models (glTF/glb) to your basmap, with plenty of customizations!
-![](images/ducks-and-posts.png)
-[Duck and lamp post meshes from the glTF sample asset repository](https://github.com/KhronosGroup/glTF-Sample-Assets)
+## 3D objects on MapTiler maps
+With this MapTiler SDK plugin, you can add 3D objects (glTF/glb files) to your basemap, with plenty of customizations!
+![](images/mansion.png)
+[Sellers Mansion, captured by Katie Wolfe, License CC Attribution](https://sketchfab.com/3d-models/sellers-mansion-4aad9d86ec5e484c949e931b67a4243f)
 
 ![](images/flatiron.png)
 [Flatiron building, mesh created by Mohamed Hussien, License CC Attribution](https://sketchfab.com/3d-models/flatiron-building-116132645224458da6e4d9dd45c294b4)
 
-
 ![](images/plane.png)
 [Plane a380, mesh created by Mamont Nikita, License CC Attribution](https://sketchfab.com/3d-models/plane-a340-d3ad0996a8564a94a24ee4b3528b554b)
 
-![](images/mansion.png)
-[Sellers Mansion, captured by Katie Wolfe, License CC Attribution](https://sketchfab.com/3d-models/sellers-mansion-4aad9d86ec5e484c949e931b67a4243f)
+![](images/ducks-and-posts.png)
+[Duck and lamp post meshes from the glTF sample asset repository](https://github.com/KhronosGroup/glTF-Sample-Assets)
 
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
 ```shell
-npm install @maptiler/3d-models
+npm install @maptiler/3d
 ```
 
 Then to import:
 ```ts
-import { SceneLayer } from "@maptiler/3d-models";
+import { SceneLayer } from "@maptiler/3d";
 // or
-import * as maptiler3dmodels from "@maptiler/3d-models";
+import * as maptiler3d from "@maptiler/3d";
 ```
 
 From CDN and using the UMD bundle, in the `<head></head>` section of your HTML file:
 ```html
-<script src="https://cdn.maptiler.com/maptiler-3d-models/v1.0.0/maptiler-3d-models.umd.js"></script>
+<script src="https://cdn.maptiler.com/maptiler-3d/v1.0.0/maptiler-3d.umd.js"></script>
 ```
 
-With the UMD bundle (on CDN), the namespace for this project is `maptiler3dmodels`. So the `SceneLayer` class is available at `maptiler3dmodels.SceneLayer`.
+With the UMD bundle (on CDN), the namespace for this project is `maptiler3d`. So the `layer3D` class is available at `maptiler3d.Layer3D`.
 
 ### Basic usage
-An instance of `SceneLayer` is a custom type of layer that contain a 3D scene, where multiple 3D meshes and lights can be added. Like any other layer in MapTiler SDK/Maplibre GL JS, it must have an ID and then be added to a `Map` instance:
+An instance of `Layer3D` is a custom type of layer that contain a 3D scene, where multiple 3D meshes and lights can be added. Like any other layer in MapTiler SDK/Maplibre GL JS, it must have an ID and then be added to a `Map` instance:
 
 ```js
 // Create a map;
@@ -63,7 +62,7 @@ const map = new Map({
 map.on("ready", () => {
   
   // Create a SceneLayer and add it
-  const layer3D = new maptiler3dmodels.SceneLayer("custom-3D-layer");
+  const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
   map.addLayer(layer3D);
 })
 ```
@@ -87,7 +86,7 @@ await layer3D.addMeshFromURL(
     scale: 39.5,
     visible: true,
     altitude: 74.38,
-    altitudeReference: maptiler3dmodels.AltitudeReference.GROUND,
+    altitudeReference: maptiler3d.AltitudeReference.GROUND,
   }
 );
 ```
@@ -292,12 +291,12 @@ Removes all the meshes and point lights from the scene and frees the GPU memory 
 
 
 ## License
-MapTiler 3D Models JS Module
+MapTiler 3D JS Module
 
 Copyright © 2023 MapTiler AG. All rights reserved.
 
 The software and files (collectively “Software”) in this repository are licensed for use only with MapTiler service(s). 
 
-For the license terms, please reference  [MapTiler General Terms and Conditions](https://www.maptiler.com/terms/) which incorporate MapTiler 3D Models JS Module Product [Terms (collectively “Terms”) and Privacy Policy at Privacy policy](https://www.maptiler.com/privacy-policy). 
+For the license terms, please reference  [MapTiler General Terms and Conditions](https://www.maptiler.com/terms/) which incorporate MapTiler 3D JS Module Product [Terms (collectively “Terms”) and Privacy Policy at Privacy policy](https://www.maptiler.com/privacy-policy). 
 
 This license allows users with an active MapTiler account to modify and integrate authorized portions of the Software for use with the relevant MapTiler service(s) in accordance with the MapTiler Terms. This license terminates automatically if a user no longer maintains a MapTiler account or their usage breaches MapTiler Terms. 

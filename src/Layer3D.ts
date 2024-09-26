@@ -648,7 +648,6 @@ export class Layer3D implements CustomLayerInterface {
     this.map.triggerRepaint();
   }
 
-
   /**
    * Traverse a Mesh/Group/Object3D to modify the opacities of the all the materials it finds
    */
@@ -664,10 +663,8 @@ export class Layer3D implements CustomLayerInterface {
       }
     });
 
-    if (forceRepaint)
-      this.map.triggerRepaint();
+    if (forceRepaint) this.map.triggerRepaint();
   }
-
 
   /**
    * Adding a point light. The default options are mimicking the sun:
