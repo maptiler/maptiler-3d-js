@@ -36,7 +36,7 @@ npm install @maptiler/3d
 
 Then to import:
 ```ts
-import { SceneLayer } from "@maptiler/3d";
+import { Layer3D } from "@maptiler/3d";
 // or
 import * as maptiler3d from "@maptiler/3d";
 ```
@@ -61,7 +61,7 @@ const map = new Map({
 // Waiting that the map is ready. You can also wait for the "load" event.
 map.on("ready", () => {
   
-  // Create a SceneLayer and add it
+  // Create a Layer3D and add it
   const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
   map.addLayer(layer3D);
 })
@@ -73,7 +73,7 @@ To add a mesh:
 ```ts
 // The call can be awaited for the whole download of the mesh to complete
 await layer3D.addMeshFromURL(
-  // ID to give to this mesh, unique within this SceneLayer instance
+  // ID to give to this mesh, unique within this Layer3D instance
   "flatiron",
 
   // The URL of the mesh
@@ -92,13 +92,13 @@ await layer3D.addMeshFromURL(
 ```
 
 ### Reference documentation
-The constructor of the `SceneLayer` class takes two arguments:
+The constructor of the `Layer3D` class takes two arguments:
 - a layer ID (as in the example above)
-- an option object, with TypeScript, this object is of type `SceneLayerOptions`
+- an option object, with TypeScript, this object is of type `Layer3DOptions`
 
-Here are more details about the `SceneLayerOptions` type:
+Here are more details about the `Layer3DOptions` type:
 ```ts
-type SceneLayerOptions = {
+type Layer3DOptions = {
   /**
    * Bellow this zoom level, the meshes are not visible
    * Default: 0
@@ -146,6 +146,7 @@ enum AltitudeReference {
   MEAN_SEA_LEVEL = 2
 };
 ```
+
 **Example:** A mesh that is add with the option `altitudeReference` being `AltitudeReference.GROUND` and an altitude of `10` will always "fly" 10 meters above the ground, regardless the terrain or the terrain exaggeration. If the provided altitude were to be a negative number, then it would always be beneath the ground surface by this amount (in meters). This mode is convenient for any item that needs to be positions relatively to the ground: cars, buildings, lap post, etc.
 On the other hand, mesh that is add with the option `altitudeReference` being `AltitudeReference.MEAN_SEA_LEVEL` and the altitude of `1000` means the item will be at an absolute altitude of 1000 meters (3280 feet) above the mean sea level. If located in a place where the terrain shows mountains higher than 1000 meters, then the mesh will be underneath the ground surface and as such not visible. This mode is more convenient for flying objects such as planes, paraglydings, etc. as those thend to measure altitude with an absolute reference.
 
@@ -218,6 +219,11 @@ type MeshOptions = GenericObject3DOptions & {
    * Heading measured in degrees clockwise from true north.
    */
   heading?: number,
+
+  /**
+   * Opacity of the mesh
+   */
+  opacity?: number;
 };
 ```
 
@@ -268,7 +274,7 @@ Modify the settings of a mesh (scale, lntLat, etc.)
 - **`.cloneMesh(sourceId: string, id: string, options: MeshOptions)`**  
 Clones a mesh that has a given ID (`sourceId`) and create another one with a new ID (`id`). The provided options will overwrite the settings of the source mesh.
 
-- `.addPointLight(id: string, options: PointLightOptions = {})`  
+- **`.addPointLight(id: string, options: PointLightOptions = {})`**  
 Adds a point light with a unique ID (will throw if not unique) and some options.  
 ℹ️ By default, the light will have some settings (if not overwritten by the options):
   * lngLat: `[0, 0]` (null island)
@@ -278,15 +284,15 @@ Adds a point light with a unique ID (will throw if not unique) and some options.
   * intensity: `75`
   * decay: `0.2`
 
-- `.modifyPointLight(id: string, options: PointLightOptions)`  
+- **`.modifyPointLight(id: string, options: PointLightOptions)`**  
 Modify a point light given its ID.  
 ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
 
 
-- `.removeMesh(id: string)`  
+- **`.removeMesh(id: string)`**  
 Remove a mesh or point light from the scene and frees the GPU memory associated to it
 
-- `.clear()`  
+- **`.clear()`**  
 Removes all the meshes and point lights from the scene and frees the GPU memory associated with them
 
 
