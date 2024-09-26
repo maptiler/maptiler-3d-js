@@ -1,10 +1,10 @@
-import { 
+import {
   type CustomLayerInterface,
   type Map as MapSDK,
   MercatorCoordinate,
   type LngLatLike,
   type CustomRenderMethodInput,
-  LngLat
+  LngLat,
 } from "@maptiler/sdk";
 
 import {
@@ -37,9 +37,8 @@ export enum AltitudeReference {
   /**
    * Uses mean sea level as a reference point to compute the altitude
    */
-  MEAN_SEA_LEVEL = 2
-};
-
+  MEAN_SEA_LEVEL = 2,
+}
 
 /**
  * Going from the original 3D space a mesh was created in, to the map 3D space (Z up, right hand)
@@ -59,10 +58,9 @@ export enum SourceOrientation {
    * The mesh was originaly created in a 3D space that uses the Z axis as the up direction
    */
   Z_UP = 3,
-};
+}
 
 const TO_RADIAN = Math.PI / 180;
-
 
 /**
  * Generic options that apply to both point lights and meshes
@@ -72,19 +70,19 @@ export type GenericObject3DOptions = {
    * Position.
    * Default: `[0, 0]` (Null Island)
    */
-  lngLat?: LngLatLike,
+  lngLat?: LngLatLike;
 
   /**
    * Altitude above the reference (in meters).
    * Default: `0` for meshes, or `2000000` for point lights.
    */
-  altitude?: number,
+  altitude?: number;
 
   /**
    * Reference to compute and adjust the altitude.
    * Default: `AltitudeReference.GROUND` for meshes and `AltitudeReference.MEAN_SEA_LEVEL` for point lights.
    */
-  altitudeReference?: AltitudeReference,
+  altitudeReference?: AltitudeReference;
 
   /**
    * Make the object visible or not.
@@ -92,7 +90,6 @@ export type GenericObject3DOptions = {
    */
   visible?: boolean;
 };
-
 
 /**
  * Options to add or modify a mesh
@@ -102,20 +99,19 @@ export type MeshOptions = GenericObject3DOptions & {
    * Rotation to apply to the model to add, as a Quaternion.
    * Default: a rotation of PI/2 around the x axis, to adjust from the default ThreeJS space (right-hand, Y up) to the Maplibre space (right-hand, Z up)
    */
-  sourceOrientation?: SourceOrientation,
+  sourceOrientation?: SourceOrientation;
 
   /**
    * Scale the mesh by a factor.
    * Default: no scaling added
    */
-  scale?: number,
+  scale?: number;
 
   /**
    * Heading measured in degrees clockwise from true north.
    */
-  heading?: number,
+  heading?: number;
 };
-
 
 /**
  * Options for adding a point light
@@ -125,44 +121,42 @@ export type PointLightOptions = GenericObject3DOptions & {
    * Light color.
    * Default: `0xffffff` (white)
    */
-  color?: ColorRepresentation,
+  color?: ColorRepresentation;
 
   /**
    * Intensity of the light.
    * Default: `75`
    */
-  intensity?: number,
+  intensity?: number;
 
   /**
    * Decay of the light relative to the distance to the subject.
    * Default: `0.5`
    */
-  decay?: number,
+  decay?: number;
 };
 
 export type SerializedGenericItem = {
-  id: string,
-  isLight: boolean,
-  lngLat: [number, number],
-  altitude: number,
-  altitudeReference: AltitudeReference,
-  visible: boolean,
-  sourceOrientation: SourceOrientation,
+  id: string;
+  isLight: boolean;
+  lngLat: [number, number];
+  altitude: number;
+  altitudeReference: AltitudeReference;
+  visible: boolean;
+  sourceOrientation: SourceOrientation;
 };
 
 export type SerializedMesh = SerializedGenericItem & {
-  url: string,
-  heading: number,
-  scale: number,
+  url: string;
+  heading: number;
+  scale: number;
 };
 
 export type SerializedPointLight = SerializedGenericItem & {
-  color: string, // hex string
-  intensity: number,
-  decay: number,
-}
-
-
+  color: string; // hex string
+  intensity: number;
+  decay: number;
+};
 
 type Mat4 =
   | [
@@ -207,13 +201,13 @@ export type SceneLayerOptions = {
    * Ambient light color.
    * Default: `0xffffff` (white)
    */
-  ambientLightColor?: ColorRepresentation,
+  ambientLightColor?: ColorRepresentation;
 
   /**
    * Ambient light intensity.
    * Default: `1`
    */
-  ambientLightIntensity?: number,
+  ambientLightIntensity?: number;
 };
 
 export type Item3D = {
@@ -245,7 +239,6 @@ export class SceneLayer implements CustomLayerInterface {
   private sceneOriginMercator: MercatorCoordinate | null = null;
   private ambientLight!: AmbientLight;
 
-
   constructor(id: string, options: SceneLayerOptions = {}) {
     this.type = "custom";
     this.id = id;
@@ -257,14 +250,10 @@ export class SceneLayer implements CustomLayerInterface {
     this.camera.matrixWorldAutoUpdate = false;
     this.scene = new Scene();
 
-    this.ambientLight = new AmbientLight(
-      options.ambientLightColor ?? 0xffffff,
-      options.ambientLightIntensity ?? 0.5
-    );
+    this.ambientLight = new AmbientLight(options.ambientLightColor ?? 0xffffff, options.ambientLightIntensity ?? 0.5);
 
     this.scene.add(this.ambientLight);
   }
-
 
   /**
    * Tells if the meshes should be displayed, based on the zoom range provided as layer options
@@ -273,7 +262,6 @@ export class SceneLayer implements CustomLayerInterface {
     const z = this.map.getZoom();
     return z >= this.minZoom && z <= this.maxZoom;
   }
-
 
   /**
    * Automatically called when the layer is added. (should not be called manually)
@@ -289,7 +277,6 @@ export class SceneLayer implements CustomLayerInterface {
     this.renderer.autoClear = false;
   }
 
-  
   /**
    * Automatically called when the layer is removed. (should not be called manually)
    */
@@ -297,7 +284,6 @@ export class SceneLayer implements CustomLayerInterface {
     this.clear();
     this.renderer.dispose();
   }
-
 
   /**
    * Automaticaly called by the rendering engine. (should not be called manually)
@@ -308,7 +294,7 @@ export class SceneLayer implements CustomLayerInterface {
     if (this.items3D.size === 0) return;
 
     const mapCenter = this.map.getCenter();
-    this.sceneOrigin = new LngLat(mapCenter.lng + 0.01, mapCenter.lat + 0.01)
+    this.sceneOrigin = new LngLat(mapCenter.lng + 0.01, mapCenter.lat + 0.01);
     // this.sceneOrigin = new LngLat(mapCenter.lng, mapCenter.lat)
     const offsetFromCenterElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
     this.sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin, offsetFromCenterElevation);
@@ -328,11 +314,10 @@ export class SceneLayer implements CustomLayerInterface {
     this.renderer.render(this.scene, this.camera);
   }
 
-
   /**
    * Adjust the settings of the ambient light
    */
-  setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {}) {
+  setAmbientLight(options: { color?: ColorRepresentation; intensity?: number } = {}) {
     if (typeof options.intensity === "number") {
       this.ambientLight.intensity = options.intensity;
     }
@@ -342,19 +327,18 @@ export class SceneLayer implements CustomLayerInterface {
     }
   }
 
- 
   /**
    * Adjust the position of all meshes and light relatively to the center of the scene
    */
   private reposition() {
     if (!this.sceneOrigin || !this.sceneOriginMercator) return;
-    const terrainExag = this.map.getTerrainExaggeration();    
-    const sceneElevation = (this.map.queryTerrainElevation(this.sceneOrigin) || 0);
+    const terrainExag = this.map.getTerrainExaggeration();
+    const sceneElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
     const targetElevation = this.map.getCameraTargetElevation();
 
     for (const [_itemId, item] of this.items3D) {
       // Get the elevation of the terrain at the location of the item
-      const itemElevationAtPosition = (this.map.queryTerrainElevation(item.lngLat) || 0);
+      const itemElevationAtPosition = this.map.queryTerrainElevation(item.lngLat) || 0;
 
       let itemUpShift = itemElevationAtPosition - sceneElevation + item.altitude;
 
@@ -363,20 +347,18 @@ export class SceneLayer implements CustomLayerInterface {
         itemUpShift -= actualItemAltitude / terrainExag;
       }
 
-      const {dEastMeter: itemEast, dNorthMeter: itemNorth} = calculateDistanceMercatorToMeters(this.sceneOriginMercator, item.mercatorCoord);
+      const { dEastMeter: itemEast, dNorthMeter: itemNorth } = calculateDistanceMercatorToMeters(
+        this.sceneOriginMercator,
+        item.mercatorCoord,
+      );
       item.mesh?.position.set(itemEast, itemNorth, itemUpShift);
     }
   }
 
-
   /**
    * Add an existing mesh to the map, with options.
    */
-  addMesh(
-    id: string,
-    mesh: Mesh | Group | Object3D,
-    options: MeshOptions = {},
-  ) {
+  addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {}) {
     this.throwUniqueID(id);
 
     const sourceOrientation = options.sourceOrientation ?? SourceOrientation.Y_UP;
@@ -385,7 +367,7 @@ export class SceneLayer implements CustomLayerInterface {
     const lngLat = options.lngLat ?? [0, 0];
     const mercatorCoord = MercatorCoordinate.fromLngLat(lngLat, altitude);
     const heading = options.heading ?? 0;
-    const headingQuaternion = headingToQuaternion(heading)
+    const headingQuaternion = headingToQuaternion(heading);
     const visible = options.visible ?? true;
 
     if (options.scale) {
@@ -406,9 +388,9 @@ export class SceneLayer implements CustomLayerInterface {
       mesh,
       altitudeReference: options.altitudeReference ?? AltitudeReference.GROUND,
       isLight: "isLight" in mesh && mesh.isLight === true,
-      url: mesh.userData._originalUrl ?? null
+      url: mesh.userData._originalUrl ?? null,
     };
-    
+
     this.items3D.set(id, item);
     this.map.triggerRepaint();
   }
@@ -454,7 +436,6 @@ export class SceneLayer implements CustomLayerInterface {
   //     url: item.url,
   //   } as SerializedMesh;
   // }
-
 
   /**
    * Modify an existing mesh. The provided options will overwrite
@@ -512,10 +493,9 @@ export class SceneLayer implements CustomLayerInterface {
 
     this.map.triggerRepaint();
   }
-  
 
   /**
-   * 
+   *
    * Clone an existing mesh. Extra options can be provided to overwrite the clone configuration
    */
   cloneMesh(sourceId: string, id: string, options: MeshOptions) {
@@ -533,12 +513,11 @@ export class SceneLayer implements CustomLayerInterface {
       sourceOrientation: sourceItem.sourceOrientation,
       scale: sourceItem.mesh.scale.x,
       heading: sourceItem.heading,
-      ... options,
-    }
+      ...options,
+    };
 
     this.addMesh(id, sourceItem.mesh.clone(), cloneOptions);
   }
-
 
   modifyPointLight(id: string, options: PointLightOptions) {
     const item = this.items3D.get(id);
@@ -588,15 +567,10 @@ export class SceneLayer implements CustomLayerInterface {
     this.map.triggerRepaint();
   }
 
-
   /**
    * Load a GLTF file from its URL and add it to the map
    */
-  async addMeshFromURL(
-    id: string,
-    meshURL: string,
-    options: MeshOptions = {},
-  ) {
+  async addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {}) {
     this.throwUniqueID(id);
 
     const fileExt = meshURL.trim().toLowerCase().split(".").pop();
@@ -612,7 +586,6 @@ export class SceneLayer implements CustomLayerInterface {
     this.addMesh(id, mesh, options);
   }
 
-
   /**
    * Remove all the meshes and point lights of the scene.
    */
@@ -622,13 +595,12 @@ export class SceneLayer implements CustomLayerInterface {
     }
   }
 
-
   /**
    * Remove a mesh from the scene using its ID.
    */
   removeMesh(id: string) {
     const item = this.items3D.get(id);
-    
+
     if (!item) {
       throw new Error(`Mesh with ID ${id} does not exist.`);
     }
@@ -660,7 +632,6 @@ export class SceneLayer implements CustomLayerInterface {
     this.map.triggerRepaint();
   }
 
-
   /**
    * Adding a point light. The default options are mimicking the sun:
    * lngLat: `[0, 0]` (null island)
@@ -670,10 +641,7 @@ export class SceneLayer implements CustomLayerInterface {
    * intensity: `75`
    * decay: `0.2`
    */
-  addPointLight(
-    id: string,
-    options: PointLightOptions = {}
-  ) {
+  addPointLight(id: string, options: PointLightOptions = {}) {
     this.throwUniqueID(id);
 
     const pointLight = new PointLight(
@@ -690,20 +658,20 @@ export class SceneLayer implements CustomLayerInterface {
     });
   }
 
-
   /**
    * Throw an error if a mesh with such ID already exists
    */
   private throwUniqueID(id: string) {
     if (this.items3D.has(id)) {
-      throw new Error(`Mesh IDs are unique. A mesh or light with the id "${id}" already exist.`)
+      throw new Error(`Mesh IDs are unique. A mesh or light with the id "${id}" already exist.`);
     }
   }
-
 }
 
-
-function calculateDistanceMercatorToMeters(from: MercatorCoordinate, to: MercatorCoordinate): {dEastMeter: number, dNorthMeter: number} {
+function calculateDistanceMercatorToMeters(
+  from: MercatorCoordinate,
+  to: MercatorCoordinate,
+): { dEastMeter: number; dNorthMeter: number } {
   const mercatorPerMeter = from.meterInMercatorCoordinateUnits();
   // mercator x: 0=west, 1=east
   const dEast = to.x - from.x;
@@ -711,20 +679,21 @@ function calculateDistanceMercatorToMeters(from: MercatorCoordinate, to: Mercato
   // mercator y: 0=north, 1=south
   const dNorth = from.y - to.y;
   const dNorthMeter = dNorth / mercatorPerMeter;
-  return {dEastMeter, dNorthMeter};
+  return { dEastMeter, dNorthMeter };
 }
-
 
 function sourceOrientationToQuaternion(so: SourceOrientation | undefined): Quaternion {
   // Most models and 3D environments are Y up (right hand), so we use this as a default
   const yUp = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
-  switch(so) {
-    case SourceOrientation.X_UP: return new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -Math.PI / 2);
-    case SourceOrientation.Z_UP: return new Quaternion();
-    default: return yUp;
+  switch (so) {
+    case SourceOrientation.X_UP:
+      return new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -Math.PI / 2);
+    case SourceOrientation.Z_UP:
+      return new Quaternion();
+    default:
+      return yUp;
   }
 }
-
 
 function headingToQuaternion(heading: number): Quaternion {
   return new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -heading * TO_RADIAN);

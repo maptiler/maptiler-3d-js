@@ -92,7 +92,7 @@ await layer3D.addMeshFromURL(
 );
 ```
 
-### Reference
+### Reference documentation
 The constructor of the `SceneLayer` class takes two arguments:
 - a layer ID (as in the example above)
 - an option object, with TypeScript, this object is of type `SceneLayerOptions`
@@ -246,14 +246,14 @@ type PointLightOptions = GenericObject3DOptions & {
 ```
 
 Here is the list of instance methods:
-- `.setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {})`  
+- **`.setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {})`**  
 To adjust the settings of the ambient light. The type `ColorRepresentation` means the color can be a `number` (such as a hex notation `0xff0000`, for red), a hex string (such as `"#FF0000"`, for red), or a ThreeJS color ([read more about these here](https://threejs.org/docs/#api/en/math/Color)).  
 ℹ️ By default, the ambiant light is white (`0xffffff`) with an intensity of `0.5`.
 
-- `.addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {})` *async*  
+- **`.addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {})`** *async*  
 Adds a mesh from a URL to a glTF of glb file, given a mesh ID (will throw if not unique) and a set of options.
 
-- `.addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {})`  
+- **`.addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {})`**  
 Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) and a set of options.  
 ℹ️ By default, the mesh will have some settings (if not overwritten by the options):
   * sourceOrientation: `SourceOrientation.Y_UP`
@@ -262,11 +262,11 @@ Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) a
   * heading: `0`
   * visible: `true`
 
-- `.modifyMesh(id: string, options: MeshOptions)`  
+- **`.modifyMesh(id: string, options: MeshOptions)`**  
 Modify the settings of a mesh (scale, lntLat, etc.)  
 ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
 
-- `.cloneMesh(sourceId: string, id: string, options: MeshOptions)`  
+- **`.cloneMesh(sourceId: string, id: string, options: MeshOptions)`**  
 Clones a mesh that has a given ID (`sourceId`) and create another one with a new ID (`id`). The provided options will overwrite the settings of the source mesh.
 
 - `.addPointLight(id: string, options: PointLightOptions = {})`  
