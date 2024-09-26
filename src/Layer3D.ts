@@ -111,6 +111,11 @@ export type MeshOptions = GenericObject3DOptions & {
    * Heading measured in degrees clockwise from true north.
    */
   heading?: number;
+
+  /**
+   * Opacity of the mesh
+   */
+  opacity?: number;
 };
 
 /**
@@ -179,7 +184,7 @@ type Mat4 =
     ]
   | Float32Array;
 
-export type SceneLayerOptions = {
+export type Layer3DOptions = {
   /**
    * Bellow this zoom level, the meshes are not visible
    * Default: 0
@@ -221,9 +226,10 @@ export type Item3D = {
   altitudeReference: AltitudeReference;
   isLight: boolean;
   url: string | null;
+  opacity: number;
 };
 
-export class SceneLayer implements CustomLayerInterface {
+export class Layer3D implements CustomLayerInterface {
   public id: string;
   public readonly type = "custom";
   public renderingMode: "2d" | "3d" = "3d";
@@ -239,7 +245,7 @@ export class SceneLayer implements CustomLayerInterface {
   private sceneOriginMercator: MercatorCoordinate | null = null;
   private ambientLight!: AmbientLight;
 
-  constructor(id: string, options: SceneLayerOptions = {}) {
+  constructor(id: string, options: Layer3DOptions = {}) {
     this.type = "custom";
     this.id = id;
     this.minZoom = options.minZoom ?? 0;
@@ -369,6 +375,11 @@ export class SceneLayer implements CustomLayerInterface {
     const heading = options.heading ?? 0;
     const headingQuaternion = headingToQuaternion(heading);
     const visible = options.visible ?? true;
+    const opacity = options.opacity ?? 1;
+
+    if (opacity !== 1) {
+      this.setMeshOpacity(mesh, opacity, false);
+    }
 
     if (options.scale) {
       mesh.scale.set(options.scale, options.scale, options.scale);
@@ -389,6 +400,7 @@ export class SceneLayer implements CustomLayerInterface {
       altitudeReference: options.altitudeReference ?? AltitudeReference.GROUND,
       isLight: "isLight" in mesh && mesh.isLight === true,
       url: mesh.userData._originalUrl ?? null,
+      opacity: opacity,
     };
 
     this.items3D.set(id, item);
@@ -489,6 +501,10 @@ export class SceneLayer implements CustomLayerInterface {
       const sourceOrientationQuaternion = sourceOrientationToQuaternion(item.sourceOrientation);
       const headingQuaternion = headingToQuaternion(item.heading);
       item.mesh.setRotationFromQuaternion(headingQuaternion.multiply(sourceOrientationQuaternion));
+    }
+
+    if (typeof options.opacity === "number") {
+      this.setMeshOpacity(item.mesh, options.opacity, false);
     }
 
     this.map.triggerRepaint();
@@ -631,6 +647,27 @@ export class SceneLayer implements CustomLayerInterface {
     this.items3D.delete(id);
     this.map.triggerRepaint();
   }
+
+
+  /**
+   * Traverse a Mesh/Group/Object3D to modify the opacities of the all the materials it finds
+   */
+  private setMeshOpacity(obj: Mesh | Group | Object3D, opacity: number, forceRepaint = false) {
+    obj.traverse((node) => {
+      if ("isMesh" in node && node.isMesh === true) {
+        const mesh = node as Mesh;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const mat of materials) {
+          mat.opacity = opacity;
+          mat.transparent = true;
+        }
+      }
+    });
+
+    if (forceRepaint)
+      this.map.triggerRepaint();
+  }
+
 
   /**
    * Adding a point light. The default options are mimicking the sun:

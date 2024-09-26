@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>MapTiler 3D Models</title>
+  <title>MapTiler 3D</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
   <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.umd.min.js"></script>
   <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.css" rel="stylesheet" />
-  <script src="../build/maptiler-3d-models.umd.js"></script>
+  <script src="../build/maptiler-3d.umd.js"></script>
   <style>
     body {
       margin: 0;
@@ -56,7 +56,7 @@
     (async () => {
       await map.onReadyAsync();
 
-      const layer3D = new maptiler3dmodels.SceneLayer("custom-3D-layer");
+      const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
       map.addLayer(layer3D);
 
       // Increasing the intensity of the ambient light 
@@ -99,7 +99,7 @@
           scale: 1,
           visible: false,
           altitude: 0,
-          altitudeReference: maptiler3dmodels.AltitudeReference.MEAN_SEA_LEVEL,
+          altitudeReference: maptiler3d.AltitudeReference.MEAN_SEA_LEVEL,
         }
       );
 

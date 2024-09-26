@@ -7,7 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
   <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.umd.min.js"></script>
   <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.css" rel="stylesheet" />
-  <script src="../build/maptiler-3d-models.umd.js"></script>
+  <script src="../build/maptiler-3d.umd.js"></script>
   <style>
     body {
       margin: 0;
@@ -66,7 +66,7 @@
         "atmosphere-blend": 0.5,
       })
 
-      const layer3D = new maptiler3dmodels.SceneLayer("custom-3D-layer");
+      const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
       map.addLayer(layer3D);
 
       // Increasing the intensity of the ambient light 
@@ -89,7 +89,7 @@
           scale: 1,
           visible: true,
           altitude: 3000,
-          altitudeReference: maptiler3dmodels.AltitudeReference.MEAN_SEA_LEVEL,
+          altitudeReference: maptiler3d.AltitudeReference.MEAN_SEA_LEVEL,
         }
       );
 
@@ -140,7 +140,7 @@
 
       gui.add( guiObj, 'altitudeReference', ["MEAN_SEA_LEVEL", "GROUND"])
       .onChange((altRef) => {
-        layer3D.modifyMesh(originalPlaneID, {altitudeReference: maptiler3dmodels.AltitudeReference[altRef]});
+        layer3D.modifyMesh(originalPlaneID, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
       });
 
       gui.add( guiObj, "removePlane" );
