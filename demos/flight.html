@@ -86,7 +86,7 @@
         "models/plane_a340.glb",
         {
           lngLat: paris,
-          heading: 10,
+          heading: 12,
           scale: 5,
           altitude: 5000,
           altitudeReference: maptiler3d.AltitudeReference.MEAN_SEA_LEVEL,
@@ -125,9 +125,8 @@
         layer3D.modifyMesh(originalPlaneID, {lngLat: position});
 
         if (guiObj.tackFlight) {
-          // map.jumpTo({center: position});
           map.setCenter(position);
-          map.setBearing(360 * progress * 2);
+          // map.setBearing(360 * progress * 2);
         }
 
         if (guiObj.play) {
