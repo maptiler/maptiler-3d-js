@@ -116,6 +116,12 @@
         map.triggerRepaint();
       });
 
+      gui.add( guiObj, 'fov', 0, 60)
+      .onChange((fov) => {
+        map.transform.fov = fov;
+        map.triggerRepaint();
+      });
+
 
     })()
 
