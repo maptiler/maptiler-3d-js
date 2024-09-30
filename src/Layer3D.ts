@@ -699,6 +699,24 @@ export class Layer3D implements CustomLayerInterface {
     if (forceRepaint) this.map.triggerRepaint();
   }
 
+
+  /**
+   * If a mesh is a point cloud, it defines the size of the points
+   */
+  private setMeshPointSize(obj: Mesh | Group | Object3D | Points, size: number, forceRepaint = false) {
+    obj.traverse((node) => {
+      if ("isPoints" in node && node.isPoints === true) {
+        const mesh = node as Points;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const mat of materials) {
+          (mat as PointsMaterial).size = size;
+        }
+      }
+    });
+
+    if (forceRepaint) this.map.triggerRepaint();
+  }
+
   /**
    * If a mesh is a point cloud, it defines the size of the points
    */
