@@ -23,6 +23,7 @@ import {
   Color,
   Points,
   PointsMaterial,
+  Material,
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -124,6 +125,12 @@ export type MeshOptions = GenericObject3DOptions & {
    * Default: 1
    */
   pointSize?: number;
+
+  /**
+   * Displays a mesh as wireframe if true.
+   * Default: `false`
+   */
+  wireframe?: boolean;
 };
 
 /**
@@ -235,6 +242,8 @@ export type Item3D = {
   isLight: boolean;
   url: string | null;
   opacity: number;
+  pointSize: number;
+  wireframe: boolean;
 };
 
 export class Layer3D implements CustomLayerInterface {
@@ -385,6 +394,7 @@ export class Layer3D implements CustomLayerInterface {
     const visible = options.visible ?? true;
     const opacity = options.opacity ?? 1;
     const pointSize = options.pointSize ?? 1;
+    const wireframe = options.wireframe ?? false;
 
     if (opacity !== 1) {
       this.setMeshOpacity(mesh, opacity, false);
@@ -396,6 +406,10 @@ export class Layer3D implements CustomLayerInterface {
 
     if ("pointSize" in options) {
       this.setMeshPointSize(mesh, pointSize);
+    }
+
+    if ("wireframe" in options) {
+      this.setMeshWireframe(mesh, wireframe);  
     }
 
     mesh.visible = visible;
@@ -414,6 +428,8 @@ export class Layer3D implements CustomLayerInterface {
       isLight: "isLight" in mesh && mesh.isLight === true,
       url: mesh.userData._originalUrl ?? null,
       opacity: opacity,
+      pointSize: pointSize,
+      wireframe: wireframe,
     };
 
     this.items3D.set(id, item);
@@ -522,6 +538,10 @@ export class Layer3D implements CustomLayerInterface {
 
     if (typeof options.pointSize === "number") {
       this.setMeshPointSize(item.mesh, options.pointSize);
+    }
+
+    if (typeof options.wireframe === "boolean") {
+      this.setMeshWireframe(item.mesh, options.wireframe);
     }
 
     this.map.triggerRepaint();
@@ -694,6 +714,25 @@ export class Layer3D implements CustomLayerInterface {
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         for (const mat of materials) {
           (mat as PointsMaterial).size = size;
+        }
+      }
+    });
+
+    if (forceRepaint) this.map.triggerRepaint();
+  }
+
+
+  /**
+   * If a mesh can be rendered as wireframe, then the option is toggled according to the wireframe param
+   */
+  private setMeshWireframe(obj: Mesh | Group | Object3D, wireframe: boolean, forceRepaint = false) {
+    obj.traverse((node) => {
+      if ("isMesh" in node && node.isMesh === true) {
+        const mesh = node as Mesh;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const mat of materials) {
+          if ("wireframe" in mat && typeof mat.wireframe === "boolean")
+          mat.wireframe = wireframe;
         }
       }
     });

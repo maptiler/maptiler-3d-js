@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>MapTiler 3D Models</title>
+  <title>MapTiler 3D</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
@@ -43,13 +43,14 @@
       container: document.getElementById('map'),
       hash: true,
       // geolocate: true,
-      style: maptilersdk.MapStyle.OUTDOOR.DARK,
-      zoom: 18,
-      center: [148.9819, -35.3981],
+      style: maptilersdk.MapStyle.DATAVIZ.DARK,
+      zoom: 15,
+      center: [-3.04815, 56.47759370631715],
       pitch: 60,
       maxPitch: 85,
       terrainControl: true,
-      terrain: true,
+      // terrain: true,
+      // terrainExaggeration: 0.001,
       maptilerLogo: true,
     });
 
@@ -66,40 +67,41 @@
         "atmosphere-blend": 0.5,
       })
 
-      const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
+      const layer3D = new maptiler3d.Layer3D("custom-3D-layer", {antiaslias: true});
       map.addLayer(layer3D);
 
       // Increasing the intensity of the ambient light 
       layer3D.setAmbientLight({intensity: 2});
 
       // Adding a point light
-      layer3D.addPointLight("point-light", {intensity: 30});
+      layer3D.addPointLight("point-light-1", {intensity: 30, lngLat: [40, 0], color: 0xdbf8ff, altitude: 1_000_000});
+      layer3D.addPointLight("point-light-2", {intensity: 30, lngLat: [-120, 80], color: 0xfff7db});
 
 
       const gui = new lil.GUI({ width: 400 });
 
-      // Adding a mesh of a plane.
-
       const guiObj = {
-        heading: 0,
+        heading: 90,
         scale: 1,
-        altitude: 3000,
+        altitude: 0.16,
+        altitudeReference: "GROUND",
         opacity: 1,
-        wireframe: false,
-        altitudeReference: "MEAN_SEA_LEVEL",
-        removePlane: () => {
-          layer3D.removeMesh(originalPlaneID);
-        },
+        wireframe: true,
+        fov: map.transform.fov,
       }
    
-      const originalPlaneID = "plane";
+      const meshId = "some-mesh";
       await layer3D.addMeshFromURL(
-        originalPlaneID,
-        "models/plane_a340.glb",
+        meshId,
+        // https://sketchfab.com/3d-models/building-f-agu-sagamihara-campus-lod2-3-7d7b0d0d0a454a54aa50528f6483e2c6
+        "models/building_f_agu_sagamihara_campus_lod2-3.glb",
         {
+          lngLat: [-3.04815, 56.47759370631715],
+          heading: guiObj.heading,
           scale: guiObj.scale,
+          visible: true,
           altitude: guiObj.altitude,
-          altitudeReference: maptiler3d.AltitudeReference.MEAN_SEA_LEVEL,
+          altitudeReference: maptiler3d.AltitudeReference.GROUND,
           wireframe: guiObj.wireframe,
         }
       );
@@ -108,55 +110,59 @@
 
       
 
-      let planeCanMove = false;
+      let meshCanMove = false;
 
       // Clones of this lantern will be added as we click on the map.
       // The lantern model that is used for the clone is the latest lantern added,
       // so that we can benefit from the latest heading we defined
       map.on("mousemove", (e) => {
-        if (!planeCanMove) return;
+        if (!meshCanMove) return;
 
-        layer3D.modifyMesh(originalPlaneID, {lngLat: e.lngLat})
+        // console.log(e.lngLat);
+        // layer3D.modifyMesh(meshId, {lngLat: e.lngLat})
       });
 
       map.on("click", (e) => {
-        planeCanMove = !planeCanMove;
+        meshCanMove = !meshCanMove;
       });
 
-    
-      // // We can change the heading of the latest lantern added
       gui.add( guiObj, 'heading', 0, 360, 0.1 )
       .onChange((heading) => {
-        layer3D.modifyMesh(originalPlaneID, {heading});
+        layer3D.modifyMesh(meshId, {heading});
       });
 
       gui.add( guiObj, 'scale', 0.01, 5, 0.01 )
       .onChange((scale) => {
-        layer3D.modifyMesh(originalPlaneID, {scale});
+        layer3D.modifyMesh(meshId, {scale});
       });
 
-      gui.add( guiObj, 'altitude', 0, 10000, 1 )
+      gui.add( guiObj, 'altitude', -100, 100, 0.01 )
       .onChange((altitude) => {
-        layer3D.modifyMesh(originalPlaneID, {altitude});
+        layer3D.modifyMesh(meshId, {altitude});
       });
 
       gui.add( guiObj, 'opacity', 0, 1)
       .onChange((opacity) => {
-        layer3D.modifyMesh(originalPlaneID, {opacity});
+        layer3D.modifyMesh(meshId, {opacity});
       });
 
-
-      gui.add( guiObj, 'altitudeReference', ["MEAN_SEA_LEVEL", "GROUND"])
+      gui.add( guiObj, 'altitudeReference', ["GROUND", "MEAN_SEA_LEVEL"])
       .onChange((altRef) => {
-        layer3D.modifyMesh(originalPlaneID, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
+        layer3D.modifyMesh(meshId, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
       });
 
-      gui.add( guiObj, "wireframe" )
+      gui.add( guiObj, 'wireframe')
       .onChange((wireframe) => {
-        layer3D.modifyMesh(originalPlaneID, {wireframe});
+        layer3D.modifyMesh(meshId, {wireframe});
       });
 
-      gui.add( guiObj, "removePlane" );
+
+
+      gui.add( guiObj, 'fov', 0, 60)
+      .onChange((fov) => {
+        map.transform.fov = fov;
+        map.triggerRepaint();
+      });
 
     })()
 
