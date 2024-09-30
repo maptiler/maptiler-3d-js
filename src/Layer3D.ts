@@ -126,7 +126,7 @@ export type MeshOptions = GenericObject3DOptions & {
   pointSize?: number;
 
   /**
-   * Displays a mesh as wireframe if true.
+   * Displays a mesh as wireframe if true (does not apply to point cloud)
    * Default: `false`
    */
   wireframe?: boolean;

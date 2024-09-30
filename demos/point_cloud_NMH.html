@@ -106,6 +106,7 @@
         altitudeReference: "GROUND",
         opacity: 1,
         pointSize: 1,
+        fov: map.transform.fov,
       }
 
       let meshCanMove = false;
@@ -155,6 +156,12 @@
       gui.add( guiObj, 'altitudeReference', ["GROUND", "MEAN_SEA_LEVEL"])
       .onChange((altRef) => {
         layer3D.modifyMesh(meshId, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
+      });
+
+      gui.add( guiObj, 'fov', 0, 60)
+      .onChange((fov) => {
+        map.transform.fov = fov;
+        map.triggerRepaint();
       });
 
 
