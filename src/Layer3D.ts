@@ -21,9 +21,8 @@ import {
   type ColorRepresentation,
   AmbientLight,
   Color,
-  Points,
-  PointsMaterial,
-  Material,
+  type Points,
+  type PointsMaterial,
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -409,7 +408,7 @@ export class Layer3D implements CustomLayerInterface {
     }
 
     if ("wireframe" in options) {
-      this.setMeshWireframe(mesh, wireframe);  
+      this.setMeshWireframe(mesh, wireframe);
     }
 
     mesh.visible = visible;
@@ -703,7 +702,6 @@ export class Layer3D implements CustomLayerInterface {
     if (forceRepaint) this.map.triggerRepaint();
   }
 
-
   /**
    * If a mesh is a point cloud, it defines the size of the points
    */
@@ -721,7 +719,6 @@ export class Layer3D implements CustomLayerInterface {
     if (forceRepaint) this.map.triggerRepaint();
   }
 
-
   /**
    * If a mesh can be rendered as wireframe, then the option is toggled according to the wireframe param
    */
@@ -731,8 +728,7 @@ export class Layer3D implements CustomLayerInterface {
         const mesh = node as Mesh;
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         for (const mat of materials) {
-          if ("wireframe" in mat && typeof mat.wireframe === "boolean")
-          mat.wireframe = wireframe;
+          if ("wireframe" in mat && typeof mat.wireframe === "boolean") mat.wireframe = wireframe;
         }
       }
     });
