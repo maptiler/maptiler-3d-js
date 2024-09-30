@@ -21,6 +21,8 @@ import {
   type ColorRepresentation,
   AmbientLight,
   Color,
+  Points,
+  PointsMaterial,
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -116,6 +118,12 @@ export type MeshOptions = GenericObject3DOptions & {
    * Opacity of the mesh
    */
   opacity?: number;
+
+  /**
+   * Point size, applicable only to point clouds.
+   * Default: 1
+   */
+  pointSize?: number;
 };
 
 /**
@@ -376,6 +384,7 @@ export class Layer3D implements CustomLayerInterface {
     const headingQuaternion = headingToQuaternion(heading);
     const visible = options.visible ?? true;
     const opacity = options.opacity ?? 1;
+    const pointSize = options.pointSize ?? 1;
 
     if (opacity !== 1) {
       this.setMeshOpacity(mesh, opacity, false);
@@ -383,6 +392,10 @@ export class Layer3D implements CustomLayerInterface {
 
     if (options.scale) {
       mesh.scale.set(options.scale, options.scale, options.scale);
+    }
+
+    if ("pointSize" in options) {
+      this.setMeshPointSize(mesh, pointSize);
     }
 
     mesh.visible = visible;
@@ -505,6 +518,10 @@ export class Layer3D implements CustomLayerInterface {
 
     if (typeof options.opacity === "number") {
       this.setMeshOpacity(item.mesh, options.opacity, false);
+    }
+
+    if (typeof options.pointSize === "number") {
+      this.setMeshPointSize(item.mesh, options.pointSize);
     }
 
     this.map.triggerRepaint();
@@ -651,14 +668,32 @@ export class Layer3D implements CustomLayerInterface {
   /**
    * Traverse a Mesh/Group/Object3D to modify the opacities of the all the materials it finds
    */
-  private setMeshOpacity(obj: Mesh | Group | Object3D, opacity: number, forceRepaint = false) {
+  private setMeshOpacity(obj: Mesh | Group | Object3D | Points, opacity: number, forceRepaint = false) {
     obj.traverse((node) => {
-      if ("isMesh" in node && node.isMesh === true) {
+      if (("isMesh" in node && node.isMesh === true) || ("isPoints" in node && node.isPoints === true)) {
         const mesh = node as Mesh;
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         for (const mat of materials) {
           mat.opacity = opacity;
           mat.transparent = true;
+        }
+      }
+    });
+
+    if (forceRepaint) this.map.triggerRepaint();
+  }
+
+
+  /**
+   * If a mesh is a point cloud, it defines the size of the points
+   */
+  private setMeshPointSize(obj: Mesh | Group | Object3D | Points, size: number, forceRepaint = false) {
+    obj.traverse((node) => {
+      if ("isPoints" in node && node.isPoints === true) {
+        const mesh = node as Points;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const mat of materials) {
+          (mat as PointsMaterial).size = size;
         }
       }
     });

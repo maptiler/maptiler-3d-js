@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MapTiler 3D</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
+  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.umd.min.js"></script>
+  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.css" rel="stylesheet" />
+  <script src="../build/maptiler-3d.umd.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    .lil-gui.autoPlace {
+      right: inherit;
+      left: 15px;
+    }
+
+  </style>
+</head>
+
+<body>
+  
+
+  <div id="map"></div>
+
+  <script>
+
+    maptilersdk.config.apiKey = new URLSearchParams(location.search).get("key") ?? alert("Missing URL param with MapTiler API key ?key=XXXXX");
+
+    const map = new maptilersdk.Map({
+      container: document.getElementById('map'),
+      hash: true,
+      // geolocate: true,
+      style: maptilersdk.MapStyle.DATAVIZ,
+      zoom: 15,
+      center: [-2.9712237417697906, 56.462597919624585],
+      pitch: 60,
+      maxPitch: 85,
+      terrainControl: true,
+      terrain: true,
+      terrainExaggeration: 0.001,
+      maptilerLogo: true,
+    });
+
+    (async () => {
+      await map.onReadyAsync();
+
+      map.setSky({
+        "sky-color": "#b2ddfa",
+        "horizon-color": "#FFFFFF",
+        "fog-color": "#FFFFFF",
+        "fog-ground-blend": 0.8,
+        "horizon-fog-blend": 0.1,
+        "sky-horizon-blend": 0.6,
+        "atmosphere-blend": 0.5,
+      })
+
+      const layer3D = new maptiler3d.Layer3D("custom-3D-layer", {antiaslias: true});
+      map.addLayer(layer3D);
+
+      // Increasing the intensity of the ambient light 
+      layer3D.setAmbientLight({intensity: 2});
+
+      // Adding a point light
+      layer3D.addPointLight("point-light", {intensity: 30});
+
+
+      const gui = new lil.GUI({ width: 400 });
+
+      // Adding a mesh of a lantern.
+      // We make this first mesh invisible because we will only use it to be cloned
+   
+      const meshId = "some-mesh";
+      await layer3D.addMeshFromURL(
+        meshId,
+        // https://sketchfab.com/3d-models/scotland-dundee-the-mcmanus-5m-point-cloud-98ebfbf47d4a41cda51a6e08e168f5e8
+        "private_models/scotland_dundee_the_mcmanus_5m_point_cloud.glb",
+        {
+          lngLat: [-2.9712237417697906, 56.462597919624585],
+          heading: 100,
+          scale: 1,
+          visible: true,
+          altitude: 6.5,
+          altitudeReference: maptiler3d.AltitudeReference.GROUND,
+        }
+      );
+
+      
+
+      const guiObj = {
+        heading: 100,
+        scale: 1,
+        altitude: 6.5,
+        altitudeReference: "GROUND",
+        opacity: 1,
+        pointSize: 1,
+      }
+
+      let meshCanMove = false;
+
+      // Clones of this lantern will be added as we click on the map.
+      // The lantern model that is used for the clone is the latest lantern added,
+      // so that we can benefit from the latest heading we defined
+      map.on("mousemove", (e) => {
+        if (!meshCanMove) return;
+
+        // console.log(e.lngLat);
+        // layer3D.modifyMesh(meshId, {lngLat: e.lngLat})
+      });
+
+      map.on("click", (e) => {
+        meshCanMove = !meshCanMove;
+      });
+
+    
+      // // We can change the heading of the latest lantern added
+      gui.add( guiObj, 'heading', 0, 360, 0.1 )
+      .onChange((heading) => {
+        layer3D.modifyMesh(meshId, {heading});
+      });
+
+      gui.add( guiObj, 'scale', 0.01, 5, 0.01 )
+      .onChange((scale) => {
+        layer3D.modifyMesh(meshId, {scale});
+      });
+
+      gui.add( guiObj, 'altitude', -100, 100, 0.01 )
+      .onChange((altitude) => {
+        layer3D.modifyMesh(meshId, {altitude});
+      });
+
+      gui.add( guiObj, 'opacity', 0, 1)
+      .onChange((opacity) => {
+        layer3D.modifyMesh(meshId, {opacity});
+      });
+
+      gui.add( guiObj, 'pointSize', 0, 20, 0.1 )
+      .onChange((pointSize) => {
+        layer3D.modifyMesh(meshId, {pointSize});
+      });
+
+
+      gui.add( guiObj, 'altitudeReference', ["GROUND", "MEAN_SEA_LEVEL"])
+      .onChange((altRef) => {
+        layer3D.modifyMesh(meshId, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
+      });
+
+
+    })()
+
+  </script>
+</body>
+</html>
