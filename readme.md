@@ -15,7 +15,9 @@
 </p>
 
 ## 3D objects on MapTiler maps
-With this MapTiler SDK plugin, you can add 3D objects  from glTF/glb files. to your basemap, with plenty of customizations! Those can be meshes, groups of meshes, point clouds and a mix of all these.
+With this MapTiler SDK plugin, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
+
+**Here are some examples:**  
 
 ![](images/mansion.png)
 [Sellers Mansion, captured by Katie Wolfe, License CC Attribution](https://sketchfab.com/3d-models/sellers-mansion-4aad9d86ec5e484c949e931b67a4243f)
@@ -94,7 +96,7 @@ await layer3D.addMeshFromURL(
 
   // A set of options, these can be modified later
   {
-    lngLat: {lat: 40.74072950731568, lng: -73.98918779556983},
+    lngLat: {lat: 40.74072950731568, lng: -73.98918779556983}, // can also be an array [lng, lat]
     heading: 91.1,
     scale: 39.5,
     visible: true,
