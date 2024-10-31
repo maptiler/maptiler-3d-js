@@ -60,14 +60,13 @@ const map = new Map({
 
 // Waiting that the map is ready. You can also wait for the "load" event.
 map.on("ready", () => {
-  
   // Create a Layer3D and add it
   const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
   map.addLayer(layer3D);
 })
 ```
 
-Once created and added, a mesh can be added. In this version, only *glTF* and their biinary counterpart *glb* files can be added, more formats will be added in the future.
+Once created and added, a mesh can be added. In this version any *glTF* and their binary counterpart *glb* files can be added.
 
 To add a mesh:
 ```ts
@@ -114,7 +113,7 @@ type Layer3DOptions = {
   /**
    * Default: true
    */
-  antiaslias?: boolean;
+  antialias?: boolean;
 
   /**
    * Ambient light color.
@@ -251,15 +250,15 @@ type PointLightOptions = GenericObject3DOptions & {
 ```
 
 Here is the list of instance methods:
-- **`.setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {})`**  
-To adjust the settings of the ambient light. The type `ColorRepresentation` means the color can be a `number` (such as a hex notation `0xff0000`, for red), a hex string (such as `"#FF0000"`, for red), or a ThreeJS color ([read more about these here](https://threejs.org/docs/#api/en/math/Color)).  
+- **`.setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {})`**
+To adjust the settings of the ambient light. The type `ColorRepresentation` means the color can be a `number` (such as a hex notation `0xff0000`, for red), a hex string (such as `"#FF0000"`, for red), or a ThreeJS color ([read more about these here](https://threejs.org/docs/#api/en/math/Color)).
 ℹ️ By default, the ambiant light is white (`0xffffff`) with an intensity of `0.5`.
 
-- **`.addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {})`** *async*  
+- **`.addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {})`** *async*
 Adds a mesh from a URL to a glTF of glb file, given a mesh ID (will throw if not unique) and a set of options.
 
-- **`.addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {})`**  
-Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) and a set of options.  
+- **`.addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {})`**
+Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) and a set of options.
 ℹ️ By default, the mesh will have some settings (if not overwritten by the options):
   * sourceOrientation: `SourceOrientation.Y_UP`
   * altitude: `0`
@@ -267,15 +266,15 @@ Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) a
   * heading: `0`
   * visible: `true`
 
-- **`.modifyMesh(id: string, options: MeshOptions)`**  
-Modify the settings of a mesh (scale, lntLat, etc.)  
+- **`.modifyMesh(id: string, options: MeshOptions)`**
+Modify the settings of a mesh (scale, lntLat, etc.)
 ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
 
-- **`.cloneMesh(sourceId: string, id: string, options: MeshOptions)`**  
+- **`.cloneMesh(sourceId: string, id: string, options: MeshOptions)`**
 Clones a mesh that has a given ID (`sourceId`) and create another one with a new ID (`id`). The provided options will overwrite the settings of the source mesh.
 
-- **`.addPointLight(id: string, options: PointLightOptions = {})`**  
-Adds a point light with a unique ID (will throw if not unique) and some options.  
+- **`.addPointLight(id: string, options: PointLightOptions = {})`**
+Adds a point light with a unique ID (will throw if not unique) and some options.
 ℹ️ By default, the light will have some settings (if not overwritten by the options):
   * lngLat: `[0, 0]` (null island)
   * altitude: `2_000_000` meters
@@ -284,15 +283,15 @@ Adds a point light with a unique ID (will throw if not unique) and some options.
   * intensity: `75`
   * decay: `0.2`
 
-- **`.modifyPointLight(id: string, options: PointLightOptions)`**  
-Modify a point light given its ID.  
+- **`.modifyPointLight(id: string, options: PointLightOptions)`**
+Modify a point light given its ID.
 ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
 
 
-- **`.removeMesh(id: string)`**  
+- **`.removeMesh(id: string)`**
 Remove a mesh or point light from the scene and frees the GPU memory associated to it
 
-- **`.clear()`**  
+- **`.clear()`**
 Removes all the meshes and point lights from the scene and frees the GPU memory associated with them
 
 
