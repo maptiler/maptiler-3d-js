@@ -16,16 +16,16 @@
 
 ## 3D objects on MapTiler maps
 With this MapTiler SDK plugin, you can add 3D objects (glTF/glb files) to your basemap, with plenty of customizations!
-![](images/mansion.png)
+![](images/mansion.jpg)
 [Sellers Mansion, captured by Katie Wolfe, License CC Attribution](https://sketchfab.com/3d-models/sellers-mansion-4aad9d86ec5e484c949e931b67a4243f)
 
-![](images/flatiron.png)
+![](images/flatiron.jpg)
 [Flatiron building, mesh created by Mohamed Hussien, License CC Attribution](https://sketchfab.com/3d-models/flatiron-building-116132645224458da6e4d9dd45c294b4)
 
-![](images/plane.png)
+![](images/plane.jpg)
 [Plane a380, mesh created by Mamont Nikita, License CC Attribution](https://sketchfab.com/3d-models/plane-a340-d3ad0996a8564a94a24ee4b3528b554b)
 
-![](images/ducks-and-posts.png)
+![](images/ducks-and-posts.jpg)
 [Duck and lamp post meshes from the glTF sample asset repository](https://github.com/KhronosGroup/glTF-Sample-Assets)
 
 ### Installation
