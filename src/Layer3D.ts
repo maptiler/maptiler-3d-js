@@ -1,11 +1,19 @@
-import {
-  type CustomLayerInterface,
-  type Map as MapSDK,
-  MercatorCoordinate,
-  type LngLatLike,
-  type CustomRenderMethodInput,
-  LngLat,
-} from "@maptiler/sdk";
+import * as maptilersdk from "@maptiler/sdk";
+import { LngLatBounds } from "maplibre-gl";
+
+export const earthRadius = 6371008.8;
+
+console.log(maptilersdk.getVersion());
+
+const { MercatorCoordinate } = maptilersdk;
+type MercatorCoordinate = maptilersdk.MercatorCoordinate;
+const { LngLat } = maptilersdk;
+type LngLat = maptilersdk.LngLat;
+type LngLatLike = maptilersdk.LngLatLike;
+type CustomLayerInterface = maptilersdk.CustomLayerInterface;
+type CustomRenderMethodInput = maptilersdk.CustomRenderMethodInput;
+const { Map: MapSDK } = maptilersdk;
+type MapSDK = maptilersdk.Map;
 
 import {
   Camera,
@@ -288,6 +296,7 @@ export class Layer3D implements CustomLayerInterface {
    */
   onAdd?(map: MapSDK, gl: WebGL2RenderingContext): void {
     this.map = map;
+
     this.renderer = new WebGLRenderer({
       canvas: map.getCanvas(),
       context: gl,
@@ -308,30 +317,41 @@ export class Layer3D implements CustomLayerInterface {
   /**
    * Automaticaly called by the rendering engine. (should not be called manually)
    */
-  render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
-    if (!this.isInZoomRange()) return;
-    if (this.items3D.size === 0) return;
+  // render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
+  render(gl: WebGLRenderingContext | WebGL2RenderingContext, options: CustomRenderMethodInput) {
+    if (this.isInZoomRange() === false)  {
+      return;
+    }
+    
+    if (this.items3D.size === 0) {
+      return;
+    }
 
     const mapCenter = this.map.getCenter();
-    this.sceneOrigin = new LngLat(mapCenter.lng + 0.01, mapCenter.lat + 0.01);
-    // this.sceneOrigin = new LngLat(mapCenter.lng, mapCenter.lat)
-    const offsetFromCenterElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
-    this.sceneOriginMercator = MercatorCoordinate.fromLngLat(this.sceneOrigin, offsetFromCenterElevation);
+    this.sceneOrigin = new LngLat(mapCenter.lng, mapCenter.lat);
 
-    // Adjust all the meshes and light according to the relative center of the scene
-    this.reposition();
+    const item = this.items3D.get("plane");
+    const model = item?.mesh ?? undefined;
 
-    const sceneScale = this.sceneOriginMercator.meterInMercatorCoordinateUnits();
+    if (item !== undefined && model !== undefined) {
+      const modelOrigin = item.lngLat;
+      const modelAltitude = 0;
+      const modelMatrix = this.map.transform.getMatrixForModel(modelOrigin, modelAltitude);
+      const scaling = 100;
+      const threeMatrix1 = new Matrix4().fromArray(modelMatrix).scale(new Vector3(scaling, scaling, scaling));
 
-    const m = new Matrix4().fromArray(matrix);
-    const l = new Matrix4()
-      .makeTranslation(this.sceneOriginMercator.x, this.sceneOriginMercator.y, this.sceneOriginMercator.z)
-      .scale(new Vector3(sceneScale, -sceneScale, sceneScale));
+      model.matrix.identity();
+      model.applyMatrix4(threeMatrix1);
+      model.matrixAutoUpdate = false;
+    }
 
-    this.camera.projectionMatrix = m.multiply(l);
+    const cameraMatrix = new Matrix4().fromArray(options.defaultProjectionData.mainMatrix);
+    this.camera.projectionMatrix = cameraMatrix;
+
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
   }
+  // this.map.triggerRepaint();
 
   /**
    * Adjust the settings of the ambient light
@@ -409,7 +429,7 @@ export class Layer3D implements CustomLayerInterface {
     }
 
     mesh.visible = visible;
-    mesh.setRotationFromQuaternion(headingQuaternion.multiply(sourceOrientationQuaternion));
+    // mesh.setRotationFromQuaternion(headingQuaternion.multiply(sourceOrientationQuaternion));
     this.scene.add(mesh);
 
     const item: Item3D = {
