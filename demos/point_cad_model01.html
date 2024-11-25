@@ -106,26 +106,6 @@
         }
       );
 
-      
-
-      
-
-      let meshCanMove = false;
-
-      // Clones of this lantern will be added as we click on the map.
-      // The lantern model that is used for the clone is the latest lantern added,
-      // so that we can benefit from the latest heading we defined
-      map.on("mousemove", (e) => {
-        if (!meshCanMove) return;
-
-        // console.log(e.lngLat);
-        // layer3D.modifyMesh(meshId, {lngLat: e.lngLat})
-      });
-
-      map.on("click", (e) => {
-        meshCanMove = !meshCanMove;
-      });
-
       gui.add( guiObj, 'heading', 0, 360, 0.1 )
       .onChange((heading) => {
         layer3D.modifyMesh(meshId, {heading});
