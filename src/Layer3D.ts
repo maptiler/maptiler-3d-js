@@ -62,8 +62,6 @@ export enum SourceOrientation {
   Z_UP = 3,
 }
 
-const TO_RADIAN = Math.PI / 180;
-
 /**
  * Generic options that apply to both point lights and meshes
  */
@@ -214,7 +212,7 @@ export type Layer3DOptions = {
   /**
    * Default: true
    */
-  antiaslias?: boolean;
+  antialias?: boolean;
 
   /**
    * Ambient light color.
@@ -266,7 +264,7 @@ export class Layer3D implements CustomLayerInterface {
     this.id = id;
     this.minZoom = options.minZoom ?? 0;
     this.maxZoom = options.maxZoom ?? 22;
-    this.antialias = options.antiaslias ?? true;
+    this.antialias = options.antialias ?? true;
 
     this.camera = new Camera();
     this.camera.matrixWorldAutoUpdate = false;
@@ -311,7 +309,6 @@ export class Layer3D implements CustomLayerInterface {
    * Automaticaly called by the rendering engine. (should not be called manually)
    */
   render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
-    // console.log("RENDER");
     if (!this.isInZoomRange()) return;
     if (this.items3D.size === 0) return;
 
@@ -800,5 +797,5 @@ function sourceOrientationToQuaternion(so: SourceOrientation | undefined): Quate
 }
 
 function headingToQuaternion(heading: number): Quaternion {
-  return new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -heading * TO_RADIAN);
+  return new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), (-heading * Math.PI) / 180);
 }
