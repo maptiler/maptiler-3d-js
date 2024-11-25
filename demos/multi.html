@@ -41,11 +41,10 @@
 
     const map = new maptilersdk.Map({
       container: document.getElementById('map'),
-      hash: true,
       // geolocate: true,
       style: maptilersdk.MapStyle.OUTDOOR,
       zoom: 18,
-      center: [148.9819, -35.3981],
+      center: [2.340862, 48.8565787],
       pitch: 60,
       maxPitch: 85,
       terrainControl: true,
@@ -123,36 +122,36 @@
         altitude: 0,
       }
       
-      let lanternCounter = 0;
-      let latestLanternID = originalLanternID
+      let meshCounter = 0;
+      let latestMeshID = originalLanternID
 
-      // Clones of this lantern will be added as we click on the map.
-      // The lantern model that is used for the clone is the latest lantern added,
+      // Clones of this mesh will be added as we click on the map.
+      // The lantern model that is used for the clone is the latest mesh added,
       // so that we can benefit from the latest heading we defined
       map.on("click", (e) => {
-        lanternCounter += 1;
-        const newCloneID = `${originalLanternID}_${lanternCounter}`;
+        meshCounter += 1;
+        const newCloneID = `${originalLanternID}_${meshCounter}`;
         layer3D.cloneMesh(guiObj.model, newCloneID, {lngLat: e.lngLat, visible: true, heading: guiObj.heading, scale: guiObj.scale})
-        latestLanternID = newCloneID;
+        latestMeshID = newCloneID;
       })
 
       
       gui.add(guiObj, "model", [originalLanternID, originalDuckID, originalPlaneID, originalDragonID])
 
-      // We can change the heading of the latest lantern added
+      // We can change the heading of the latest mesh added
       gui.add( guiObj, 'heading', 0, 360, 0.1 )
       .onChange((heading) => {
-        layer3D.modifyMesh(latestLanternID, {heading});
+        layer3D.modifyMesh(latestMeshID, {heading});
       });
 
       gui.add( guiObj, 'scale', 0.01, 10, 0.01 )
       .onChange((scale) => {
-        layer3D.modifyMesh(latestLanternID, {scale});
+        layer3D.modifyMesh(latestMeshID, {scale});
       })
 
       gui.add( guiObj, 'altitude', -100, 1000, 1 )
       .onChange((altitude) => {
-        layer3D.modifyMesh(latestLanternID, {altitude});
+        layer3D.modifyMesh(latestMeshID, {altitude});
       })
 
     })()

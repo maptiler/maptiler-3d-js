@@ -79,9 +79,6 @@
 
       const gui = new lil.GUI({ width: 400 });
 
-      // Adding a mesh of a lantern.
-      // We make this first mesh invisible because we will only use it to be cloned
-   
       const meshId = "some-mesh";
       await layer3D.addMeshFromURL(
         meshId,
@@ -96,48 +93,10 @@
         }
       );
 
-      
-
       const guiObj = {
-        heading: 0,
-        scale: 1,
-        altitude: -752,
-        altitudeReference: "GROUND",
         opacity: 1,
         pointSize: 1,
       }
-
-      let meshCanMove = false;
-
-      // Clones of this lantern will be added as we click on the map.
-      // The lantern model that is used for the clone is the latest lantern added,
-      // so that we can benefit from the latest heading we defined
-      map.on("mousemove", (e) => {
-        if (!meshCanMove) return;
-
-        // layer3D.modifyMesh(meshId, {lngLat: e.lngLat})
-      });
-
-      map.on("click", (e) => {
-        meshCanMove = !meshCanMove;
-      });
-
-    
-      // // We can change the heading of the latest lantern added
-      gui.add( guiObj, 'heading', 0, 360, 0.1 )
-      .onChange((heading) => {
-        layer3D.modifyMesh(meshId, {heading});
-      });
-
-      gui.add( guiObj, 'scale', 0.01, 5, 0.01 )
-      .onChange((scale) => {
-        layer3D.modifyMesh(meshId, {scale});
-      });
-
-      gui.add( guiObj, 'altitude', -1000, 10, 0.01 )
-      .onChange((altitude) => {
-        layer3D.modifyMesh(meshId, {altitude});
-      });
 
       gui.add( guiObj, 'opacity', 0, 1)
       .onChange((opacity) => {
@@ -148,13 +107,6 @@
       .onChange((pointSize) => {
         layer3D.modifyMesh(meshId, {pointSize});
       });
-
-
-      gui.add( guiObj, 'altitudeReference', ["GROUND", "MEAN_SEA_LEVEL"])
-      .onChange((altRef) => {
-        layer3D.modifyMesh(meshId, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
-      });
-
 
     })()
 
