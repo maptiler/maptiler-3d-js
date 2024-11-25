@@ -15,18 +15,33 @@
 </p>
 
 ## 3D objects on MapTiler maps
-With this MapTiler SDK plugin, you can add 3D objects (glTF/glb files) to your basemap, with plenty of customizations!
-![](images/mansion.jpg)
+With this MapTiler SDK plugin, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
+
+**Here are some examples:**  
+
+![](images/mansion.jpeg)
 [Sellers Mansion, captured by Katie Wolfe, License CC Attribution](https://sketchfab.com/3d-models/sellers-mansion-4aad9d86ec5e484c949e931b67a4243f)
 
-![](images/flatiron.jpg)
+![](images/flatiron.jpeg)
 [Flatiron building, mesh created by Mohamed Hussien, License CC Attribution](https://sketchfab.com/3d-models/flatiron-building-116132645224458da6e4d9dd45c294b4)
 
-![](images/plane.jpg)
+![](images/plane.jpeg)
 [Plane a380, mesh created by Mamont Nikita, License CC Attribution](https://sketchfab.com/3d-models/plane-a340-d3ad0996a8564a94a24ee4b3528b554b)
 
-![](images/ducks-and-posts.jpg)
+![](images/ducks-and-posts.jpeg)
 [Duck and lamp post meshes from the glTF sample asset repository](https://github.com/KhronosGroup/glTF-Sample-Assets)
+
+![](images/cad.jpeg)
+[Building, mesh created by ibukilego, License CC Attribution](https://sketchfab.com/3d-models/building-f-agu-sagamihara-campus-lod2-3-7d7b0d0d0a454a54aa50528f6483e2c6) (coupled with `map.transform.fov = 0` to create an orthographic view)
+
+![](images/dundee.jpeg)
+[Scotland: Dundee, The McManus, point cloud (5M) created by Daniel Muirhead, License CC Attribution](https://sketchfab.com/3d-models/scotland-dundee-the-mcmanus-5m-point-cloud-98ebfbf47d4a41cda51a6e08e168f5e8)
+
+![](images/dundee2.jpeg)
+[Scotland: Dundee, The McManus, point cloud (5M) created by Daniel Muirhead, License CC Attribution](https://sketchfab.com/3d-models/scotland-dundee-the-mcmanus-5m-point-cloud-98ebfbf47d4a41cda51a6e08e168f5e8)
+
+![](images/nhm.jpeg)
+[Hintze Hall, Natural History Museum, London, point cloud (2.4M) created by Thomas Flynn, License CC Attribution Non Comercial](https://sketchfab.com/3d-models/hintze-hall-nhm-london-point-cloud-be909aa8afa545118be6d36397529e2f)
 
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
@@ -80,7 +95,7 @@ await layer3D.addMeshFromURL(
 
   // A set of options, these can be modified later
   {
-    lngLat: {lat: 40.74072950731568, lng: -73.98918779556983},
+    lngLat: {lat: 40.74072950731568, lng: -73.98918779556983}, // can also be an array [lng, lat]
     heading: 91.1,
     scale: 39.5,
     visible: true,
@@ -89,6 +104,18 @@ await layer3D.addMeshFromURL(
   }
 );
 ```
+
+Here are all the options for meshes:
+- `lngLat` location of the center of the 3D object, as longitude and latitude
+- `altitude` the altitude in meters above the reference point (to the origin of the mesh, that is not always the bottom)
+- `altitudeReference` reference point of altitude (ground or mean sea level)
+- `visible` whether the mesh is visible
+- `sourceOrientation` applies a correction from the original orientation of the mesh
+- `scale` scaling factor applied to the mesh
+- `heading` orientation in degrees (0-360), where 0 and 360 are true north and 90 is east
+- `opacity` opacity of the mesh. If the mesh is a group of meshes, this is applied to all the child nodes that can deal with transparency
+- `pointSize` applicable only to point clouds, set the size of the points
+- `wireframe` applicable only to non-point cloud, applies a wireframe rendering to all the child nodes of the mesh that are compatible with the option
 
 ### Reference documentation
 The constructor of the `Layer3D` class takes two arguments:
@@ -223,6 +250,18 @@ type MeshOptions = GenericObject3DOptions & {
    * Opacity of the mesh
    */
   opacity?: number;
+
+  /**
+   * Point size, applicable only to point clouds.
+   * Default: 1
+   */
+  pointSize?: number;
+
+  /**
+   * Displays a mesh as wireframe if true (does not apply to point cloud)
+   * Default: `false`
+   */
+  wireframe?: boolean;
 };
 ```
 

@@ -21,6 +21,8 @@ import {
   type ColorRepresentation,
   AmbientLight,
   Color,
+  type Points,
+  type PointsMaterial,
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -114,6 +116,18 @@ export type MeshOptions = GenericObject3DOptions & {
    * Opacity of the mesh
    */
   opacity?: number;
+
+  /**
+   * Point size, applicable only to point clouds.
+   * Default: 1
+   */
+  pointSize?: number;
+
+  /**
+   * Displays a mesh as wireframe if true (does not apply to point cloud)
+   * Default: `false`
+   */
+  wireframe?: boolean;
 };
 
 /**
@@ -225,6 +239,8 @@ export type Item3D = {
   isLight: boolean;
   url: string | null;
   opacity: number;
+  pointSize: number;
+  wireframe: boolean;
 };
 
 export class Layer3D implements CustomLayerInterface {
@@ -373,6 +389,8 @@ export class Layer3D implements CustomLayerInterface {
     const headingQuaternion = headingToQuaternion(heading);
     const visible = options.visible ?? true;
     const opacity = options.opacity ?? 1;
+    const pointSize = options.pointSize ?? 1;
+    const wireframe = options.wireframe ?? false;
 
     if (opacity !== 1) {
       this.setMeshOpacity(mesh, opacity, false);
@@ -380,6 +398,14 @@ export class Layer3D implements CustomLayerInterface {
 
     if (options.scale) {
       mesh.scale.set(options.scale, options.scale, options.scale);
+    }
+
+    if ("pointSize" in options) {
+      this.setMeshPointSize(mesh, pointSize);
+    }
+
+    if ("wireframe" in options) {
+      this.setMeshWireframe(mesh, wireframe);
     }
 
     mesh.visible = visible;
@@ -398,6 +424,8 @@ export class Layer3D implements CustomLayerInterface {
       isLight: "isLight" in mesh && mesh.isLight === true,
       url: mesh.userData._originalUrl ?? null,
       opacity: opacity,
+      pointSize: pointSize,
+      wireframe: wireframe,
     };
 
     this.items3D.set(id, item);
@@ -502,6 +530,14 @@ export class Layer3D implements CustomLayerInterface {
 
     if (typeof options.opacity === "number") {
       this.setMeshOpacity(item.mesh, options.opacity, false);
+    }
+
+    if (typeof options.pointSize === "number") {
+      this.setMeshPointSize(item.mesh, options.pointSize);
+    }
+
+    if (typeof options.wireframe === "boolean") {
+      this.setMeshWireframe(item.mesh, options.wireframe);
     }
 
     this.map.triggerRepaint();
@@ -648,14 +684,48 @@ export class Layer3D implements CustomLayerInterface {
   /**
    * Traverse a Mesh/Group/Object3D to modify the opacities of the all the materials it finds
    */
-  private setMeshOpacity(obj: Mesh | Group | Object3D, opacity: number, forceRepaint = false) {
+  private setMeshOpacity(obj: Mesh | Group | Object3D | Points, opacity: number, forceRepaint = false) {
     obj.traverse((node) => {
-      if ("isMesh" in node && node.isMesh === true) {
+      if (("isMesh" in node && node.isMesh === true) || ("isPoints" in node && node.isPoints === true)) {
         const mesh = node as Mesh;
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         for (const mat of materials) {
           mat.opacity = opacity;
           mat.transparent = true;
+        }
+      }
+    });
+
+    if (forceRepaint) this.map.triggerRepaint();
+  }
+
+  /**
+   * If a mesh is a point cloud, it defines the size of the points
+   */
+  private setMeshPointSize(obj: Mesh | Group | Object3D | Points, size: number, forceRepaint = false) {
+    obj.traverse((node) => {
+      if ("isPoints" in node && node.isPoints === true) {
+        const mesh = node as Points;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const mat of materials) {
+          (mat as PointsMaterial).size = size;
+        }
+      }
+    });
+
+    if (forceRepaint) this.map.triggerRepaint();
+  }
+
+  /**
+   * If a mesh can be rendered as wireframe, then the option is toggled according to the wireframe param
+   */
+  private setMeshWireframe(obj: Mesh | Group | Object3D, wireframe: boolean, forceRepaint = false) {
+    obj.traverse((node) => {
+      if ("isMesh" in node && node.isMesh === true) {
+        const mesh = node as Mesh;
+        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        for (const mat of materials) {
+          if ("wireframe" in mat && typeof mat.wireframe === "boolean") mat.wireframe = wireframe;
         }
       }
     });
@@ -727,5 +797,5 @@ function sourceOrientationToQuaternion(so: SourceOrientation | undefined): Quate
 }
 
 function headingToQuaternion(heading: number): Quaternion {
-  return new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), -heading * Math.PI / 180);
+  return new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), (-heading * Math.PI) / 180);
 }
