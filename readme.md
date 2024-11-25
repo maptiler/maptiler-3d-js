@@ -19,28 +19,28 @@ With this MapTiler SDK plugin, you can add 3D objects to your basemap with plent
 
 **Here are some examples:**  
 
-![](images/mansion.png)
+![](images/mansion.jpeg)
 [Sellers Mansion, captured by Katie Wolfe, License CC Attribution](https://sketchfab.com/3d-models/sellers-mansion-4aad9d86ec5e484c949e931b67a4243f)
 
-![](images/flatiron.png)
+![](images/flatiron.jpeg)
 [Flatiron building, mesh created by Mohamed Hussien, License CC Attribution](https://sketchfab.com/3d-models/flatiron-building-116132645224458da6e4d9dd45c294b4)
 
-![](images/plane.png)
+![](images/plane.jpeg)
 [Plane a380, mesh created by Mamont Nikita, License CC Attribution](https://sketchfab.com/3d-models/plane-a340-d3ad0996a8564a94a24ee4b3528b554b)
 
-![](images/ducks-and-posts.png)
+![](images/ducks-and-posts.jpeg)
 [Duck and lamp post meshes from the glTF sample asset repository](https://github.com/KhronosGroup/glTF-Sample-Assets)
 
-![](images/cad.png)
+![](images/cad.jpeg)
 [Building, mesh created by ibukilego, License CC Attribution](https://sketchfab.com/3d-models/building-f-agu-sagamihara-campus-lod2-3-7d7b0d0d0a454a54aa50528f6483e2c6) (coupled with `map.transform.fov = 0` to create an orthographic view)
 
-![](images/dundee.png)
+![](images/dundee.jpeg)
 [Scotland: Dundee, The McManus, point cloud (5M) created by Daniel Muirhead, License CC Attribution](https://sketchfab.com/3d-models/scotland-dundee-the-mcmanus-5m-point-cloud-98ebfbf47d4a41cda51a6e08e168f5e8)
 
-![](images/dundee2.png)
+![](images/dundee2.jpeg)
 [Scotland: Dundee, The McManus, point cloud (5M) created by Daniel Muirhead, License CC Attribution](https://sketchfab.com/3d-models/scotland-dundee-the-mcmanus-5m-point-cloud-98ebfbf47d4a41cda51a6e08e168f5e8)
 
-![](images/nhm.png)
+![](images/nhm.jpeg)
 [Hintze Hall, Natural History Museum, London, point cloud (2.4M) created by Thomas Flynn, License CC Attribution Non Comercial](https://sketchfab.com/3d-models/hintze-hall-nhm-london-point-cloud-be909aa8afa545118be6d36397529e2f)
 
 ### Installation
