@@ -1,12 +1,5 @@
 import * as maptilersdk from "@maptiler/sdk";
-import { LngLatBounds } from "maplibre-gl";
 
-export const earthRadius = 6371008.8;
-
-console.log(maptilersdk.getVersion());
-
-const { MercatorCoordinate } = maptilersdk;
-type MercatorCoordinate = maptilersdk.MercatorCoordinate;
 const { LngLat } = maptilersdk;
 type LngLat = maptilersdk.LngLat;
 type LngLatLike = maptilersdk.LngLatLike;
@@ -18,10 +11,10 @@ type MapSDK = maptilersdk.Map;
 import {
   Camera,
   Matrix4,
+  Mesh,
   Scene,
   WebGLRenderer,
   Vector3,
-  type Mesh,
   type Group,
   type Object3D,
   Quaternion,
@@ -31,9 +24,11 @@ import {
   Color,
   type Points,
   type PointsMaterial,
+  MathUtils,
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { isGlobeTransform, isPointLight } from "./utils";
 
 /**
  * The altitude of a mesh can be relative to the ground surface, or to the mean sea level
@@ -183,27 +178,6 @@ export type SerializedPointLight = SerializedGenericItem & {
   decay: number;
 };
 
-type Mat4 =
-  | [
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-      number,
-    ]
-  | Float32Array;
-
 export type Layer3DOptions = {
   /**
    * Bellow this zoom level, the meshes are not visible
@@ -237,14 +211,13 @@ export type Layer3DOptions = {
 
 export type Item3D = {
   id: string;
-  mercatorCoord: MercatorCoordinate;
+  mesh: Mesh | Group | Object3D | null;
   lngLat: LngLat;
   altitude: number;
+  scale: number;
   heading: number;
   sourceOrientation: SourceOrientation;
-  mesh: Mesh | Group | Object3D | null;
   altitudeReference: AltitudeReference;
-  isLight: boolean;
   url: string | null;
   opacity: number;
   pointSize: number;
@@ -252,22 +225,25 @@ export type Item3D = {
 };
 
 export class Layer3D implements CustomLayerInterface {
-  public id: string;
+  public readonly id: string;
   public readonly type = "custom";
-  public renderingMode: "2d" | "3d" = "3d";
+  public readonly renderingMode: "2d" | "3d" = "3d";
+  private map!: MapSDK;
+
   public minZoom: number;
   public maxZoom: number;
-  private scene!: Scene;
-  private renderer!: WebGLRenderer;
-  private map!: MapSDK;
-  private camera!: Camera;
   private antialias: boolean;
-  private items3D = new Map<string, Item3D>();
-  private sceneOrigin: LngLat | null = null;
-  private sceneOriginMercator: MercatorCoordinate | null = null;
-  private ambientLight!: AmbientLight;
+
+  private renderer!: WebGLRenderer;
+  private readonly scene: Scene;
+  private readonly camera: Camera;
+  private readonly ambientLight: AmbientLight;
+
+  private readonly items3D = new Map<string, Item3D>();
 
   constructor(id: string, options: Layer3DOptions = {}) {
+    console.log("[maptiler-3d-js]", "Using MapTiler SDK JS version:", maptilersdk.getVersion());
+
     this.type = "custom";
     this.id = id;
     this.minZoom = options.minZoom ?? 0;
@@ -276,6 +252,7 @@ export class Layer3D implements CustomLayerInterface {
 
     this.camera = new Camera();
     this.camera.matrixWorldAutoUpdate = false;
+
     this.scene = new Scene();
 
     this.ambientLight = new AmbientLight(options.ambientLightColor ?? 0xffffff, options.ambientLightIntensity ?? 0.5);
@@ -301,6 +278,7 @@ export class Layer3D implements CustomLayerInterface {
       canvas: map.getCanvas(),
       context: gl,
       antialias: this.antialias,
+      powerPreference: "high-performance",
     });
 
     this.renderer.autoClear = false;
@@ -319,39 +297,65 @@ export class Layer3D implements CustomLayerInterface {
    */
   // render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
   render(gl: WebGLRenderingContext | WebGL2RenderingContext, options: CustomRenderMethodInput) {
-    if (this.isInZoomRange() === false)  {
+    if (this.isInZoomRange() === false) {
       return;
     }
-    
+
     if (this.items3D.size === 0) {
       return;
     }
 
     const mapCenter = this.map.getCenter();
-    this.sceneOrigin = new LngLat(mapCenter.lng, mapCenter.lat);
+    const sceneOrigin = new LngLat(mapCenter.lng, mapCenter.lat);
+    const sceneElevation = this.map.queryTerrainElevation(sceneOrigin) || 0;
+    const sceneMatrix = this.map.transform.getMatrixForModel(sceneOrigin, sceneElevation);
 
-    const item = this.items3D.get("plane");
-    const model = item?.mesh ?? undefined;
+    for (const [_, item] of this.items3D) {
+      const model = item.mesh;
 
-    if (item !== undefined && model !== undefined) {
-      const modelOrigin = item.lngLat;
-      const modelAltitude = 0;
-      const modelMatrix = this.map.transform.getMatrixForModel(modelOrigin, modelAltitude);
-      const scaling = 100;
-      const threeMatrix1 = new Matrix4().fromArray(modelMatrix).scale(new Vector3(scaling, scaling, scaling));
+      if (model) {
+        const itemElevation = this.map.queryTerrainElevation(item.lngLat) || 0;
 
-      model.matrix.identity();
-      model.applyMatrix4(threeMatrix1);
-      model.matrixAutoUpdate = false;
+        const modelOrigin = item.lngLat;
+
+        let modelAltitude = item.altitude;
+
+        if (item.altitudeReference === AltitudeReference.GROUND) {
+          modelAltitude += itemElevation;
+        }
+
+        const modelMatrix = this.map.transform.getMatrixForModel(modelOrigin, modelAltitude);
+        const modelMatrix4 = new Matrix4().fromArray(modelMatrix).scale(new Vector3().setScalar(item.scale));
+        const relativeMatrix = new Matrix4().fromArray(sceneMatrix).invert().multiply(modelMatrix4);
+
+        const rotationMatrix = new Matrix4();
+        rotationMatrix.makeRotationFromQuaternion(sourceOrientationToQuaternion(item.sourceOrientation));
+        rotationMatrix.makeRotationY(MathUtils.degToRad(-item.heading));
+        relativeMatrix.multiply(rotationMatrix);
+
+        model.matrix = relativeMatrix;
+        model.matrixAutoUpdate = false;
+      }
     }
 
-    const cameraMatrix = new Matrix4().fromArray(options.defaultProjectionData.mainMatrix);
-    this.camera.projectionMatrix = cameraMatrix;
+    let defaultProjectionData = options.defaultProjectionData;
 
+    if (isGlobeTransform(this.map.transform) === true) {
+      defaultProjectionData =
+        options.defaultProjectionData.projectionTransition === 1
+          ? options.defaultProjectionData
+          : // @ts-expect-error - Accessing private properties: `_mercatorTransform`
+            this.map.transform._mercatorTransform.getProjectionDataForCustomLayer();
+    }
+
+    const matrix = defaultProjectionData.mainMatrix;
+    const m = new Matrix4().fromArray(matrix);
+    const l = new Matrix4().fromArray(sceneMatrix);
+
+    this.camera.projectionMatrix = m.clone().multiply(l);
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
   }
-  // this.map.triggerRepaint();
 
   /**
    * Adjust the settings of the ambient light
@@ -367,57 +371,23 @@ export class Layer3D implements CustomLayerInterface {
   }
 
   /**
-   * Adjust the position of all meshes and light relatively to the center of the scene
-   */
-  private reposition() {
-    if (!this.sceneOrigin || !this.sceneOriginMercator) return;
-    const terrainExag = this.map.getTerrainExaggeration();
-    const sceneElevation = this.map.queryTerrainElevation(this.sceneOrigin) || 0;
-    const targetElevation = this.map.getCameraTargetElevation();
-
-    for (const [_itemId, item] of this.items3D) {
-      // Get the elevation of the terrain at the location of the item
-      const itemElevationAtPosition = this.map.queryTerrainElevation(item.lngLat) || 0;
-
-      let itemUpShift = itemElevationAtPosition - sceneElevation + item.altitude;
-
-      if (item.altitudeReference === AltitudeReference.MEAN_SEA_LEVEL) {
-        const actualItemAltitude = targetElevation + itemElevationAtPosition;
-        itemUpShift -= actualItemAltitude / terrainExag;
-      }
-
-      const { dEastMeter: itemEast, dNorthMeter: itemNorth } = calculateDistanceMercatorToMeters(
-        this.sceneOriginMercator,
-        item.mercatorCoord,
-      );
-      item.mesh?.position.set(itemEast, itemNorth, itemUpShift);
-    }
-  }
-
-  /**
    * Add an existing mesh to the map, with options.
    */
   addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {}) {
     this.throwUniqueID(id);
 
     const sourceOrientation = options.sourceOrientation ?? SourceOrientation.Y_UP;
-    const sourceOrientationQuaternion = sourceOrientationToQuaternion(sourceOrientation);
     const altitude = options.altitude ?? 0;
     const lngLat = options.lngLat ?? [0, 0];
-    const mercatorCoord = MercatorCoordinate.fromLngLat(lngLat, altitude);
     const heading = options.heading ?? 0;
-    const headingQuaternion = headingToQuaternion(heading);
     const visible = options.visible ?? true;
     const opacity = options.opacity ?? 1;
+    const scale = options.scale ?? 1;
     const pointSize = options.pointSize ?? 1;
     const wireframe = options.wireframe ?? false;
 
     if (opacity !== 1) {
       this.setMeshOpacity(mesh, opacity, false);
-    }
-
-    if (options.scale) {
-      mesh.scale.set(options.scale, options.scale, options.scale);
     }
 
     if ("pointSize" in options) {
@@ -434,14 +404,13 @@ export class Layer3D implements CustomLayerInterface {
 
     const item: Item3D = {
       id,
-      mercatorCoord,
       lngLat: LngLat.convert(lngLat),
       altitude,
+      scale,
       sourceOrientation,
       heading,
       mesh,
       altitudeReference: options.altitudeReference ?? AltitudeReference.GROUND,
-      isLight: "isLight" in mesh && mesh.isLight === true,
       url: mesh.userData._originalUrl ?? null,
       opacity: opacity,
       pointSize: pointSize,
@@ -453,48 +422,6 @@ export class Layer3D implements CustomLayerInterface {
   }
 
   /**
-   * Creates a payload that serializes an item (point light or mesh)
-   */
-  // private serializeItem(id: string): SerializedMesh | SerializedPointLight {
-  //   const item = this.items3D.get(id);
-  //   if (!item) throw new Error(`No item with ID ${id}.`);
-  //   if (!item.mesh) throw new Error(`The item with ID ${id} exists but does not contain any mesh object.`);
-  //   if (!item.mesh.userData._originalUrl) throw new Error(`The mesh of the item ${id} was not loaded from a URL.`);
-
-  //   if (item.isLight) {
-  //     const mesh = (item.mesh as PointLight);
-
-  //     return {
-  //       id: item.id,
-  //       lngLat: item.lngLat.toArray(),
-  //       altitude: item.altitude,
-  //       altitudeReference: item.altitudeReference,
-  //       visible: item.mesh.visible,
-  //       sourceOrientation: item.sourceOrientation,
-  //       heading: item.heading,
-  //       isLight: item.isLight,
-  //       color: mesh.color.getHexString(),
-  //       intensity: mesh.intensity,
-  //       decay: mesh.decay,
-  //     } as SerializedPointLight
-
-  //   }
-
-  //   return {
-  //     id: item.id,
-  //     lngLat: item.lngLat.toArray(),
-  //     altitude: item.altitude,
-  //     altitudeReference: item.altitudeReference,
-  //     visible: item.mesh.visible,
-  //     sourceOrientation: item.sourceOrientation,
-  //     scale: item.mesh.scale.x,
-  //     heading: item.heading,
-  //     isLight: item.isLight,
-  //     url: item.url,
-  //   } as SerializedMesh;
-  // }
-
-  /**
    * Modify an existing mesh. The provided options will overwrite
    * their current state, the omited ones will remain the same.
    */
@@ -503,49 +430,28 @@ export class Layer3D implements CustomLayerInterface {
     if (!item) return;
     if (!item.mesh) return;
 
-    if (typeof options.scale === "number") {
-      item?.mesh?.scale.set(options.scale, options.scale, options.scale);
-    }
-
-    let adjustMercator = false;
-    if (typeof options.altitude === "number") {
-      item.altitude = options.altitude;
-      adjustMercator = true;
+    if (typeof options.visible === "boolean") {
+      item.mesh.visible = options.visible;
     }
 
     if ("lngLat" in options) {
       item.lngLat = LngLat.convert(options.lngLat as LngLatLike);
-      adjustMercator = true;
+    }
+
+    if (typeof options.scale === "number") {
+      item.scale = options.scale;
+    }
+
+    if (typeof options.altitude === "number") {
+      item.altitude = options.altitude;
     }
 
     if (typeof options.altitudeReference === "number") {
       item.altitudeReference = options.altitudeReference;
     }
 
-    if (adjustMercator) {
-      item.mercatorCoord = MercatorCoordinate.fromLngLat(item.lngLat, item.altitude);
-    }
-
-    if (typeof options.visible === "boolean") {
-      item.mesh.visible = options.visible;
-    }
-
-    let quaternionNeedsUpdate = false;
-
-    if ("altitudeReference" in options) {
-      item.altitudeReference = options.altitudeReference as AltitudeReference;
-      quaternionNeedsUpdate = true;
-    }
-
     if (typeof options.heading === "number") {
-      quaternionNeedsUpdate = true;
       item.heading = options.heading;
-    }
-
-    if (quaternionNeedsUpdate) {
-      const sourceOrientationQuaternion = sourceOrientationToQuaternion(item.sourceOrientation);
-      const headingQuaternion = headingToQuaternion(item.heading);
-      item.mesh.setRotationFromQuaternion(headingQuaternion.multiply(sourceOrientationQuaternion));
     }
 
     if (typeof options.opacity === "number") {
@@ -575,62 +481,68 @@ export class Layer3D implements CustomLayerInterface {
 
     // Cloning the source item options and overwriting some with the provided options
     const cloneOptions: MeshOptions = {
-      lngLat: sourceItem.lngLat,
+      lngLat: new LngLat(sourceItem.lngLat.lng, sourceItem.lngLat.lat),
       altitude: sourceItem.altitude,
       altitudeReference: sourceItem.altitudeReference,
       visible: sourceItem.mesh.visible,
       sourceOrientation: sourceItem.sourceOrientation,
-      scale: sourceItem.mesh.scale.x,
+      scale: sourceItem.scale,
       heading: sourceItem.heading,
       ...options,
     };
 
-    this.addMesh(id, sourceItem.mesh.clone(), cloneOptions);
+    const clonedObject = sourceItem.mesh.clone(true);
+
+    clonedObject.traverse((child) => {
+      if (child instanceof Mesh) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => mat.clone());
+        } else {
+          child.material = child.material.clone();
+        }
+      }
+    });
+
+    this.addMesh(id, clonedObject, cloneOptions);
   }
 
   modifyPointLight(id: string, options: PointLightOptions) {
     const item = this.items3D.get(id);
-    if (!item) return;
-    if (!item.mesh) return;
 
-    // Not a light?
-    if (!("isLight" in item.mesh && item.mesh.isLight === true)) return;
+    if (item === undefined) {
+      return;
+    }
 
-    const mesh = item.mesh as PointLight;
+    if (item.mesh === null || isPointLight(item.mesh) === false) {
+      return;
+    }
 
     if ("decay" in options && typeof options.decay === "number") {
-      mesh.decay = options.decay;
+      item.mesh.decay = options.decay;
     }
 
     if ("intensity" in options && typeof options.intensity === "number") {
-      mesh.intensity = options.intensity;
+      item.mesh.intensity = options.intensity;
     }
 
     if ("color" in options) {
-      mesh.color.set(new Color(options.color)); // TODO: not optimal to call a constructor every time
+      item.mesh.color.set(new Color(options.color)); // TODO: not optimal to call a constructor every time
     }
 
-    let adjustMercator = false;
     if ("altitude" in options && typeof options.altitude === "number") {
       item.altitude = options.altitude;
-      adjustMercator = true;
     }
 
     if ("lngLat" in options) {
       item.lngLat = LngLat.convert(options.lngLat as LngLatLike);
-      adjustMercator = true;
     }
 
     if ("altitudeReference" in options && typeof options.altitudeReference === "number") {
       item.altitudeReference = options.altitudeReference;
     }
 
-    if (adjustMercator) {
-      item.mercatorCoord = MercatorCoordinate.fromLngLat(item.lngLat, item.altitude);
-    }
-
     if ("visible" in options && typeof options.visible === "boolean") {
-      mesh.visible = options.visible;
+      item.mesh.visible = options.visible;
     }
 
     this.map.triggerRepaint();
@@ -823,33 +735,22 @@ export class Layer3D implements CustomLayerInterface {
   }
 }
 
-function calculateDistanceMercatorToMeters(
-  from: MercatorCoordinate,
-  to: MercatorCoordinate,
-): { dEastMeter: number; dNorthMeter: number } {
-  const mercatorPerMeter = from.meterInMercatorCoordinateUnits();
-  // mercator x: 0=west, 1=east
-  const dEast = to.x - from.x;
-  const dEastMeter = dEast / mercatorPerMeter;
-  // mercator y: 0=north, 1=south
-  const dNorth = from.y - to.y;
-  const dNorthMeter = dNorth / mercatorPerMeter;
-  return { dEastMeter, dNorthMeter };
-}
-
 function sourceOrientationToQuaternion(so: SourceOrientation | undefined): Quaternion {
-  // Most models and 3D environments are Y up (right hand), so we use this as a default
-  const yUp = new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), Math.PI / 2);
+  const quaternion = new Quaternion();
+
   switch (so) {
     case SourceOrientation.X_UP:
-      return new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), -Math.PI / 2);
-    case SourceOrientation.Z_UP:
-      return new Quaternion();
-    default:
-      return yUp;
-  }
-}
+      quaternion.setFromAxisAngle(new Vector3(0, 0, 1), -Math.PI / 2);
+      break;
 
-function headingToQuaternion(heading: number): Quaternion {
-  return new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), (-heading * Math.PI) / 180);
+    case SourceOrientation.Y_UP:
+      quaternion.identity();
+      break;
+
+    case SourceOrientation.Z_UP:
+      quaternion.setFromAxisAngle(new Vector3(1, 0, 0), -Math.PI / 2);
+      break;
+  }
+
+  return quaternion;
 }

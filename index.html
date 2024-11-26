@@ -1,36 +1,51 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>MapTiler 3D Models</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
-  <!-- <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.4.2/maptiler-sdk.umd.min.js"></script>
-  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.4.2/maptiler-sdk.css" rel="stylesheet" /> -->
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-    }
+  <head>
+    <title>MapTiler 3D Models</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
+    <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
+    <script>
+      window.addEventListener("load", () => {
+        const stats = new Stats();
+        stats.dom.style.left = "unset";
+        stats.dom.style.right = 0;
+        document.body.appendChild(stats.dom);
+        requestAnimationFrame(function loop(){
+          stats.update();
+          requestAnimationFrame(loop)
+        });
+      });
+    </script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+      }
 
-    #map {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 100%;
-    }
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        /* width: 800px;
+        height: 600px; */
+      }
 
-    .lil-gui.autoPlace {
-      right: inherit;
-      left: 15px;
-    }
+      .lil-gui.autoPlace {
+        right: inherit;
+        left: 15px;
+      }
+    </style>
+  </head>
 
-  </style>
-</head>
-
-<body>
-  <div id="map"></div>
-  <script type="module" src="src/example.ts"></script>
-</body>
+  <body>
+    <div id="map"></div>
+    <script type="module" src="src/example.ts"></script>
+  </body>
 </html>
