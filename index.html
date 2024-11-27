@@ -1,51 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>MapTiler 3D Models</title>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
     />
-    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
-    <script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
-    <script>
-      window.addEventListener("load", () => {
-        const stats = new Stats();
-        stats.dom.style.left = "unset";
-        stats.dom.style.right = 0;
-        document.body.appendChild(stats.dom);
-        requestAnimationFrame(function loop(){
-          stats.update();
-          requestAnimationFrame(loop)
-        });
-      });
-    </script>
-    <style>
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: sans-serif;
-      }
-
-      #map {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 100%;
-        /* width: 800px;
-        height: 600px; */
-      }
-
-      .lil-gui.autoPlace {
-        right: inherit;
-        left: 15px;
-      }
-    </style>
   </head>
-
+  
   <body>
-    <div id="map"></div>
-    <script type="module" src="src/example.ts"></script>
+    <h1>MapTiler 3D Examples</h1>
+    <ul>
+      <li>
+        <a href="demos/mountains.html">Mountains</a>
+      </li>
+      <li><a href="demos/multi.html">Multi</a></li>
+      <li><a href="demos/plane.html">Terrain</a></li>
+      <li>
+        <a href="demos/point_cad_model01.html">Point Cloud - CAD-like view</a>
+      </li>
+      <li>
+        <a href="demos/point_cloud_dundee.html">Point Cloud - Dundee</a>
+      </li>
+      <li><a href="demos/point_cloud_NMH.html">Point Cloud - NMH</a></li>
+      <li><a href="demos/point_cloud_shore.html">Point Cloud - Shore</a></li>
+    </ul>
   </body>
 </html>

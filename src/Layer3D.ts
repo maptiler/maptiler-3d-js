@@ -1,12 +1,5 @@
-import * as maptilersdk from "@maptiler/sdk";
-
-const { LngLat } = maptilersdk;
-type LngLat = maptilersdk.LngLat;
-type LngLatLike = maptilersdk.LngLatLike;
-type CustomLayerInterface = maptilersdk.CustomLayerInterface;
-type CustomRenderMethodInput = maptilersdk.CustomRenderMethodInput;
-const { Map: MapSDK } = maptilersdk;
-type MapSDK = maptilersdk.Map;
+import { getVersion, LngLat } from "@maptiler/sdk";
+import type { LngLatLike, CustomLayerInterface, CustomRenderMethodInput, Map as MapSDK } from "@maptiler/sdk";
 
 import {
   Camera,
@@ -28,7 +21,7 @@ import {
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { isGlobeTransform, isPointLight } from "./utils";
+import { isPointLight } from "./utils";
 
 /**
  * The altitude of a mesh can be relative to the ground surface, or to the mean sea level
@@ -242,7 +235,7 @@ export class Layer3D implements CustomLayerInterface {
   private readonly items3D = new Map<string, Item3D>();
 
   constructor(id: string, options: Layer3DOptions = {}) {
-    console.log("[maptiler-3d-js]", "Using MapTiler SDK JS version:", maptilersdk.getVersion());
+    console.log("[maptiler-3d-js]", "Using MapTiler SDK JS version:", getVersion());
 
     this.type = "custom";
     this.id = id;
@@ -295,8 +288,7 @@ export class Layer3D implements CustomLayerInterface {
   /**
    * Automaticaly called by the rendering engine. (should not be called manually)
    */
-  // render(_gl: WebGLRenderingContext | WebGL2RenderingContext, matrix: Mat4, _options: CustomRenderMethodInput) {
-  render(gl: WebGLRenderingContext | WebGL2RenderingContext, options: CustomRenderMethodInput) {
+  render(_gl: WebGLRenderingContext | WebGL2RenderingContext, options: CustomRenderMethodInput) {
     if (this.isInZoomRange() === false) {
       return;
     }
@@ -340,7 +332,7 @@ export class Layer3D implements CustomLayerInterface {
 
     let defaultProjectionData = options.defaultProjectionData;
 
-    if (isGlobeTransform(this.map.transform) === true) {
+    if ("_mercatorTransform" in this.map.transform === true) {
       defaultProjectionData =
         options.defaultProjectionData.projectionTransition === 1
           ? options.defaultProjectionData

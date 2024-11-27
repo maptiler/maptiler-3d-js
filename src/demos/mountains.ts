@@ -1,5 +1,5 @@
 import * as maptilersdk from "@maptiler/sdk";
-import * as maptiler3d from "./maptiler-3d";
+import * as maptiler3d from "../maptiler-3d";
 
 import "@maptiler/sdk/dist/maptiler-sdk.css";
 
