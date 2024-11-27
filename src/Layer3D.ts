@@ -278,8 +278,13 @@ export class Layer3D implements CustomLayerInterface {
     }
 
     const mapCenter = this.map.getCenter();
+
     const sceneOrigin = new LngLat(mapCenter.lng, mapCenter.lat);
     const sceneElevation = this.map.queryTerrainElevation(sceneOrigin) || 0;
+
+    /**
+     * `getMatrixForModel` returns transformation matrix for current active projection, which can be used to set correct position and orientation of the model.
+     */
     const sceneMatrixData = this.map.transform.getMatrixForModel(sceneOrigin, sceneElevation);
     const sceneMatrix = new Matrix4().fromArray(sceneMatrixData);
     const sceneInverseMatrix = sceneMatrix.clone().invert();
@@ -287,7 +292,7 @@ export class Layer3D implements CustomLayerInterface {
     for (const [_, item] of this.items3D) {
       const model = item.mesh;
 
-      if (model) {
+      if (model !== null) {
         const itemElevation = this.map.queryTerrainElevation(item.lngLat) || 0;
         const modelOrigin = item.lngLat;
 
@@ -297,6 +302,10 @@ export class Layer3D implements CustomLayerInterface {
           modelAltitude += itemElevation;
         }
 
+        /**
+         * We are using transformation of scene origin and model for finding relative transofmration of the model to avoid precision issues.
+         * Center of the map is used as an origin of the scene.
+         */
         const modelMatrixData = this.map.transform.getMatrixForModel(modelOrigin, modelAltitude);
         const modelMatrix = new Matrix4()
           .fromArray(modelMatrixData)
@@ -309,6 +318,11 @@ export class Layer3D implements CustomLayerInterface {
 
     let defaultProjectionData = options.defaultProjectionData;
 
+    /**
+     * Possible a bug.
+     * The `defaultProjectionData` seems to be incorrect when the globe projection is used and the zoom is high (and projection is changing to mercator).
+     * Waiting for help: https://github.com/maplibre/maplibre-gl-js/issues/5117
+     */
     if ("_mercatorTransform" in this.map.transform === true) {
       defaultProjectionData =
         options.defaultProjectionData.projectionTransition === 1
@@ -317,6 +331,10 @@ export class Layer3D implements CustomLayerInterface {
             this.map.transform._mercatorTransform.getProjectionDataForCustomLayer();
     }
 
+    /**
+     * https://github.com/maplibre/maplibre-gl-js/blob/v5.0.0-pre.8/test/examples/globe-3d-model.html#L130-L143
+     * `mainMatrix` contains the transformation matrix for the current active projection.
+     */
     const matrix = defaultProjectionData.mainMatrix;
     const m = new Matrix4().fromArray(matrix);
 
@@ -429,7 +447,7 @@ export class Layer3D implements CustomLayerInterface {
       item.heading = options.heading;
       isTransformNeedUpdate = true;
     }
-    
+
     if (isTransformNeedUpdate === true) {
       item.additionalTransformationMatrix = getTransformationMatrix(item.scale, item.heading, item.sourceOrientation);
     }

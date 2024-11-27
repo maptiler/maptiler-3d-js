@@ -25,6 +25,9 @@ const sourceOrientationToQuaternion = (so: SourceOrientation | undefined): Quate
   return quaternion;
 };
 
+/**
+ * Helper function to create a transformation matrix for model and we can apply in single operation.
+ */
 const getTransformationMatrix = (scale: number, heading: number, orientation: SourceOrientation): Matrix4 => {
   const scaleMatrix = new Matrix4().makeScale(scale, scale, scale);
   const orientationMatrix = new Matrix4().makeRotationFromQuaternion(sourceOrientationToQuaternion(orientation));
