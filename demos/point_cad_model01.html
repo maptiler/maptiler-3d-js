@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>MapTiler 3D</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
+  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.umd.min.js"></script>
+  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.css" rel="stylesheet" />
+  <script src="../build/maptiler-3d.umd.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    .lil-gui.autoPlace {
+      right: inherit;
+      left: 15px;
+    }
+
+  </style>
+</head>
+
+<body>
+  
+
+  <div id="map"></div>
+
+  <script>
+
+    maptilersdk.config.apiKey = new URLSearchParams(location.search).get("key") ?? alert("Missing URL param with MapTiler API key ?key=XXXXX");
+
+    const map = new maptilersdk.Map({
+      container: document.getElementById('map'),
+      hash: false,
+      // geolocate: true,
+      style: maptilersdk.MapStyle.DATAVIZ.DARK,
+      zoom: 15,
+      center: [139.401378125492, 35.567323827763786],
+      pitch: 60,
+      maxPitch: 85,
+      terrainControl: true,
+      // terrain: true,
+      // terrainExaggeration: 0.001,
+      maptilerLogo: true,
+    });
+
+    (async () => {
+      await map.onReadyAsync();
+
+      map.setSky({
+        "sky-color": "#0C2E4B",
+        "horizon-color": "#09112F",
+        "fog-color": "#09112F",
+        "fog-ground-blend": 0.5,
+        "horizon-fog-blend": 0.1,
+        "sky-horizon-blend": 1.0,
+        "atmosphere-blend": 0.5,
+      })
+
+      const layer3D = new maptiler3d.Layer3D("custom-3D-layer", {antiaslias: true});
+      map.addLayer(layer3D);
+
+      // Increasing the intensity of the ambient light 
+      layer3D.setAmbientLight({intensity: 2});
+
+      // Adding a point light
+      layer3D.addPointLight("point-light-1", {intensity: 30, lngLat: [40, 0], color: 0xdbf8ff, altitude: 1_000_000});
+      layer3D.addPointLight("point-light-2", {intensity: 30, lngLat: [-120, 80], color: 0xfff7db});
+
+
+      const gui = new lil.GUI({ width: 400 });
+
+      const guiObj = {
+        heading: 320.5,
+        scale: 1,
+        altitude: 0.16,
+        altitudeReference: "GROUND",
+        opacity: 1,
+        wireframe: true,
+        fov: map.transform.fov,
+      }
+   
+      const meshId = "some-mesh";
+      await layer3D.addMeshFromURL(
+        meshId,
+        // https://sketchfab.com/3d-models/building-f-agu-sagamihara-campus-lod2-3-7d7b0d0d0a454a54aa50528f6483e2c6
+        "models/building_f_agu_sagamihara_campus_lod2-3.glb",
+        {
+          lngLat: [139.401378125492, 35.567323827763786],
+          heading: guiObj.heading,
+          scale: guiObj.scale,
+          visible: true,
+          altitude: guiObj.altitude,
+          altitudeReference: maptiler3d.AltitudeReference.GROUND,
+          wireframe: guiObj.wireframe,
+        }
+      );
+
+      gui.add( guiObj, 'heading', 0, 360, 0.1 )
+      .onChange((heading) => {
+        layer3D.modifyMesh(meshId, {heading});
+      });
+
+      gui.add( guiObj, 'scale', 0.01, 5, 0.01 )
+      .onChange((scale) => {
+        layer3D.modifyMesh(meshId, {scale});
+      });
+
+      gui.add( guiObj, 'altitude', -100, 100, 0.01 )
+      .onChange((altitude) => {
+        layer3D.modifyMesh(meshId, {altitude});
+      });
+
+      gui.add( guiObj, 'opacity', 0, 1)
+      .onChange((opacity) => {
+        layer3D.modifyMesh(meshId, {opacity});
+      });
+
+      gui.add( guiObj, 'altitudeReference', ["GROUND", "MEAN_SEA_LEVEL"])
+      .onChange((altRef) => {
+        layer3D.modifyMesh(meshId, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
+      });
+
+      gui.add( guiObj, 'wireframe')
+      .onChange((wireframe) => {
+        layer3D.modifyMesh(meshId, {wireframe});
+      });
+
+
+
+      gui.add( guiObj, 'fov', 0, 60)
+      .onChange((fov) => {
+        map.transform.fov = fov;
+        map.triggerRepaint();
+      });
+
+    })()
+
+  </script>
+</body>
+</html>

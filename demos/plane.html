@@ -5,8 +5,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
-  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.umd.min.js"></script>
-  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.3.0/maptiler-sdk.css" rel="stylesheet" />
+  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v2.4.0/maptiler-sdk.umd.min.js"></script>
+  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v2.4.0/maptiler-sdk.css" rel="stylesheet" />
   <script src="../build/maptiler-3d.umd.js"></script>
   <style>
     body {
@@ -27,6 +27,25 @@
       left: 15px;
     }
 
+    #info {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: fit-content;
+      height: fit-content;
+      text-align: center;
+      padding: 15px;
+      color: white;
+      background-color: #0009;
+      border-radius: 5px;
+      font-family: monospace;
+      margin: auto;
+      margin-bottom: 25px;
+      z-index: 2;
+      backdrop-filter: blur(10px);
+    }
+
   </style>
 </head>
 
@@ -34,6 +53,11 @@
   
 
   <div id="map"></div>
+  <div id="info">
+    <p>
+      Click on the map to add a plane model. You can then click again to move it.
+    </p>
+  </div>
 
   <script>
 
@@ -44,8 +68,8 @@
       hash: true,
       // geolocate: true,
       style: maptilersdk.MapStyle.OUTDOOR.DARK,
-      zoom: 18,
-      center: [148.9819, -35.3981],
+      zoom: 11,
+      center: [7.22, 46.18],
       pitch: 60,
       maxPitch: 85,
       terrainControl: true,
@@ -78,38 +102,36 @@
 
       const gui = new lil.GUI({ width: 400 });
 
-      // Adding a mesh of a lantern.
-      // We make this first mesh invisible because we will only use it to be cloned
+      // Adding a mesh of a plane.
+
+      const guiObj = {
+        heading: 0,
+        scale: 1,
+        altitude: 3000,
+        opacity: 1,
+        wireframe: false,
+        altitudeReference: "MEAN_SEA_LEVEL",
+        removePlane: () => {
+          layer3D.removeMesh(originalPlaneID);
+        },
+      }
    
       const originalPlaneID = "plane";
       await layer3D.addMeshFromURL(
         originalPlaneID,
         "models/plane_a340.glb",
         {
-          scale: 1,
-          visible: true,
-          altitude: 3000,
+          scale: guiObj.scale,
+          altitude: guiObj.altitude,
           altitudeReference: maptiler3d.AltitudeReference.MEAN_SEA_LEVEL,
+          wireframe: guiObj.wireframe,
         }
       );
 
-      
-
-      const guiObj = {
-        heading: 0,
-        scale: 1,
-        altitude: 1000,
-        altitudeReference: "MEAN_SEA_LEVEL",
-        removePlane: () => {
-          layer3D.removeMesh(originalPlaneID);
-        },
-      }
 
       let planeCanMove = false;
 
-      // Clones of this lantern will be added as we click on the map.
-      // The lantern model that is used for the clone is the latest lantern added,
-      // so that we can benefit from the latest heading we defined
+      // Adding mesh of a plane
       map.on("mousemove", (e) => {
         if (!planeCanMove) return;
 
@@ -120,8 +142,6 @@
         planeCanMove = !planeCanMove;
       });
 
-    
-      // // We can change the heading of the latest lantern added
       gui.add( guiObj, 'heading', 0, 360, 0.1 )
       .onChange((heading) => {
         layer3D.modifyMesh(originalPlaneID, {heading});
@@ -137,10 +157,20 @@
         layer3D.modifyMesh(originalPlaneID, {altitude});
       });
 
+      gui.add( guiObj, 'opacity', 0, 1)
+      .onChange((opacity) => {
+        layer3D.modifyMesh(originalPlaneID, {opacity});
+      });
+
 
       gui.add( guiObj, 'altitudeReference', ["MEAN_SEA_LEVEL", "GROUND"])
       .onChange((altRef) => {
         layer3D.modifyMesh(originalPlaneID, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
+      });
+
+      gui.add( guiObj, "wireframe" )
+      .onChange((wireframe) => {
+        layer3D.modifyMesh(originalPlaneID, {wireframe});
       });
 
       gui.add( guiObj, "removePlane" );
