@@ -1,3 +1,7 @@
+/**
+ * This will be transformed into a script in `mountains.html` file when sdk v3 will be on CDN.
+ */
+
 import * as maptilersdk from "@maptiler/sdk";
 import * as maptiler3d from "../maptiler-3d";
 
