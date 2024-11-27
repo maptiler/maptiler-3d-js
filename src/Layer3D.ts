@@ -658,40 +658,6 @@ export class Layer3D implements CustomLayerInterface {
   }
 
   /**
-   * If a mesh is a point cloud, it defines the size of the points
-   */
-  private setMeshPointSize(obj: Mesh | Group | Object3D | Points, size: number, forceRepaint = false) {
-    obj.traverse((node) => {
-      if ("isPoints" in node && node.isPoints === true) {
-        const mesh = node as Points;
-        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        for (const mat of materials) {
-          (mat as PointsMaterial).size = size;
-        }
-      }
-    });
-
-    if (forceRepaint) this.map.triggerRepaint();
-  }
-
-  /**
-   * If a mesh can be rendered as wireframe, then the option is toggled according to the wireframe param
-   */
-  private setMeshWireframe(obj: Mesh | Group | Object3D, wireframe: boolean, forceRepaint = false) {
-    obj.traverse((node) => {
-      if ("isMesh" in node && node.isMesh === true) {
-        const mesh = node as Mesh;
-        const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        for (const mat of materials) {
-          if ("wireframe" in mat && typeof mat.wireframe === "boolean") mat.wireframe = wireframe;
-        }
-      }
-    });
-
-    if (forceRepaint) this.map.triggerRepaint();
-  }
-
-  /**
    * Adding a point light. The default options are mimicking the sun:
    * lngLat: `[0, 0]` (null island)
    * altitude: `2_000_000` meters
