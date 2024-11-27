@@ -326,7 +326,6 @@ Adds a point light with a unique ID (will throw if not unique) and some options.
 Modify a point light given its ID.
 ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
 
-
 - **`.removeMesh(id: string)`**
 Remove a mesh or point light from the scene and frees the GPU memory associated to it
 
