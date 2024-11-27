@@ -37,7 +37,6 @@ const map = new maptilersdk.Map({
 
 const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
 
-
 const TEMPLATE_OBJECT_ID = "template-object";
 let currentObjectID: string | undefined = undefined;
 
