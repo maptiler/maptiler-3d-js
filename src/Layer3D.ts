@@ -197,6 +197,11 @@ export type Item3D = {
   additionalTransformationMatrix: Matrix4;
 };
 
+// An epsilon to make sure the reference anchor point is not exactly at the center of the viewport, but still very close.
+// This is because ThreeJS light shaders were messed up with reference point in the center.
+// This issue is only happening because we are doing the projection matrix trick, otherwise we wouldn't bother with epsilon
+const EPSILON = 0.01;
+
 export class Layer3D implements CustomLayerInterface {
   public readonly id: string;
   public readonly type = "custom";
@@ -279,7 +284,7 @@ export class Layer3D implements CustomLayerInterface {
 
     const mapCenter = this.map.getCenter();
 
-    const sceneOrigin = new LngLat(mapCenter.lng, mapCenter.lat);
+    const sceneOrigin = new LngLat(mapCenter.lng + EPSILON, mapCenter.lat + EPSILON);
     const sceneElevation = this.map.queryTerrainElevation(sceneOrigin) || 0;
 
     /**
@@ -338,7 +343,7 @@ export class Layer3D implements CustomLayerInterface {
     const matrix = defaultProjectionData.mainMatrix;
     const m = new Matrix4().fromArray(matrix);
 
-    this.camera.projectionMatrix = m.clone().multiply(sceneMatrix);
+    this.camera.projectionMatrix = m.multiply(sceneMatrix);
     this.renderer.resetState();
     this.renderer.render(this.scene, this.camera);
   }
