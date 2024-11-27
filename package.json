@@ -44,7 +44,7 @@
     "vite-plugin-dts": "^4.1.0"
   },
   "dependencies": {
-    "@maptiler/sdk": "^2.4.0",
+    "@maptiler/sdk": "^3.0.0-rc.2",
     "lru-cache": "^11.0.1",
     "three": "^0.168.0"
   }
