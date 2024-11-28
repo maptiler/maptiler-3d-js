@@ -1,10 +1,5 @@
 import { getVersion, LngLat } from "@maptiler/sdk";
-import type {
-  LngLatLike,
-  CustomLayerInterface,
-  CustomRenderMethodInput,
-  Map as MapSDK,
-} from "@maptiler/sdk";
+import type { LngLatLike, CustomLayerInterface, CustomRenderMethodInput, Map as MapSDK } from "@maptiler/sdk";
 
 import {
   Camera,
@@ -226,7 +221,7 @@ export class Layer3D implements CustomLayerInterface {
   private readonly ambientLight: AmbientLight;
 
   private readonly items3D = new Map<string, Item3D>();
-  private onRemoveCallbacks: Array<()=>void> = [];
+  private onRemoveCallbacks: Array<() => void> = [];
   private isElevationNeedUpdate = false;
 
   constructor(id: string, options: Layer3DOptions = {}) {
@@ -290,7 +285,7 @@ export class Layer3D implements CustomLayerInterface {
   onRemove?(_map: MapSDK, _gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     this.clear();
     this.renderer.dispose();
-    
+
     for (const callback of this.onRemoveCallbacks) {
       callback();
     }
@@ -327,12 +322,12 @@ export class Layer3D implements CustomLayerInterface {
 
       if (model !== null) {
         let modelAltitude = item.altitude;
-        
+
         if (item.altitudeReference === AltitudeReference.GROUND) {
           if (this.isElevationNeedUpdate === true) {
             item.elevation = this.map.queryTerrainElevation(item.lngLat) || 0;
           }
-          
+
           modelAltitude += item.elevation;
         }
 
