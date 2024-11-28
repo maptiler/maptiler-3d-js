@@ -4,7 +4,6 @@ import type {
   CustomLayerInterface,
   CustomRenderMethodInput,
   Map as MapSDK,
-  Subscription,
 } from "@maptiler/sdk";
 
 import {
@@ -209,6 +208,8 @@ export type Item3D = {
 // This issue is only happening because we are doing the projection matrix trick, otherwise we wouldn't bother with epsilon
 const EPSILON = 0.01;
 
+const USE_DEBUG_LOGS: boolean = false;
+
 export class Layer3D implements CustomLayerInterface {
   public readonly id: string;
   public readonly type = "custom";
@@ -229,7 +230,9 @@ export class Layer3D implements CustomLayerInterface {
   private isElevationNeedUpdate = false;
 
   constructor(id: string, options: Layer3DOptions = {}) {
-    console.log("[maptiler-3d-js]", "Using MapTiler SDK JS version:", getVersion());
+    if (USE_DEBUG_LOGS === true) {
+      console.log("[maptiler-3d-js]", "Using MapTiler SDK JS version:", getVersion());
+    }
 
     this.type = "custom";
     this.id = id;
@@ -416,9 +419,7 @@ export class Layer3D implements CustomLayerInterface {
     }
 
     const additionalTransformationMatrix = getTransformationMatrix(scale, heading, sourceOrientation);
-
     const elevation = this.map.queryTerrainElevation(lngLat) || 0;
-    console.log(id, lngLat, elevation);
 
     const item: Item3D = {
       id,
@@ -526,6 +527,9 @@ export class Layer3D implements CustomLayerInterface {
       ...options,
     };
 
+    /**
+     * Deep cloning the mesh and its materials (otherwise wireframe and opacity would be shared)
+     */
     const clonedObject = sourceItem.mesh.clone(true);
 
     clonedObject.traverse((child) => {
