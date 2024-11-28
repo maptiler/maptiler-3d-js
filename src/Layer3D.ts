@@ -1,5 +1,11 @@
 import { getVersion, LngLat } from "@maptiler/sdk";
-import type { LngLatLike, CustomLayerInterface, CustomRenderMethodInput, Map as MapSDK } from "@maptiler/sdk";
+import type {
+  LngLatLike,
+  CustomLayerInterface,
+  CustomRenderMethodInput,
+  Map as MapSDK,
+  Subscription,
+} from "@maptiler/sdk";
 
 import {
   Camera,
@@ -195,6 +201,7 @@ export type Item3D = {
   pointSize: number;
   wireframe: boolean;
   additionalTransformationMatrix: Matrix4;
+  elevation: number;
 };
 
 // An epsilon to make sure the reference anchor point is not exactly at the center of the viewport, but still very close.
@@ -218,6 +225,8 @@ export class Layer3D implements CustomLayerInterface {
   private readonly ambientLight: AmbientLight;
 
   private readonly items3D = new Map<string, Item3D>();
+  private onRemoveCallbacks: Array<()=>void> = [];
+  private isElevationNeedUpdate = false;
 
   constructor(id: string, options: Layer3DOptions = {}) {
     console.log("[maptiler-3d-js]", "Using MapTiler SDK JS version:", getVersion());
@@ -260,6 +269,16 @@ export class Layer3D implements CustomLayerInterface {
     });
 
     this.renderer.autoClear = false;
+
+    const { unsubscribe: unsubscribeOnTerrainAnimationStart } = this.map.on("terrainAnimationStart", () => {
+      this.isElevationNeedUpdate = true;
+    });
+
+    const { unsubscribe: unsubscribeOnTerrainAnimationStop } = this.map.on("terrainAnimationStop", () => {
+      this.isElevationNeedUpdate = false;
+    });
+
+    this.onRemoveCallbacks = [unsubscribeOnTerrainAnimationStart, unsubscribeOnTerrainAnimationStop];
   }
 
   /**
@@ -268,6 +287,12 @@ export class Layer3D implements CustomLayerInterface {
   onRemove?(_map: MapSDK, _gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     this.clear();
     this.renderer.dispose();
+    
+    for (const callback of this.onRemoveCallbacks) {
+      callback();
+    }
+
+    this.onRemoveCallbacks = [];
   }
 
   /**
@@ -298,20 +323,21 @@ export class Layer3D implements CustomLayerInterface {
       const model = item.mesh;
 
       if (model !== null) {
-        const itemElevation = this.map.queryTerrainElevation(item.lngLat) || 0;
-        const modelOrigin = item.lngLat;
-
         let modelAltitude = item.altitude;
-
+        
         if (item.altitudeReference === AltitudeReference.GROUND) {
-          modelAltitude += itemElevation;
+          if (this.isElevationNeedUpdate === true) {
+            item.elevation = this.map.queryTerrainElevation(item.lngLat) || 0;
+          }
+          
+          modelAltitude += item.elevation;
         }
 
         /**
          * We are using transformation of scene origin and model for finding relative transofmration of the model to avoid precision issues.
          * Center of the map is used as an origin of the scene.
          */
-        const modelMatrixData = this.map.transform.getMatrixForModel(modelOrigin, modelAltitude);
+        const modelMatrixData = this.map.transform.getMatrixForModel(item.lngLat, modelAltitude);
         const modelMatrix = new Matrix4()
           .fromArray(modelMatrixData)
           .multiply(item.additionalTransformationMatrix)
@@ -391,6 +417,9 @@ export class Layer3D implements CustomLayerInterface {
 
     const additionalTransformationMatrix = getTransformationMatrix(scale, heading, sourceOrientation);
 
+    const elevation = this.map.queryTerrainElevation(lngLat) || 0;
+    console.log(id, lngLat, elevation);
+
     const item: Item3D = {
       id,
       lngLat: LngLat.convert(lngLat),
@@ -405,6 +434,7 @@ export class Layer3D implements CustomLayerInterface {
       pointSize: pointSize,
       wireframe: wireframe,
       additionalTransformationMatrix,
+      elevation,
     };
 
     this.items3D.set(id, item);
@@ -433,6 +463,7 @@ export class Layer3D implements CustomLayerInterface {
 
     if ("lngLat" in options) {
       item.lngLat = LngLat.convert(options.lngLat as LngLatLike);
+      item.elevation = this.map.queryTerrainElevation(item.lngLat) || 0;
     }
 
     if (typeof options.scale === "number") {
@@ -446,6 +477,7 @@ export class Layer3D implements CustomLayerInterface {
 
     if (typeof options.altitudeReference === "number") {
       item.altitudeReference = options.altitudeReference;
+      item.elevation = this.map.queryTerrainElevation(item.lngLat) || 0;
     }
 
     if (typeof options.heading === "number") {
