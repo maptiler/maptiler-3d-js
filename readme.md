@@ -18,30 +18,23 @@
 With this MapTiler SDK plugin, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
 
 **Here are some examples:**  
-
-![](images/mansion.jpeg)
-[Sellers Mansion, captured by Katie Wolfe, License CC Attribution](https://sketchfab.com/3d-models/sellers-mansion-4aad9d86ec5e484c949e931b67a4243f)
-
-![](images/flatiron.jpeg)
-[Flatiron building, mesh created by Mohamed Hussien, License CC Attribution](https://sketchfab.com/3d-models/flatiron-building-116132645224458da6e4d9dd45c294b4)
-
 ![](images/plane.jpeg)
-[Plane a380, mesh created by Mamont Nikita, License CC Attribution](https://sketchfab.com/3d-models/plane-a340-d3ad0996a8564a94a24ee4b3528b554b)
+[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-plane/)
 
 ![](images/ducks-and-posts.jpeg)
-[Duck and lamp post meshes from the glTF sample asset repository](https://github.com/KhronosGroup/glTF-Sample-Assets)
+[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-multi/)
 
 ![](images/cad.jpeg)
-[Building, mesh created by ibukilego, License CC Attribution](https://sketchfab.com/3d-models/building-f-agu-sagamihara-campus-lod2-3-7d7b0d0d0a454a54aa50528f6483e2c6) (coupled with `map.transform.fov = 0` to create an orthographic view)
+[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/) 
 
 ![](images/dundee.jpeg)
-[Scotland: Dundee, The McManus, point cloud (5M) created by Daniel Muirhead, License CC Attribution](https://sketchfab.com/3d-models/scotland-dundee-the-mcmanus-5m-point-cloud-98ebfbf47d4a41cda51a6e08e168f5e8)
+[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
 
 ![](images/dundee2.jpeg)
-[Scotland: Dundee, The McManus, point cloud (5M) created by Daniel Muirhead, License CC Attribution](https://sketchfab.com/3d-models/scotland-dundee-the-mcmanus-5m-point-cloud-98ebfbf47d4a41cda51a6e08e168f5e8)
+[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
 
 ![](images/nhm.jpeg)
-[Hintze Hall, Natural History Museum, London, point cloud (2.4M) created by Thomas Flynn, License CC Attribution Non Comercial](https://sketchfab.com/3d-models/hintze-hall-nhm-london-point-cloud-be909aa8afa545118be6d36397529e2f)
+[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
 
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
