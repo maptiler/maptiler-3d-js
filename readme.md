@@ -19,22 +19,22 @@ With this MapTiler SDK plugin, you can add 3D objects to your basemap with plent
 
 **Here are some examples:**  
 ![](images/plane.jpeg)
-[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-plane/)
+[Add an airplane 3D model to your map using the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-plane/)
 
 ![](images/ducks-and-posts.jpeg)
-[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-multi/)
+[Add multiple 3D models to the map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-multi/)
 
 ![](images/cad.jpeg)
-[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/) 
+[Display a building model based on point cloud data on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/) 
 
 ![](images/dundee.jpeg)
-[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
+[ Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
 
 ![](images/dundee2.jpeg)
-[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
+[ Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
 
 ![](images/nhm.jpeg)
-[See the tutorial and demo](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
+[Display a point cloud 3D building model on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
 
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
