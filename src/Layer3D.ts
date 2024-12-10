@@ -27,6 +27,8 @@ import {
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
+import { registerTelemetry } from "./telemetry";
+
 /**
  * The altitude of a mesh can be relative to the ground surface, or to the mean sea level
  */
@@ -287,6 +289,8 @@ export class Layer3D implements CustomLayerInterface {
    * Automatically called when the layer is added. (should not be called manually)
    */
   onAdd?(map: MapSDK, gl: WebGL2RenderingContext): void {
+    registerTelemetry(map);
+
     this.map = map;
     this.renderer = new WebGLRenderer({
       canvas: map.getCanvas(),
