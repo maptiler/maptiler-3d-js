@@ -19,16 +19,16 @@ maptilersdk.Map.prototype.telemetry = {
 };
 /* *** */
 
-let isRegistered = false;
+const registeredMaps: Array<number> = [];
 
 function registerTelemetry(map: maptilersdk.Map) {
-  if (isRegistered === true) {
+  if (registeredMaps.includes(map._mapId)) {
     return;
   }
 
   map.telemetry.registerModule(packagejson.name, packagejson.version);
 
-  isRegistered = true;
+  registeredMaps.push(map._mapId);
 }
 
 export { registerTelemetry };
