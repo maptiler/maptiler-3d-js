@@ -257,6 +257,8 @@ export class Layer3D implements CustomLayerInterface {
    * Automatically called when the layer is added. (should not be called manually)
    */
   onAdd?(map: MapSDK, gl: WebGL2RenderingContext): void {
+    registerTelemetry(map);
+
     this.map = map;
 
     this.renderer = new WebGLRenderer({
