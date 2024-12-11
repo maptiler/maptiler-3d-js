@@ -1,6 +1,6 @@
 import {
   type CustomLayerInterface,
-  type Map as MapSDK,
+  Map as MapSDK,
   MercatorCoordinate,
   type LngLatLike,
   type CustomRenderMethodInput,
@@ -27,7 +27,25 @@ import {
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-import { registerTelemetry } from "./telemetry";
+import packagejson from "../package.json";
+
+/**
+ * TODO: Remove when telemetry will be implemented
+ */
+declare module "@maptiler/sdk" {
+  interface Map {
+    telemetry: {
+      registerModule: (name: string, version: string) => void;
+    };
+  }
+}
+
+MapSDK.prototype.telemetry = {
+  registerModule: (name: string, version: string) => {
+    console.log(`Telemetry module registered: ${name} ${version}`);
+  },
+};
+/* *** */
 
 /**
  * The altitude of a mesh can be relative to the ground surface, or to the mean sea level
@@ -289,7 +307,7 @@ export class Layer3D implements CustomLayerInterface {
    * Automatically called when the layer is added. (should not be called manually)
    */
   onAdd?(map: MapSDK, gl: WebGL2RenderingContext): void {
-    registerTelemetry(map);
+    map.telemetry.registerModule(packagejson.name, packagejson.version);
 
     this.map = map;
     this.renderer = new WebGLRenderer({
