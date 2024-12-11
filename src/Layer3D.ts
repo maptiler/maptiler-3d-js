@@ -1,5 +1,11 @@
-import { getVersion, LngLat } from "@maptiler/sdk";
-import type { LngLatLike, CustomLayerInterface, CustomRenderMethodInput, Map as MapSDK } from "@maptiler/sdk";
+import {
+  type CustomLayerInterface,
+  Map as MapSDK,
+  MercatorCoordinate,
+  type LngLatLike,
+  type CustomRenderMethodInput,
+  LngLat,
+} from "@maptiler/sdk";
 
 import {
   Camera,
@@ -257,7 +263,7 @@ export class Layer3D implements CustomLayerInterface {
    * Automatically called when the layer is added. (should not be called manually)
    */
   onAdd?(map: MapSDK, gl: WebGL2RenderingContext): void {
-    registerTelemetry(map);
+    map.telemetry.registerModule(packagejson.name, packagejson.version);
 
     this.map = map;
 
