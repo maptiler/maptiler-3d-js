@@ -15,26 +15,21 @@
 </p>
 
 ## 3D objects on MapTiler maps
-With this MapTiler SDK plugin, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
+With this MapTiler SDK module, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
 
 **Here are some examples:**  
-![](images/plane.jpeg)
-[Add an airplane 3D model to your map using the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-plane/)
 
-![](images/ducks-and-posts.jpeg)
-[Add multiple 3D models to the map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-multi/)
+[![](images/plane.jpeg)Add an airplane 3D model to your map using the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-plane/)
 
-![](images/cad.jpeg)
-[Display a building model based on point cloud data on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/) 
+[![](images/ducks-and-posts.jpeg)Add multiple 3D models to the map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-multi/)
 
-![](images/dundee.jpeg)
-[ Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
+[![](images/cad.jpeg)Display a building model based on point cloud data on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/) 
 
-![](images/dundee2.jpeg)
-[ Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
+[![](images/dundee.jpeg)Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
 
-![](images/nhm.jpeg)
-[Display a point cloud 3D building model on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
+[![](images/dundee2.jpeg)Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
+
+[![](images/nhm.jpeg)Display a point cloud 3D building model on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
 
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
@@ -188,7 +183,7 @@ enum SourceOrientation {
   Z_UP = 3,
 };
 ```
-Note that regardless of the original up axis, this plugin as well as MapTiler SDK/Maplibre GL JS only deal with 3D spaces that follow the [right-hand rule](https://en.wikipedia.org/wiki/Right-hand_rule).
+Note that regardless of the original up axis, this module as well as MapTiler SDK/Maplibre GL JS only deal with 3D spaces that follow the [right-hand rule](https://en.wikipedia.org/wiki/Right-hand_rule).
 
 - Generic options that apply to both point lights and meshes:
 ```ts
