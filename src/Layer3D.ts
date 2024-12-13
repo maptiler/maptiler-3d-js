@@ -1,11 +1,13 @@
 import {
   type CustomLayerInterface,
-  Map as MapSDK,
-  MercatorCoordinate,
+  type Map as MapSDK,
   type LngLatLike,
   type CustomRenderMethodInput,
   LngLat,
+  getVersion,
 } from "@maptiler/sdk";
+
+import packagejson from "../package.json";
 
 import {
   Camera,
