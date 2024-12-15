@@ -305,9 +305,9 @@ export class Layer3D implements CustomLayerInterface {
       return;
     }
 
-        if ([0, 1].includes(options.defaultProjectionData.projectionTransition) === false) {
-          return;
-        }
+    if ([0, 1].includes(options.defaultProjectionData.projectionTransition) === false) {
+      return;
+    }
 
     const mapCenter = this.map.getCenter();
 
