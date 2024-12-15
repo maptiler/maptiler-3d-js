@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>MapTiler 3D Models</title>
   <meta charset="utf-8" />
@@ -45,12 +46,11 @@
       z-index: 2;
       backdrop-filter: blur(10px);
     }
-
   </style>
 </head>
 
 <body>
-  
+
 
   <div id="map"></div>
   <div id="info">
@@ -94,10 +94,10 @@
       map.addLayer(layer3D);
 
       // Increasing the intensity of the ambient light 
-      layer3D.setAmbientLight({intensity: 2});
+      layer3D.setAmbientLight({ intensity: 2 });
 
       // Adding a point light
-      layer3D.addPointLight("point-light", {intensity: 30});
+      layer3D.addPointLight("point-light", { intensity: 30 });
 
 
       const gui = new lil.GUI({ width: 400 });
@@ -105,6 +105,7 @@
       // Adding a mesh of a plane.
 
       const guiObj = {
+        projection: "mercator",
         heading: 0,
         scale: 1,
         altitude: 3000,
@@ -115,7 +116,7 @@
           layer3D.removeMesh(originalPlaneID);
         },
       }
-   
+
       const originalPlaneID = "plane";
       await layer3D.addMeshFromURL(
         originalPlaneID,
@@ -135,48 +136,66 @@
       map.on("mousemove", (e) => {
         if (!planeCanMove) return;
 
-        layer3D.modifyMesh(originalPlaneID, {lngLat: e.lngLat})
+        layer3D.modifyMesh(originalPlaneID, { lngLat: e.lngLat })
       });
 
       map.on("click", (e) => {
         planeCanMove = !planeCanMove;
       });
 
-      gui.add( guiObj, 'heading', 0, 360, 0.1 )
-      .onChange((heading) => {
-        layer3D.modifyMesh(originalPlaneID, {heading});
-      });
+      gui
+        .add(guiObj, 'projection', ["mercator", "globe"])
+        .onChange((projection) => {
+          switch (projection) {
+            case "mercator":
+              map.enableMercatorProjection(true);
+              break;
 
-      gui.add( guiObj, 'scale', 0.01, 5, 0.01 )
-      .onChange((scale) => {
-        layer3D.modifyMesh(originalPlaneID, {scale});
-      });
+            case "globe":
+              map.enableGlobeProjection(true);
+              break;
+          
+            default:
+              throw new Error("Unsupported projection");
+          }
+        });
 
-      gui.add( guiObj, 'altitude', 0, 10000, 1 )
-      .onChange((altitude) => {
-        layer3D.modifyMesh(originalPlaneID, {altitude});
-      });
+      gui.add(guiObj, 'heading', 0, 360, 0.1)
+        .onChange((heading) => {
+          layer3D.modifyMesh(originalPlaneID, { heading });
+        });
 
-      gui.add( guiObj, 'opacity', 0, 1)
-      .onChange((opacity) => {
-        layer3D.modifyMesh(originalPlaneID, {opacity});
-      });
+      gui.add(guiObj, 'scale', 0.01, 1000, 0.01)
+        .onChange((scale) => {
+          layer3D.modifyMesh(originalPlaneID, { scale });
+        });
+
+      gui.add(guiObj, 'altitude', 0, 10000, 1)
+        .onChange((altitude) => {
+          layer3D.modifyMesh(originalPlaneID, { altitude });
+        });
+
+      gui.add(guiObj, 'opacity', 0, 1)
+        .onChange((opacity) => {
+          layer3D.modifyMesh(originalPlaneID, { opacity });
+        });
 
 
-      gui.add( guiObj, 'altitudeReference', ["MEAN_SEA_LEVEL", "GROUND"])
-      .onChange((altRef) => {
-        layer3D.modifyMesh(originalPlaneID, {altitudeReference: maptiler3d.AltitudeReference[altRef]});
-      });
+      gui.add(guiObj, 'altitudeReference', ["MEAN_SEA_LEVEL", "GROUND"])
+        .onChange((altRef) => {
+          layer3D.modifyMesh(originalPlaneID, { altitudeReference: maptiler3d.AltitudeReference[altRef] });
+        });
 
-      gui.add( guiObj, "wireframe" )
-      .onChange((wireframe) => {
-        layer3D.modifyMesh(originalPlaneID, {wireframe});
-      });
+      gui.add(guiObj, "wireframe")
+        .onChange((wireframe) => {
+          layer3D.modifyMesh(originalPlaneID, { wireframe });
+        });
 
-      gui.add( guiObj, "removePlane" );
+      gui.add(guiObj, "removePlane");
 
     })()
 
   </script>
 </body>
+
 </html>
