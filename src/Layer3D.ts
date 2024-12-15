@@ -305,6 +305,10 @@ export class Layer3D implements CustomLayerInterface {
       return;
     }
 
+        if ([0, 1].includes(options.defaultProjectionData.projectionTransition) === false) {
+          return;
+        }
+
     const mapCenter = this.map.getCenter();
 
     const sceneOrigin = new LngLat(mapCenter.lng + EPSILON, mapCenter.lat + EPSILON);
