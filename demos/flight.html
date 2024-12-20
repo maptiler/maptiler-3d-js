@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>MapTiler 3D</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
-  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0-rc.4/maptiler-sdk.umd.min.js"></script>
-  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0-rc.4/maptiler-sdk.css" rel="stylesheet" />
+  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0-rc.5/maptiler-sdk.umd.min.js"></script>
+  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0-rc.5/maptiler-sdk.css" rel="stylesheet" />
   <script src="../build/maptiler-3d.umd.js"></script>
   <style>
     body {
@@ -26,17 +27,12 @@
       right: inherit;
       left: 15px;
     }
-
   </style>
 </head>
 
 <body>
-  
-
   <div id="map"></div>
-
   <script>
-
     maptilersdk.config.apiKey = new URLSearchParams(location.search).get("key") ?? alert("Missing URL param with MapTiler API key ?key=XXXXX");
 
     const newYorkCity = [-73.98918779556983, 40.74072950731568];
@@ -47,7 +43,6 @@
 
     const map = new maptilersdk.Map({
       container: document.getElementById('map'),
-      // hash: true,
       style: maptilersdk.MapStyle.STREETS.DARK,
       zoom: 9,
       center: paris,
@@ -56,6 +51,7 @@
       terrain: false,
       maptilerLogo: true,
       terrainExaggeration: 0.001,
+      projectionControl: true,
     });
 
     (async () => {
@@ -75,10 +71,10 @@
       map.addLayer(layer3D);
 
       // Increasing the intensity of the ambient light 
-      layer3D.setAmbientLight({intensity: 2});
+      layer3D.setAmbientLight({ intensity: 2 });
 
       // Adding a point light
-      layer3D.addPointLight("point-light", {intensity: 30});
+      layer3D.addPointLight("point-light", { intensity: 30 });
 
       const originalPlaneID = "plane";
       await layer3D.addMeshFromURL(
@@ -101,17 +97,17 @@
 
       const gui = new lil.GUI({ width: 500 });
 
-      gui.add( guiObj, 'tackFlight')
+      gui.add(guiObj, 'tackFlight')
 
-      gui.add( guiObj, 'play')
-      .onChange((play) => {
-        if (play) {
-          playAnimation();
-        }
-      });
+      gui.add(guiObj, 'play')
+        .onChange((play) => {
+          if (play) {
+            playAnimation();
+          }
+        });
 
-      gui.add( guiObj, 'speed', 0, 0.001);
-      
+      gui.add(guiObj, 'speed', 0, 0.001);
+
       let progress = 0;
 
       function playAnimation() {
@@ -122,7 +118,7 @@
         }
 
         const position = maptilersdk.math.haversineIntermediateWgs84(paris, ankara, progress);
-        layer3D.modifyMesh(originalPlaneID, {lngLat: position});
+        layer3D.modifyMesh(originalPlaneID, { lngLat: position });
 
         if (guiObj.tackFlight) {
           map.setCenter(position);
@@ -133,10 +129,8 @@
           requestAnimationFrame(playAnimation);
         }
       }
-
-
-    })()
-
+    })();
   </script>
 </body>
+
 </html>
