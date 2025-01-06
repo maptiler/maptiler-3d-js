@@ -6,9 +6,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
   <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19"></script>
-  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0-rc.5/maptiler-sdk.umd.min.js"></script>
-  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0-rc.5/maptiler-sdk.css" rel="stylesheet" />
+
+  <script src="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0/maptiler-sdk.umd.min.js"></script>
+  <link href="https://cdn.maptiler.com/maptiler-sdk-js/v3.0.0/maptiler-sdk.css" rel="stylesheet" />
   <script src="../build/maptiler-3d.umd.js"></script>
+  
   <style>
     body {
       margin: 0;
@@ -33,7 +35,9 @@
 <body>
   <div id="map"></div>
   <script>
-    maptilersdk.config.apiKey = new URLSearchParams(location.search).get("key") ?? alert("Missing URL param with MapTiler API key ?key=XXXXX");
+    maptilersdk.config.apiKey =
+      new URLSearchParams(location.search).get("key") ??
+      alert("Missing URL param with MapTiler API key ?key=XXXXX");
 
     const newYorkCity = [-73.98918779556983, 40.74072950731568];
     const capeTown = [18.428021658130994, -33.913973526198134];
@@ -42,7 +46,7 @@
     const ankara = [32.866609260522345, 39.959329480757354];
 
     const map = new maptilersdk.Map({
-      container: document.getElementById('map'),
+      container: document.getElementById("map"),
       style: maptilersdk.MapStyle.STREETS.DARK,
       zoom: 9,
       center: paris,
@@ -65,29 +69,25 @@
         "horizon-fog-blend": 0.1,
         "sky-horizon-blend": 1.0,
         "atmosphere-blend": 0.5,
-      })
+      });
 
       const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
       map.addLayer(layer3D);
 
-      // Increasing the intensity of the ambient light 
+      // Increasing the intensity of the ambient light
       layer3D.setAmbientLight({ intensity: 2 });
 
       // Adding a point light
       layer3D.addPointLight("point-light", { intensity: 30 });
 
       const originalPlaneID = "plane";
-      await layer3D.addMeshFromURL(
-        originalPlaneID,
-        "models/plane_a340.glb",
-        {
-          lngLat: paris,
-          heading: 12,
-          scale: 5,
-          altitude: 5000,
-          altitudeReference: maptiler3d.AltitudeReference.MEAN_SEA_LEVEL,
-        }
-      );
+      await layer3D.addMeshFromURL(originalPlaneID, "models/plane_a340.glb", {
+        lngLat: paris,
+        heading: 12,
+        scale: 5,
+        altitude: 5000,
+        altitudeReference: maptiler3d.AltitudeReference.MEAN_SEA_LEVEL,
+      });
 
       const guiObj = {
         play: false,
@@ -97,16 +97,15 @@
 
       const gui = new lil.GUI({ width: 500 });
 
-      gui.add(guiObj, 'tackFlight')
+      gui.add(guiObj, "tackFlight");
 
-      gui.add(guiObj, 'play')
-        .onChange((play) => {
-          if (play) {
-            playAnimation();
-          }
-        });
+      gui.add(guiObj, "play").onChange((play) => {
+        if (play) {
+          playAnimation();
+        }
+      });
 
-      gui.add(guiObj, 'speed', 0, 0.001);
+      gui.add(guiObj, "speed", 0, 0.001);
 
       let progress = 0;
 
@@ -117,7 +116,11 @@
           progress = 0;
         }
 
-        const position = maptilersdk.math.haversineIntermediateWgs84(paris, ankara, progress);
+        const position = maptilersdk.math.haversineIntermediateWgs84(
+          paris,
+          ankara,
+          progress
+        );
         layer3D.modifyMesh(originalPlaneID, { lngLat: position });
 
         if (guiObj.tackFlight) {
