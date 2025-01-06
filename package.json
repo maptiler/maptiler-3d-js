@@ -40,6 +40,7 @@
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^22.10.5",
     "@types/three": "^0.171.0",
+    "concurrently": "^9.1.2",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
     "vite-plugin-dts": "^4.4.0"
