@@ -239,8 +239,13 @@ export class Layer3D implements CustomLayerInterface {
 
     this.type = "custom";
     this.id = id;
-    this.minZoom = options.minZoom ?? 0;
+
+    /**
+     * From MapLibre GL JS v5.0.0 current zoom could be negative (for globe projection)
+     */
+    this.minZoom = options.minZoom ?? Number.NEGATIVE_INFINITY;
     this.maxZoom = options.maxZoom ?? 22;
+
     this.antialias = options.antialias ?? true;
 
     this.camera = new Camera();
@@ -359,26 +364,11 @@ export class Layer3D implements CustomLayerInterface {
       }
     }
 
-    let defaultProjectionData = options.defaultProjectionData;
-
-    /**
-     * Possible a bug.
-     * The `defaultProjectionData` seems to be incorrect when the globe projection is used and the zoom is high (and projection is changing to mercator).
-     * Waiting for help: https://github.com/maplibre/maplibre-gl-js/issues/5117
-     */
-    if ("_mercatorTransform" in this.map.transform === true) {
-      defaultProjectionData =
-        options.defaultProjectionData.projectionTransition === 1
-          ? options.defaultProjectionData
-          : // @ts-expect-error - Accessing private properties: `_mercatorTransform`
-            this.map.transform._mercatorTransform.getProjectionDataForCustomLayer();
-    }
-
     /**
      * https://github.com/maplibre/maplibre-gl-js/blob/v5.0.0-pre.8/test/examples/globe-3d-model.html#L130-L143
      * `mainMatrix` contains the transformation matrix for the current active projection.
      */
-    const matrix = defaultProjectionData.mainMatrix;
+    const matrix = options.defaultProjectionData.mainMatrix;
     const m = new Matrix4().fromArray(matrix);
 
     this.camera.projectionMatrix = m.multiply(sceneMatrix);
