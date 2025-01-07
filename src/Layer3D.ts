@@ -7,7 +7,7 @@ import {
   getVersion,
 } from "@maptiler/sdk";
 
-import packagejson from "../package.json";
+import { name, version } from "../package.json";
 
 import {
   Camera,
@@ -270,7 +270,7 @@ export class Layer3D implements CustomLayerInterface {
    * Automatically called when the layer is added. (should not be called manually)
    */
   onAdd?(map: MapSDK, gl: WebGL2RenderingContext): void {
-    map.telemetry.registerModule(packagejson.name, packagejson.version);
+    map.telemetry.registerModule(name, version);
 
     this.map = map;
 
