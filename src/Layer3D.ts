@@ -241,11 +241,11 @@ export class Layer3D implements CustomLayerInterface {
     this.id = id;
 
     /**
-     * From MapLibre GL JS v5.0.0 current zoom could be negative (for globe projection) 
+     * From MapLibre GL JS v5.0.0 current zoom could be negative (for globe projection)
      */
     this.minZoom = options.minZoom ?? Number.NEGATIVE_INFINITY;
     this.maxZoom = options.maxZoom ?? 22;
-    
+
     this.antialias = options.antialias ?? true;
 
     this.camera = new Camera();
