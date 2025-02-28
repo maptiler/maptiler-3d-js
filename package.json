@@ -29,7 +29,11 @@
     "build-es": "tsc && vite build -c vite.config-es.ts",
     "dev": "concurrently \"vite -c vite.config-dev.ts\" \"npm run dev-umd\"",
     "dev-umd": "tsc && NODE_ENV=development vite build -w -c vite.config-umd.ts",
-    "ncu": "npx npm-check-updates"
+    "ncu": "npx npm-check-updates",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.ts": "npm run biome:fix"
   },
   "repository": {
     "type": "git",
@@ -41,6 +45,8 @@
     "@types/node": "^22.10.5",
     "@types/three": "^0.171.0",
     "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
     "vite-plugin-dts": "^4.4.0"
