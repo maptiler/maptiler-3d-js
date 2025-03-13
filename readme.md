@@ -320,6 +320,49 @@ Remove a mesh or point light from the scene and frees the GPU memory associated 
 - **`.clear()`**
 Removes all the meshes and point lights from the scene and frees the GPU memory associated with them
 
+## E2E Testing
+
+This project uses a combination of [Vite](https://vitejs.dev/) for building and serving fixtures and [Playwright](https://playwright.dev) for browser automation to perform end-to-end testing.
+
+Currently we are unable to use Vitest as a test runner at present due to [this issue](https://github.com/microsoft/playwright/issues/15800) with Playwright.
+
+### Test Structure
+
+The testing setup consists of:
+- Configuration files:
+  - `vite.config-e2e.ts`: Vite configuration for e2e testing
+  - `playwright.config.ts`: Playwright browser configuration
+
+- Test files are organized under the `e2e` directory:
+  - `public/`: HTML files that run the test fixtures
+  - `src/`: Test fixture implementation files
+  - `mocks/`: Mock data and objects for testing
+  - `snapshots/`: image snapshots for comparison
+  - A dedicated `tsconfig.json` that extends the base project config
+
+### Adding New Tests
+
+To add new test fixtures, add entry points to the rollup options in `vite-config-e2e.ts`.
+
+### Running Tests
+
+Two npm scripts are available for testing; they must be run simultaneously:
+
+```shell
+# Start the test server that serves test fixtures
+npm run e2e:serve
+
+# Run the e2e tests against local test server
+npm run e2e:local
+
+# to update the snapshots pass the appropriate flag
+npm run e2e:local -- --update-snapshots
+
+# to run in ui mode...
+npm run e2e:local -- --ui
+```
+
+> **Note:** GitHub Actions integration for automated testing will be implemented in upcoming versions.
 
 ## License
 MapTiler JS Module

@@ -29,7 +29,10 @@
     "build-es": "tsc && vite build -c vite.config-es.ts",
     "dev": "concurrently \"vite -c vite.config-dev.ts\" \"npm run dev-umd\"",
     "dev-umd": "tsc && NODE_ENV=development vite build -w -c vite.config-umd.ts",
-    "ncu": "npx npm-check-updates"
+    "dev-es": "tsc && NODE_ENV=development vite build -w -c vite.config-es.ts",
+    "ncu": "npx npm-check-updates",
+    "e2e:serve": "tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts",
+    "e2e:local": "npx playwright test --config=playwright.config.ts --ui"
   },
   "repository": {
     "type": "git",
@@ -38,6 +41,7 @@
   "license": "",
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@playwright/test": "^1.51.0",
     "@types/node": "^22.10.5",
     "@types/three": "^0.171.0",
     "concurrently": "^9.1.2",
