@@ -1,11 +1,11 @@
-import '@maptiler/sdk/dist/maptiler-sdk.css';
-import { Map, MapStyle } from '@maptiler/sdk';
+import "@maptiler/sdk/dist/maptiler-sdk.css";
+import { Map as MapTiler, MapStyle } from "@maptiler/sdk";
 
-const map = new Map({
-  container: 'map',
-  apiKey: 'DOESNT_MATTER',
+const map = new MapTiler({
+  container: "map",
+  apiKey: "DOESNT_MATTER",
   style: MapStyle.SATELLITE,
-  projection: 'globe',
+  projection: "globe",
   zoom: 3,
 });
 
