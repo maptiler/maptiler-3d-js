@@ -23,5 +23,5 @@
     "declaration": true,
     "allowSyntheticDefaultImports": true,
   },
-  "include": ["src", "e2e"]
+  "include": ["src"]
 }

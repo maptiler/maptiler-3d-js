@@ -51,7 +51,6 @@
   },
   "dependencies": {
     "@maptiler/sdk": "^3.0.0",
-    "@vitest/browser": "^3.0.8",
     "lru-cache": "^11.0.2",
     "three": "^0.172.0"
   }
