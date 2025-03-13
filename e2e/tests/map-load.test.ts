@@ -12,8 +12,4 @@ test("Awaits until map ready and takes snapshot", async ({ page }, testInfo) => 
   expect(await page.title()).toBe("MapTiler E2E Map Load");
 
   await expect(page).toHaveScreenshot('mapLoad.png');
-  // await expectScreenshotToMatch({
-  //   name: 'map_load',
-  //   page,
-  // });
 });
