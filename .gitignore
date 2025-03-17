@@ -107,8 +107,13 @@ typings/
 
 tmp.txt
 
-tests/
 build/
 dist/
 docs/
 demos/private_*
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
