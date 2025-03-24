@@ -31,7 +31,7 @@
     "dev-umd": "tsc && NODE_ENV=development vite build -w -c vite.config-umd.ts",
     "dev-es": "tsc && NODE_ENV=development vite build -w -c vite.config-es.ts",
     "e2e:serve": "tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts",
-    "e2e:local": "npx playwright test --config=playwright.config.ts --ui"
+    "e2e:local": "npx playwright test --config=playwright.config.ts --ui",
     "ncu": "npx npm-check-updates",
     "prepare": "husky"
   },
