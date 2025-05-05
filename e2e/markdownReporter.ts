@@ -57,8 +57,10 @@ export default class MarkdownReporter implements Reporter {
     </td>
   </tr>
 </table>
-          `
+`
       }, '');
+
+    console.log('Failing tests:', this.failures.map((test) => test.title), 'writing to test-report.md...');
 
     if (screenshotMatches.length === 0) {
       return;
