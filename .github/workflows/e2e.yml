@@ -52,12 +52,12 @@ jobs:
           # Get the URLs of the snapshot artifacts
 
           COMMENT_BODY=$(<test-report.md)
-      
+          echo $COMMENT_BODY
           curl -X POST \
             -H "Authorization: Bearer $TOKEN" \
             -H "Content-Type: application/json" \
             -d '{
-              "body": "'"${COMMENT_BODY}"'"
+              "body": '"$COMMENT_BODY"'
             }' \
             "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
         
