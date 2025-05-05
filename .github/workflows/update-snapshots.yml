@@ -6,7 +6,12 @@ on:
 
 jobs:
   update-snapshots:
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '/update-snapshots')
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/update-snapshots') &&
+      (github.event.comment.author_association == 'COLLABORATOR' ||
+      github.event.comment.author_association == 'MEMBER' ||
+      github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-latest
     permissions:
       contents: write
