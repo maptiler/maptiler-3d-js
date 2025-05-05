@@ -1,21 +1,13 @@
-name: Update snapshots slash command
+name: Workflow dispatch update snapshots.
 
 on:
-  issue_comment:
-    types: [created]
+  workflow_dispatch:  # so you can run it manually
 
 jobs:
   update-snapshots:
-    if: >
-      github.event.issue.pull_request &&
-      contains(github.event.comment.body, '/update-snapshots') &&
-      (github.event.comment.author_association == 'COLLABORATOR' ||
-      github.event.comment.author_association == 'MEMBER' ||
-      github.event.comment.author_association == 'OWNER')
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
