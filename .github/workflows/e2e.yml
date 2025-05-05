@@ -49,10 +49,11 @@ jobs:
           TOKEN=${{ secrets.GITHUB_TOKEN }}
       
           # Get the URLs of the snapshot artifacts
-          ARTIFACTS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
+          # ARTIFACTS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
+          
       
           # Construct the comment body with links to the snapshots (or diff images)
-          COMMENT_BODY="### E2E snapshopts failed:\n\nSnapshot Diffs\n\n ## Expected Image <img alt='expected' src='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-expected.png' />\n ## Actual Image <img alt='actual' src='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-actual.png' />\n## Diff <img alt='diff' src='https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-diff.png' />"
+          COMMENT_BODY="### E2E snapshopts failed:\n\nSnapshot Diffs\n\n ## Expected Image <img alt='expected' src='${{ steps.artifact-upload-step.outputs.artifact-id }}/mapLoad-expected.png' />\n ## Actual Image <img alt='actual' src='${{ steps.artifact-upload-step.outputs.artifact-id }}/mapLoad-actual.png' />\n## Diff <img alt='diff' src='${{ steps.artifact-upload-step.outputs.artifact-id }}/mapLoad-diff.png' />"
       
           curl -X POST \
             -H "Authorization: Bearer $TOKEN" \
