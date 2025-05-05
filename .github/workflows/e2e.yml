@@ -52,7 +52,7 @@ jobs:
           ARTIFACTS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
       
           # Construct the comment body with links to the snapshots (or diff images)
-          COMMENT_BODY="The following snapshot diffs were generated:\n- **Expected Image**: ![expected](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-expected.png)\n- **Actual Image**: ![actual](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-actual.png)\n- **Diff Image**: ![diff](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-diff.png)"
+          COMMENT_BODY="### e2e snapshopts failed:\n\nSnapshot Diffs\n\n- **Expected Image**: ![Expected](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-expected.png)\n- **Actual Image**: ![Actual](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-actual.png)\n- **Diff Image**: ![Diff](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-diff.png)"
       
           curl -X POST \
             -H "Authorization: Bearer $TOKEN" \
