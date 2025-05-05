@@ -29,6 +29,7 @@ jobs:
           path: playwright-report/
           retention-days: 30
       - name: Upload Playwright snapshot diffs
+        id: artifact-upload
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -49,11 +50,8 @@ jobs:
           TOKEN=${{ secrets.GITHUB_TOKEN }}
       
           # Get the URLs of the snapshot artifacts
-          # ARTIFACTS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
-          
-      
-          # Construct the comment body with links to the snapshots (or diff images)
-          COMMENT_BODY="### E2E snapshopts failed:\n\nSnapshot Diffs\n\n ## Expected Image <img alt='expected' src='${{ steps.artifact-upload-step.outputs.artifact-id }}/mapLoad-expected.png' />\n ## Actual Image <img alt='actual' src='${{ steps.artifact-upload-step.outputs.artifact-id }}/mapLoad-actual.png' />\n## Diff <img alt='diff' src='${{ steps.artifact-upload-step.outputs.artifact-id }}/mapLoad-diff.png' />"
+
+          COMMENT_BODY=$(<test-report.md)
       
           curl -X POST \
             -H "Authorization: Bearer $TOKEN" \

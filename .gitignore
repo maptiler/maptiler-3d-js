@@ -114,6 +114,7 @@ demos/private_*
 
 # Playwright
 /test-results/
+test-report.md
 /playwright-report/
 /blob-report/
 /playwright/.cache/
