@@ -6,10 +6,17 @@ jobs:
   run:
     if: github.event.issue.pull_request && contains(github.event.comment.body, '/update-snapshots')
     runs-on: ubuntu-latest
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+
     steps:
       - run: echo "Running Playwright tests"
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -19,4 +26,12 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
       - name: Run Playwright tests
-        run: npx playwright test --update-snapshots
+        run: npm run e2e:ci
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Automated Snaphot Update (Initiated By ${{ github.event.comment.user.login }})
+      
+          # Optional commit user and author settings
+          commit_user_email: ${{  github.event.comment.user.email }}
+          commit_author: ${{ github.event.comment.user.login }}
