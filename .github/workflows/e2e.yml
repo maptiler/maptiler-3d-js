@@ -37,6 +37,35 @@ jobs:
             test-results/
             e2e/snapshots/
           if-no-files-found: warn
+      - name: Post a PR comment with snapshot diffs
+        if: failure()  # Run only if previous steps failed
+        run: |
+          echo "Posting PR comment with snapshot diffs"
+      
+          # Define the PR number
+          PR_NUMBER=${{ github.event.pull_request.number }}
+      
+          # Set up the GitHub API token
+          TOKEN=${{ secrets.GITHUB_TOKEN }}
+      
+          # Get the URLs of the snapshot artifacts
+          ARTIFACTS_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts"
+      
+          # Construct the comment body with links to the snapshots (or diff images)
+          COMMENT_BODY="The following snapshot diffs were generated:
+          - **Expected Image**: ![expected](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-expected.png)
+          - **Actual Image**: ![actual](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-actual.png)
+          - **Diff Image**: ![diff](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${ARTIFACTS_URL}/mapLoad-diff.png)"
+      
+          # Post the comment using GitHub's API (via `curl`)
+          curl -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "body": "'"${COMMENT_BODY}"'"
+            }' \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments"
+        
 
 # One of these actions will likely come in handy...
 # https://github.com/marketplace/actions/background-action
