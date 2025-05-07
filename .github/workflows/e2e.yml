@@ -46,11 +46,11 @@ jobs:
       
           # Get the URLs of the snapshot artifacts
 
-          # COMMENT_BODY=$(<playwright-report/index.html)
+          COMMENT_BODY=$(<playwright-report/index.html)
 
-          COMMENT_BODY="Playwright tests failed. Please check [the report for full details](${{ steps.artifact-upload.outputs.artifact-url }}/playwright-report/index.html) for details."
+          # COMMENT_BODY="Playwright tests failed. Please check [the report for full details](${{ steps.artifact-upload.outputs.artifact-url }}/playwright-report/index.html) for details."
 
-          COMMENT_JSON=$(jq -n --arg body "$COMMENT_BODY" '{ body: $body }')
+          COMMENT_JSON=$(jq -n --arg body "\"$COMMENT_BODY\"" '{ body: $body }')
 
           curl -X POST \
             -H "Authorization: Bearer $TOKEN" \
