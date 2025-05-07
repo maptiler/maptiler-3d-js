@@ -30,8 +30,7 @@ jobs:
           name: playwright-report
           path: |
             playwright-report/
-            # test-results/
-            # e2e/snapshots/
+            test-results/
           if-no-files-found: warn
       - name: Post a PR comment with snapshot diffs
         if: failure()  # Run only if previous steps failed
@@ -46,11 +45,8 @@ jobs:
       
           # Get the URLs of the snapshot artifacts
 
-          COMMENT_BODY=$(<playwright-report/index.html)
-
-          # COMMENT_BODY="Playwright tests failed. Please check [the report for full details](${{ steps.artifact-upload.outputs.artifact-url }}/playwright-report/index.html) for details."
-
-          COMMENT_JSON=$(jq -n --arg body "\"$COMMENT_BODY\"" '{ body: $body }')
+          COMMENT_BODY="E2E Failure: Please check the attached artifacts [here](${{ steps.artifact-upload.outputs.artifact-url }})"
+          COMMENT_JSON=$(jq -n --arg body "$COMMENT_BODY" '{ body: $body }')
 
           curl -X POST \
             -H "Authorization: Bearer $TOKEN" \
