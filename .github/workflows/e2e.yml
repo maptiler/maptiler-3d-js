@@ -45,7 +45,7 @@ jobs:
       
           # Get the URLs of the snapshot artifacts
 
-          COMMENT_BODY="E2E Failure: Please check the attached artifacts [here](${{ steps.artifact-upload.outputs.artifact-url }})"
+          COMMENT_BODY="Some E2E Tests Failed: Please check the attached artifacts [here](${{ steps.artifact-upload.outputs.artifact-url }})"
           COMMENT_JSON=$(jq -n --arg body "$COMMENT_BODY" '{ body: $body }')
 
           curl -X POST \
