@@ -36,7 +36,7 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.ts": "npm run biome:fix"
+    "*.ts": "npm run biome:fix",
     "e2e:ci": "concurrently --kill-others --success first \"tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts\" \"npx playwright test --config=playwright.config.ts\""
   },
   "repository": {
