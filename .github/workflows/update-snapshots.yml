@@ -1,0 +1,42 @@
+name: Update snapshots slash command
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  update-snapshots:
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/update-snapshots') &&
+      (github.event.comment.author_association == 'COLLABORATOR' ||
+      github.event.comment.author_association == 'MEMBER' ||
+      github.event.comment.author_association == 'OWNER')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npm run e2e:ci
+
+      - name: Commit snapshot changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Automated Snapshot Update (Triggered by @${{ github.event.comment.user.login }})
