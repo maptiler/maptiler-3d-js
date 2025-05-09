@@ -34,7 +34,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: npm run e2e:ci
+        run: npm run e2e:ci-update
 
       - name: Commit snapshot changes
         uses: stefanzweifel/git-auto-commit-action@v5
