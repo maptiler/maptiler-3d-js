@@ -33,11 +33,11 @@
     "e2e:serve": "tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts",
     "e2e:local": "npx playwright test --config=playwright.config.ts --ui",
     "ncu": "npx npm-check-updates",
-    "prepare": "husky"
+    "prepare": "husky",
+    "e2e:ci": "concurrently --kill-others --success first \"tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts\" \"npx playwright test --config=playwright.config.ts\""
   },
   "lint-staged": {
-    "*.ts": "npm run biome:fix",
-    "e2e:ci": "concurrently --kill-others --success first \"tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts\" \"npx playwright test --config=playwright.config.ts\""
+    "*.ts": "npm run biome:fix"
   },
   "repository": {
     "type": "git",
