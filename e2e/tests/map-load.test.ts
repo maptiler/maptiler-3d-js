@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-import getMapInstanceForFixture from "./helpers/getMapInstanceForFixture";
+import loadFixtureAndGetMapHandle from "./helpers/loadFixtureAndGetMapHandle";
 
 test("Awaits until map ready and takes snapshot", async ({ page }, testInfo) => {
 
-  const { map } = await getMapInstanceForFixture({
+  const { map } = await loadFixtureAndGetMapHandle({
     fixture: "mapLoad",
     page,
   });
