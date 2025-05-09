@@ -30,9 +30,13 @@
     "dev": "concurrently \"vite -c vite.config-dev.ts\" \"npm run dev-umd\"",
     "dev-umd": "tsc && NODE_ENV=development vite build -w -c vite.config-umd.ts",
     "dev-es": "tsc && NODE_ENV=development vite build -w -c vite.config-es.ts",
-    "ncu": "npx npm-check-updates",
     "e2e:serve": "tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts",
     "e2e:local": "npx playwright test --config=playwright.config.ts --ui",
+    "ncu": "npx npm-check-updates",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.ts": "npm run biome:fix",
     "e2e:ci": "concurrently --kill-others --success first \"tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts\" \"npx playwright test --config=playwright.config.ts\""
   },
   "repository": {
@@ -46,6 +50,8 @@
     "@types/node": "^22.10.5",
     "@types/three": "^0.171.0",
     "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
     "vite-plugin-dts": "^4.4.0"
