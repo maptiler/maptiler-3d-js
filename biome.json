@@ -1,7 +1,7 @@
 {
   "files": {
     "include": ["./src/**/*.js", "./src/**/*.ts"],
-    "ignore": ["dist", "build"]
+    "ignore": ["dist", "build", "demos"]
   },
   "organizeImports": {
     "enabled": false

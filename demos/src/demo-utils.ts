@@ -1,4 +1,4 @@
-import { MapOptions, SdkConfig } from "@maptiler/sdk";
+import { MapOptions, type SdkConfig } from "@maptiler/sdk";
 import Stats from "stats.js";
 /**
  * Adds performance statistics to the page.

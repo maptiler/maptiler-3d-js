@@ -81,22 +81,20 @@ const map = new Map({
     planeCanMove = !planeCanMove;
   });
 
-  gui
-    .add(guiObj, "projection", ["mercator", "globe"])
-    .onChange((projection) => {
-      switch (projection) {
-        case "mercator":
-          map.enableMercatorProjection();
-          break;
+  gui.add(guiObj, "projection", ["mercator", "globe"]).onChange((projection) => {
+    switch (projection) {
+      case "mercator":
+        map.enableMercatorProjection();
+        break;
 
-        case "globe":
-          map.enableGlobeProjection();
-          break;
+      case "globe":
+        map.enableGlobeProjection();
+        break;
 
-        default:
-          throw new Error("Unsupported projection");
-      }
-    });
+      default:
+        throw new Error("Unsupported projection");
+    }
+  });
 
   gui.add(guiObj, "heading", 0, 360, 0.1).onChange((heading) => {
     layer3D.modifyMesh(originalPlaneID, { heading });
@@ -114,14 +112,12 @@ const map = new Map({
     layer3D.modifyMesh(originalPlaneID, { opacity });
   });
 
-  gui
-    .add(guiObj, "altitudeReference", ["MEAN_SEA_LEVEL", "GROUND"])
-    .onChange((altRef: keyof AltitudeReference) => {
-      const altitudeReference = AltitudeReference[altRef]
-      layer3D.modifyMesh(originalPlaneID, {
-        altitudeReference,
-      });
+  gui.add(guiObj, "altitudeReference", ["MEAN_SEA_LEVEL", "GROUND"]).onChange((altRef: keyof AltitudeReference) => {
+    const altitudeReference = AltitudeReference[altRef];
+    layer3D.modifyMesh(originalPlaneID, {
+      altitudeReference,
     });
+  });
 
   gui.add(guiObj, "wireframe").onChange((wireframe) => {
     layer3D.modifyMesh(originalPlaneID, { wireframe });

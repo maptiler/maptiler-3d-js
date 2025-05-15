@@ -1,6 +1,6 @@
-import "@maptiler/sdk/style.css"
+import "@maptiler/sdk/style.css";
 
-import { LngLatLike, Map, MapStyle, config, math } from "@maptiler/sdk";
+import { type LngLatLike, Map, MapStyle, config, math } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
 import { AltitudeReference, Layer3D } from "../../src/Layer3D";
 import GUI from "lil-gui";
@@ -21,12 +21,11 @@ function calculateHeading(lat1, lon1, lat2, lon2) {
   const Δλ = math.toRadians(lon2 - lon1);
 
   const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x = Math.cos(φ1) * Math.sin(φ2) -
-            Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
 
   let θ = Math.atan2(y, x);
   θ = math.toDegrees(θ);
-  return (θ + 360) % 360 + 90; // Normalize to 0–360 and add 90 degrees
+  return ((θ + 360) % 360) + 90; // Normalize to 0–360 and add 90 degrees
 }
 
 const map = new Map({
@@ -103,12 +102,7 @@ const map = new Map({
     const nextPosition = math.haversineIntermediateWgs84(paris, ankara, progress - guiObj.speed) as LngLatLike;
     const position = math.haversineIntermediateWgs84(paris, ankara, progress) as LngLatLike;
 
-    const roughHeading = calculateHeading(
-      position[1],
-      position[0],
-      nextPosition[1],
-      nextPosition[0],
-    );
+    const roughHeading = calculateHeading(position[1], position[0], nextPosition[1], nextPosition[0]);
 
     layer3D.modifyMesh(originalPlaneID, { lngLat: position, heading: roughHeading });
 

@@ -1,4 +1,4 @@
-import "@maptiler/sdk/style.css"
+import "@maptiler/sdk/style.css";
 import { Map, MapStyle, config } from "@maptiler/sdk";
 import { AltitudeReference, Layer3D } from "../../src/Layer3D";
 import GUI from "lil-gui";
@@ -58,7 +58,7 @@ const map = new Map({
       visible: true,
       altitude: 0,
       altitudeReference: AltitudeReference.GROUND,
-    }
+    },
   );
 
   const guiObj = {
@@ -74,5 +74,4 @@ const map = new Map({
   gui.add(guiObj, "pointSize", 0, 20, 0.1).onChange((pointSize) => {
     layer3D.modifyMesh(meshId, { pointSize });
   });
-
 })();

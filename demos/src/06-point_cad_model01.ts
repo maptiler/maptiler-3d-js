@@ -1,4 +1,4 @@
-import "@maptiler/sdk/style.css"
+import "@maptiler/sdk/style.css";
 import GUI from "lil-gui";
 import { AltitudeReference, Layer3D } from "../../src/Layer3D";
 import { Map, MapStyle, config } from "@maptiler/sdk";
@@ -78,7 +78,7 @@ const map = new Map({
       altitude: guiObj.altitude,
       altitudeReference: AltitudeReference.GROUND,
       wireframe: guiObj.wireframe,
-    }
+    },
   );
 
   gui.add(guiObj, "heading", 0, 360, 0.1).onChange((heading) => {
@@ -97,16 +97,13 @@ const map = new Map({
     layer3D.modifyMesh(meshId, { opacity });
   });
 
-  gui
-    .add(guiObj, "altitudeReference", ["GROUND", "MEAN_SEA_LEVEL"])
-    .onChange((altRef: keyof AltitudeReference) => {
-      layer3D.modifyMesh(meshId, {
-        altitudeReference: AltitudeReference[altRef],
-      });
+  gui.add(guiObj, "altitudeReference", ["GROUND", "MEAN_SEA_LEVEL"]).onChange((altRef: keyof AltitudeReference) => {
+    layer3D.modifyMesh(meshId, {
+      altitudeReference: AltitudeReference[altRef],
     });
+  });
 
   gui.add(guiObj, "wireframe").onChange((wireframe) => {
     layer3D.modifyMesh(meshId, { wireframe });
   });
-
 })();

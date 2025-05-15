@@ -1,4 +1,4 @@
-import "@maptiler/sdk/style.css"
+import "@maptiler/sdk/style.css";
 
 import { LngLat, Map, MapStyle, config } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
@@ -48,11 +48,9 @@ function createUI() {
       if (value === AltitudeReference.GROUND) {
         altitudeController.setValue(0);
         console.log(
-          map.queryTerrainElevation(
-            new LngLat(state.lngLat.lng, state.lngLat.lat)
-          ),
+          map.queryTerrainElevation(new LngLat(state.lngLat.lng, state.lngLat.lat)),
           "!==",
-          mountEverestElevation
+          mountEverestElevation,
         ); // Why?
       }
     })
@@ -88,7 +86,7 @@ function createUI() {
           }
         },
       },
-      "wtq"
+      "wtq",
     )
     .name("What the Quack?");
 
@@ -98,8 +96,7 @@ function createUI() {
 config.apiKey = new URLSearchParams(location.search).get("key") || "API_KEY";
 
 if (config.apiKey === "API_KEY") {
-  const errorMessage =
-    "MapTiler API key is missing. Please use URL `key` parameter to set it (`?key=XXXXX`).";
+  const errorMessage = "MapTiler API key is missing. Please use URL `key` parameter to set it (`?key=XXXXX`).";
 
   alert(errorMessage);
   throw new Error(errorMessage);

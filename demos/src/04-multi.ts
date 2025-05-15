@@ -58,14 +58,10 @@ const map = new Map({
   });
 
   const originalDragonID = "dragon";
-  await layer3D.addMeshFromURL(
-    originalDragonID,
-    "models/stanford_dragon_pbr.glb",
-    {
-      scale: 1,
-      visible: false,
-    }
-  );
+  await layer3D.addMeshFromURL(originalDragonID, "models/stanford_dragon_pbr.glb", {
+    scale: 1,
+    visible: false,
+  });
 
   const guiObj = {
     model: originalLanternID,
@@ -92,12 +88,7 @@ const map = new Map({
     latestMeshID = newCloneID;
   });
 
-  gui.add(guiObj, "model", [
-    originalLanternID,
-    originalDuckID,
-    originalPlaneID,
-    originalDragonID,
-  ]);
+  gui.add(guiObj, "model", [originalLanternID, originalDuckID, originalPlaneID, originalDragonID]);
 
   // We can change the heading of the latest mesh added
   gui.add(guiObj, "heading", 0, 360, 0.1).onChange((heading) => {

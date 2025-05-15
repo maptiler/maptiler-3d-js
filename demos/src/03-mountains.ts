@@ -1,4 +1,4 @@
-import "@maptiler/sdk/style.css"
+import "@maptiler/sdk/style.css";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min.js";
 import { AltitudeReference, Layer3D } from "../../src/Layer3D";
 import { LngLat, Map, MapStyle, config } from "@maptiler/sdk";
@@ -50,11 +50,9 @@ function createUI() {
       if (value === AltitudeReference.GROUND) {
         altitudeController.setValue(0);
         console.log(
-          map.queryTerrainElevation(
-            new LngLat(state.lngLat.lng, state.lngLat.lat)
-          ),
+          map.queryTerrainElevation(new LngLat(state.lngLat.lng, state.lngLat.lat)),
           "!==",
-          mountEverestElevation
+          mountEverestElevation,
         ); // Why?
       }
     })
@@ -78,7 +76,6 @@ function createUI() {
 
   return gui;
 }
-
 
 createUI();
 
@@ -108,14 +105,10 @@ const layer3D = new Layer3D("custom-3D-layer");
   layer3D.addPointLight("point-light", { intensity: 30 });
   layer3D.modifyPointLight("point-light", { intensity: 100 });
 
-  await layer3D.addMeshFromURL(
-    TEMPLATE_OBJECT_ID,
-    "./models/position-indicator--y-up.glb",
-    {
-      ...state,
-      sourceOrientation: SourceOrientation.Y_UP,
-    }
-  );
+  await layer3D.addMeshFromURL(TEMPLATE_OBJECT_ID, "./models/position-indicator--y-up.glb", {
+    ...state,
+    sourceOrientation: SourceOrientation.Y_UP,
+  });
 
   map.on("mousemove", (e) => {
     if (currentObjectID === undefined) {

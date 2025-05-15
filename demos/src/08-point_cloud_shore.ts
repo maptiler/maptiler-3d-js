@@ -1,4 +1,4 @@
-import "@maptiler/sdk/style.css"
+import "@maptiler/sdk/style.css";
 import { Map, MapStyle, config } from "@maptiler/sdk";
 import { AltitudeReference, Layer3D } from "../../src/Layer3D";
 import GUI from "lil-gui";
@@ -56,7 +56,7 @@ const map = new Map({
       visible: true,
       altitude: -752,
       altitudeReference: AltitudeReference.GROUND,
-    }
+    },
   );
 
   const guiObj = {
