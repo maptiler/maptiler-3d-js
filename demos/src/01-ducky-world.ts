@@ -51,7 +51,7 @@ function createUI() {
           map.queryTerrainElevation(new LngLat(state.lngLat.lng, state.lngLat.lat)),
           "!==",
           mountEverestElevation,
-        ); // Why?
+        );
       }
     })
     .name("Altitude Reference");
