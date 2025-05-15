@@ -20,11 +20,7 @@ jobs:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-      - name: Extract branch name
-        shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch        
+          ref: ${{ github.event.pull_request.head.ref }}  
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -40,7 +36,8 @@ jobs:
         run: npm run e2e:ci-update
 
       - name: Commit snapshot changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Automated Snapshot Update (Triggered by @${{ github.event.comment.user.login }})
-          branch: ${{ steps.extract_branch.outputs.branch }}
+        run: |
+          git config user.name MapTiler Testbot
+          git add -A
+          git commit -am "[BOT] Update snapshots (Triggered by @${{ github.event.comment.user.login }})" || echo "No changes to commit"
+          git push origin ${{ github.ref_name }}
