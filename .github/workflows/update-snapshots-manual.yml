@@ -9,10 +9,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Get PR number
+        id: get_pr
+        uses: actions/github-script@v6
+        with:
+          script: return context.payload.issue.pull_request.number
+
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: refs/pull/${{ steps.get_pr.outputs.result }}/head
+          fetch-depth: 0
+          persist-credentials: true
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -25,15 +33,12 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: npm run e2e:ci
+        run: npm run e2e:ci-update
 
       - name: Commit snapshot changes
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Committing snapshot changes to PR branch ${{ github.ref_name }}"
           git config user.name MapTiler Testbot
           git add -A
           git commit -am "[BOT] Update snapshots (Triggered by @${{ github.event.comment.user.login }})" || echo "No changes to commit"
-          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} $CURRENT_BRANCH
+          git push origin HEAD:refs/heads/${{ steps.get_pr.outputs.result }}
