@@ -15,28 +15,50 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+# This action is disabled for now due to problems comparing the snapshots in ci
+    # steps:
+    #   - name: Get PR number
+    #     id: get_pr
+    #     uses: actions/github-script@v6
+    #     with:
+    #       script: |
+    #         const pr = await github.rest.pulls.get({
+    #           owner: context.repo.owner,
+    #           repo: context.repo.repo,
+    #           pull_number: context.payload.issue.number,
+    #         });
+    #         return pr.data.head.ref;
 
-    steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
+    #   - name: Checkout PR branch
+    #     uses: actions/checkout@v4
+    #     with:
+    #       ref: ${{ steps.get_pr.outputs.result }}
+    #       fetch-depth: 0
+    #       persist-credentials: true
+    #   - name: Setup Node.js
+    #     uses: actions/setup-node@v4
+    #     with:
+    #       node-version: lts/*
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
+    #   - name: Install dependencies
+    #     run: npm ci
 
-      - name: Install dependencies
-        run: npm ci
+    #   - name: Install Playwright Browsers
+    #     run: npx playwright install --with-deps
 
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+    #   - name: Run Playwright tests
+    #     run: npm run e2e:ci-update
 
-      - name: Run Playwright tests
-        run: npm run e2e:ci
+    #   - name: Debug Info
+    #     run: |
+    #       echo "PR number: ${{ steps.get_pr.outputs.result }}"
+    #       echo "Branch: ${{ github.event.issue.pull_request.head.ref }}"
+    #       echo "User: ${{ github.event.comment.user.login }}"
 
-      - name: Commit snapshot changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Automated Snapshot Update (Triggered by @${{ github.event.comment.user.login }})
+    #   - name: Commit snapshot changes
+    #     run: |
+    #       echo "Committing snapshot changes to PR branch ${{ github.event.issue.pull_request.head.ref }}"
+    #       git config user.name MapTiler Testbot
+    #       git add -A
+    #       git commit -am "[BOT] Update snapshots (Triggered by @${{ github.event.comment.user.login }})" || echo "No changes to commit"
+    #       git push origin HEAD:refs/heads/${{ steps.get_pr.outputs.result }}

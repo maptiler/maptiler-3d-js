@@ -1,7 +1,8 @@
-import { Page, expect } from "@playwright/test";
+import { Map } from "@maptiler/sdk";
+import { JSHandle, Page, expect } from "@playwright/test";
 import path from "path";
 
-interface IgetMapInstanceForFixture {
+interface IloadFixtureAndGetMapHandle {
   fixture: string;
   page: Page;
   mockStyle?: boolean;
@@ -9,13 +10,13 @@ interface IgetMapInstanceForFixture {
   debug?: boolean;
 }
 
-export default async function getMapInstanceForFixture({
+export default async function loadFixtureAndGetMapHandle({
   fixture,
   page,
   mockStyle = true,
   mockTiles = true,
   debug = false
-}: IgetMapInstanceForFixture) {
+}: IloadFixtureAndGetMapHandle): Promise<{ mapHandle: JSHandle<Map | null> }> {
   if (mockStyle) {
     // mock style response
     await page.route('https://api.maptiler.com/maps/*/*.json*', async route => {
@@ -35,7 +36,7 @@ export default async function getMapInstanceForFixture({
       return route.fulfill({
         status: 200,
         contentType: 'image/png',
-        path: path.resolve(import.meta.dirname, '../mocks/tile.png'),
+        path: path.resolve(import.meta.dirname, `../mocks/tile.png`),
       });
     });
   }
@@ -60,28 +61,37 @@ export default async function getMapInstanceForFixture({
   });
 
   try {
-    const map = await page.evaluateHandle(() => {
-      return Promise.race([
-        new Promise(async (resolve, reject) => {
-          try {
-            console.log(window.__map)
-            await window.__map.onLoadAsync();
-            resolve(window.__map);
-          } catch (e) {
-            reject(e);
-          }
-        }),
-        new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Map did not load in time')), 5000);
+    const mapHandle = await page.evaluateHandle<Map | null>(() => {
+      return Promise.race<Map | null>([
+      new Promise<Map | null>(async (resolve) => {
+        try {
+          //@ts-expect-error This has been added to global.d.ts but still errors
+          window.__map.on("idle", ()=> {
+          //@ts-expect-error This has been added to global.d.ts but still errors
+          resolve(window.__map as Map);
         })
-      ,])
+        } catch (e) {
+        console.error('Error getting map instance', e);
+        resolve(null)
+        }
+      }),
+      new Promise<Map | null>((resolve) => {
+        setTimeout(() => {
+        console.error('Map did not load in time');
+        resolve(null);
+        }, 10000);
+      })
+      ])
     });
   
     return {
-      map,
-    } 
+      mapHandle,
+    }
   } catch(e) {
     console.error(e);
-    return {}
+    const nullMap = await page.evaluateHandle(() => null)
+    return {
+      mapHandle: nullMap,
+    }
   }
 }

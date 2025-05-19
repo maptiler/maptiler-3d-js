@@ -5,8 +5,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         mapLoad: 'public/mapLoad.html',
-        // about: 'fixtures/about.html',
-        // contact: 'fixtures/contact.html',
+        basic: 'public/basic.html',
+        withModel: 'public/withModel.html',
       },
     },
   },
