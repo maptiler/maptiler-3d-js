@@ -22,12 +22,17 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            return context.payload.issue.pull_request.number
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number,
+            });
+            return pr.data.head.ref;
 
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.issue.pull_request.head.ref }}
+          ref: ${{ steps.get_pr.outputs.result }}
           fetch-depth: 0
           persist-credentials: true
       - name: Setup Node.js
