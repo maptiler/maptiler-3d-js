@@ -37,3 +37,4 @@ jobs:
           git commit -am "[BOT] Update snapshots (Triggered by @${{ github.event.comment.user.login }})" || echo "No changes to commit"
           CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }} $CURRENT_BRANCH
+
