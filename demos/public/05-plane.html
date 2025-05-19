@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>MapTiler 3D Models</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    .lil-gui.autoPlace {
+      right: inherit;
+      left: 15px;
+    }
+
+    #info {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: fit-content;
+      height: fit-content;
+      text-align: center;
+      padding: 15px;
+      color: white;
+      background-color: #0009;
+      border-radius: 5px;
+      font-family: monospace;
+      margin: auto;
+      margin-bottom: 25px;
+      z-index: 2;
+      backdrop-filter: blur(10px);
+    }
+  </style>
+</head>
+
+<body>
+
+
+  <div id="map"></div>
+  <div id="info">
+    <p>
+      Click on the map to add a plane model. You can then click again to move it.
+    </p>
+  </div>
+  <script type="module" src="../src/05-plane.ts"></script>
+</body>
+
+</html>

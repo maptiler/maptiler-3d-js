@@ -52,7 +52,9 @@
     "@types/three": "^0.171.0",
     "concurrently": "^9.1.2",
     "husky": "^9.1.7",
+    "lil-gui": "^0.20.0",
     "lint-staged": "^15.4.3",
+    "stats.js": "^0.17.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
     "vite-plugin-dts": "^4.4.0"
