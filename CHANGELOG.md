@@ -1,6 +1,11 @@
 # MapTiler 3D Models Changelog
 
 ## 2.1.0
+## Other
+- Version bump maptiler/sdk to 3.4.1
+- MaptilerSDK Dep is now tied to minor versions instead of major versions
+
+## 2.0.2
 ## Bug Fixes
 - Set default rendering min zoom value to work fine with globe 
 
