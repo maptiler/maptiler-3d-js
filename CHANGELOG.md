@@ -2,7 +2,7 @@
 
 ## 2.1.0
 ## Other
-- Version bump maptiler/sdk to 3.4.1
+- Version bump maptiler/sdk to 3.5.0
 - MaptilerSDK Dep is now tied to minor versions instead of major versions
 
 ## 2.0.2
