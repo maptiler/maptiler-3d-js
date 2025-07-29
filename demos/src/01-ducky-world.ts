@@ -29,7 +29,7 @@ function createUI() {
   const actions = {
     addObject: () => {
       currentObjectID = `object-${Math.random()}`;
-      layer3D.cloneMesh(TEMPLATE_OBJECT_ID, currentObjectID, {});
+      layer3D.cloneMesh(TEMPLATE_OBJECT_ID, currentObjectID);
     },
   };
 
@@ -133,7 +133,8 @@ const layer3D = new Layer3D("custom-3D-layer");
   layer3D.addPointLight("point-light", { intensity: 30 });
   layer3D.modifyPointLight("point-light", { intensity: 100 });
 
-  await layer3D.addMeshFromURL(TEMPLATE_OBJECT_ID, "./models/Duck.glb", {
+  await layer3D.addMeshFromURL(TEMPLATE_OBJECT_ID, {
+    url: "./models/Duck.glb",
     ...state,
     sourceOrientation: SourceOrientation.Y_UP,
   });

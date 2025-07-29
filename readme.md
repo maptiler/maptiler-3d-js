@@ -281,7 +281,7 @@ Here is the list of instance methods:
 To adjust the settings of the ambient light. The type `ColorRepresentation` means the color can be a `number` (such as a hex notation `0xff0000`, for red), a hex string (such as `"#FF0000"`, for red), or a ThreeJS color ([read more about these here](https://threejs.org/docs/#api/en/math/Color)).
 ℹ️ By default, the ambiant light is white (`0xffffff`) with an intensity of `0.5`.
 
-- **`.addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {})`** *async*
+- **`.addMeshFromURL(id: string, url: string, options: MeshOptions = {})`** *async*
 Adds a mesh from a URL to a glTF of glb file, given a mesh ID (will throw if not unique) and a set of options.
 
 - **`.addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {})`**

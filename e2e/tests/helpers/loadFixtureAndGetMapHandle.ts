@@ -8,6 +8,7 @@ interface IloadFixtureAndGetMapHandle {
   mockStyle?: boolean;
   mockTiles?: boolean;
   debug?: boolean;
+  waitUntil?: "load" | "domcontentloaded" | "networkidle";
 }
 
 export default async function loadFixtureAndGetMapHandle({
@@ -15,7 +16,8 @@ export default async function loadFixtureAndGetMapHandle({
   page,
   mockStyle = true,
   mockTiles = true,
-  debug = false
+  debug = false,
+  waitUntil = 'load',
 }: IloadFixtureAndGetMapHandle): Promise<{ mapHandle: JSHandle<Map | null> }> {
   if (mockStyle) {
     // mock style response
@@ -57,7 +59,7 @@ export default async function loadFixtureAndGetMapHandle({
   })
   
   await page.goto(`http://localhost:5173/${fixture}.html`, {
-    waitUntil: 'domcontentloaded',
+    waitUntil,
   });
 
   try {
