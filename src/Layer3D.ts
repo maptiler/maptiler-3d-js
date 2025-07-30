@@ -444,7 +444,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param options - The options to add the mesh with
    * @returns {Layer3D} The layer
    */
-  public addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions) {
+  public addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {}) {
     this.addMeshInternal({
       ...options,
       id,

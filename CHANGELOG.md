@@ -1,5 +1,10 @@
 # MapTiler 3D Models Changelog
 
+## 2.2.0
+## Other
+- GLTF Animations are now usable
+- MaptilerSDK Dep is now tied to minor versions instead of major versions
+
 ## 2.1.0
 ## Other
 - Version bump maptiler/sdk to 3.5.0

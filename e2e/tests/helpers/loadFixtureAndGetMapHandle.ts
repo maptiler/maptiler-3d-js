@@ -1,4 +1,4 @@
-import { Map } from "@maptiler/sdk";
+import type { Map } from "@maptiler/sdk";
 import { JSHandle, Page, expect } from "@playwright/test";
 import path from "path";
 
@@ -67,9 +67,7 @@ export default async function loadFixtureAndGetMapHandle({
       return Promise.race<Map | null>([
       new Promise<Map | null>(async (resolve) => {
         try {
-          //@ts-expect-error This has been added to global.d.ts but still errors
           window.__map.on("idle", ()=> {
-          //@ts-expect-error This has been added to global.d.ts but still errors
           resolve(window.__map as Map);
         })
         } catch (e) {
@@ -93,7 +91,7 @@ export default async function loadFixtureAndGetMapHandle({
     console.error(e);
     const nullMap = await page.evaluateHandle(() => null)
     return {
-      mapHandle: nullMap,
+      mapHandle: nullMap as JSHandle<Map | null>,
     }
   }
 }

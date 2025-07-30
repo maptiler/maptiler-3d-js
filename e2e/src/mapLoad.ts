@@ -9,5 +9,4 @@ const map = new MapTiler({
   zoom: 3,
 });
 
-//@ts-expect-error
 window.__map = map;

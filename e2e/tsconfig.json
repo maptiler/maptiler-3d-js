@@ -9,7 +9,6 @@
   },
   "include": [
     "./global.d.ts",
-    "./**/*.test.ts",
     "./src/**/*.ts"
   ]
 }

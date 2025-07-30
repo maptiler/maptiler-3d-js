@@ -14,7 +14,6 @@ async function main() {
     pitch: 60,
   });
 
-  //@ts-expect-error
   window.__map = map;
 
   await map.onReadyAsync();
@@ -56,8 +55,7 @@ async function main() {
 
     const normalised = [lng, lat].map((n) => n * multiplier) as [number, number];
 
-    layer3d.addMesh(`cube-${lng}-${lat}-${alt}`, {
-      mesh,
+    layer3d.addMesh(`cube-${lng}-${lat}-${alt}`, mesh, {
       lngLat: LngLat.convert(normalised),
       altitude: alt * 50,
       altitudeReference: AltitudeReference.GROUND,
