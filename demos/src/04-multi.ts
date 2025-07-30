@@ -38,22 +38,19 @@ const map = new Map({
   // Adding a mesh of a lantern.
   // We make this first mesh invisible because we will only use it to be cloned
   const originalLanternID = "lantern";
-  await layer3D.addMeshFromURL(originalLanternID, {
-    url: "models/Lantern.glb",
+  await layer3D.addMeshFromURL(originalLanternID, "models/Lantern.glb", {
     scale: 1,
     visible: false,
   });
 
   const originalDuckID = "duck";
-  await layer3D.addMeshFromURL(originalDuckID, {
-    url: "models/Duck.glb",
+  await layer3D.addMeshFromURL(originalDuckID, "models/Duck.glb", {
     scale: 1,
     visible: false,
   });
 
   const originalPlaneID = "plane";
-  await layer3D.addMeshFromURL(originalPlaneID, {
-    url: "models/plane_a340.glb",
+  await layer3D.addMeshFromURL(originalPlaneID, "models/plane_a340.glb", {
     scale: 1,
     visible: false,
     altitude: 0,
@@ -61,8 +58,7 @@ const map = new Map({
   });
 
   const originalDragonID = "dragon";
-  await layer3D.addMeshFromURL(originalDragonID, {
-    url: "models/stanford_dragon_pbr.glb",
+  await layer3D.addMeshFromURL(originalDragonID, "models/stanford_dragon_pbr.glb", {
     scale: 1,
     visible: false,
   });

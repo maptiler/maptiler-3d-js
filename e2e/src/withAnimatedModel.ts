@@ -15,7 +15,6 @@ async function main() {
     pitch: 60,
   });
 
-  //@ts-expect-error
   window.__map = map;
 
   await map.onReadyAsync();
@@ -41,15 +40,14 @@ async function main() {
 
   const flamingoID = "flamingo";
 
-  await layer3D.addMeshFromURL(flamingoID, {
-    url: "models/Flamingo.glb",
+  await layer3D.addMeshFromURL(flamingoID, "models/Flamingo.glb", {
     lngLat: [0, 0],
     heading: 0,
     scale: 1,
     altitude: 10,
     animationMode: "manual",
     altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
-    initialTransform: {
+    transform: {
       rotation: {
         x: 0,
         y: Math.PI / 2,
@@ -75,10 +73,8 @@ async function main() {
     layer3D.updateAnimation(flamingoID, 0.01);
   }
 
-  //@ts-expect-error
   window.__layer3D = layer3D;
 
-  //@ts-expect-error
   window.__pageObjects = {
     advanceAnimation,
     // rafLoop,

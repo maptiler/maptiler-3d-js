@@ -66,8 +66,7 @@ const map = new Map({
   };
 
   const meshId = "some-mesh";
-  await layer3D.addMeshFromURL(meshId, {
-      url: "models/building_f_agu_sagamihara_campus_lod2-3.glb",
+  await layer3D.addMeshFromURL(meshId, "models/building_f_agu_sagamihara_campus_lod2-3.glb", {
       lngLat: [139.401378125492, 35.567323827763786],
       heading: guiObj.heading,
       scale: guiObj.scale,

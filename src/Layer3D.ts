@@ -30,6 +30,7 @@ import {
   LoopRepeat,
   LoopPingPong,
   Object3D,
+  Vector3,
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -86,12 +87,6 @@ export type GenericObject3DOptions = {
  */
 export type MeshOptions = GenericObject3DOptions & {
   /**
-   * The mesh to add
-   * @required
-   */
-  mesh: Mesh | Group | Object3D;
-
-  /**
    * Rotation to apply to the model to add, as a Quaternion.
    * Default: a rotation of PI/2 around the x axis, to adjust from the default ThreeJS space (right-hand, Y up) to the Maplibre space (right-hand, Z up)
    */
@@ -132,9 +127,8 @@ export type MeshOptions = GenericObject3DOptions & {
   animationMode?: AnimationMode;
 };
 
-export type AddMeshFromURLOptions = Omit<MeshOptions, "mesh"> & {
-  url: string;
-  initialTransform?: {
+export type AddMeshFromURLOptions = MeshOptions & {
+  transform?: {
     rotation?: {
       x?: number;
       y?: number;
@@ -433,7 +427,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param options - The options to set the ambient light with
    * @returns {Layer3D} The layer
    */
-  setAmbientLight(options: { color?: ColorRepresentation; intensity?: number } = {}) {
+  public setAmbientLight(options: { color?: ColorRepresentation; intensity?: number } = {}) {
     if (typeof options.intensity === "number") {
       this.ambientLight.intensity = options.intensity;
     }
@@ -450,7 +444,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param options - The options to add the mesh with
    * @returns {Layer3D} The layer
    */
-  public addMesh(id: string, { mesh, ...options }: MeshOptions) {
+  public addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions) {
     this.addMeshInternal({
       ...options,
       id,
@@ -471,7 +465,7 @@ export class Layer3D implements CustomLayerInterface {
     mesh,
     animations,
     ...options
-  }: MeshOptions & { id: string; animations?: AnimationClip[] }) {
+  }: MeshOptions & { id: string; mesh: Mesh | Group | Object3D; animations?: AnimationClip[] }) {
     this.throwUniqueID(id);
 
     const sourceOrientation = options.sourceOrientation ?? SourceOrientation.Y_UP;
@@ -548,7 +542,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param animationName - The name of the animation to play
    * @param {AnimationLoopOptions} loop - The loop type of the animation, can either be "loop", "once" or "pingPong"
    */
-  playAnimation(meshId: string, animationName: string, loop: AnimationLoopOptions = "loop") {
+  public playAnimation(meshId: string, animationName: string, loop?: AnimationLoopOptions) {
     const item = this.items3D.get(meshId);
     if (!item) return;
     if (!item.mesh) return;
@@ -560,13 +554,29 @@ export class Layer3D implements CustomLayerInterface {
     animation.play();
     animation.paused = false;
 
-    const loopType = AnimationLoopOptionsMap[loop];
-    animation.loop = loopType;
+    if (loop) {
+      const loopType = AnimationLoopOptionsMap[loop];
+      animation.loop = loopType ?? null;
+    }
+
     if (item.animationMode === "continuous") {
       this.renderer.setAnimationLoop(() => this.animate());
     }
 
     return this;
+  }
+
+  /**
+   * Get an animation by name
+   * @param meshId - The ID of the mesh
+   * @param animationName - The name of the animation to get
+   * @returns {AnimationAction | null} The animation action or null if not found
+   */
+  public getAnimation(meshId: string, animationName: string): AnimationAction | null {
+    const item = this.items3D.get(meshId);
+    if (!item) return null;
+    if (!item.mesh) return null;
+    return item.animations?.[animationName] ?? null;
   }
 
   /**
@@ -593,7 +603,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param meshId - The ID of the mesh
    * @returns {string[]} The names of all the animations of the mesh
    */
-  getAnimationNames(meshId: string): string[] {
+  public getAnimationNames(meshId: string): string[] {
     const item = this.items3D.get(meshId);
     if (!item) return [];
     if (!item.mesh) return [];
@@ -606,7 +616,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param meshId - The ID of the mesh
    * @param delta - The delta time to update the animation by
    */
-  updateAnimation(meshId: string, delta = 0.02) {
+  public updateAnimation(meshId: string, delta = 0.02) {
     const item = this.items3D.get(meshId);
     if (!item) return;
 
@@ -625,7 +635,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param meshId - The ID of the mesh
    * @param time - The time to set the animation to
    */
-  setAnimationTime(meshId: string, time: number) {
+  public setAnimationTime(meshId: string, time: number) {
     const item = this.items3D.get(meshId);
     if (!item) return;
     if (!item.mesh) return;
@@ -734,7 +744,7 @@ export class Layer3D implements CustomLayerInterface {
     if (!sourceItem.mesh) return;
 
     // Cloning the source item options and overwriting some with the provided options
-    const cloneOptions: MeshOptions = {
+    const cloneOptions: Partial<MeshOptions> = {
       lngLat: new LngLat(sourceItem.lngLat.lng, sourceItem.lngLat.lat),
       altitude: sourceItem.altitude,
       altitudeReference: sourceItem.altitudeReference,
@@ -821,7 +831,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param id - The ID of the mesh
    * @param options - The options to add the mesh with
    */
-  async addMeshFromURL(id: string, { url, ...options }: AddMeshFromURLOptions) {
+  async addMeshFromURL(id: string, url: string, options: AddMeshFromURLOptions = {}) {
     this.throwUniqueID(id);
 
     const fileExt = url.trim().toLowerCase().split(".").pop();
@@ -832,10 +842,10 @@ export class Layer3D implements CustomLayerInterface {
 
     const loader = new GLTFLoader();
     const gltfContent = await loader.loadAsync(url);
-    const mesh = options.initialTransform ? new Object3D() : gltfContent.scene;
+    const mesh = options.transform ? new Object3D() : gltfContent.scene;
 
-    if (options.initialTransform) {
-      const { rotation, offset } = options.initialTransform;
+    if (options.transform) {
+      const { rotation, offset } = options.transform;
 
       mesh.add(gltfContent.scene);
 
@@ -843,7 +853,7 @@ export class Layer3D implements CustomLayerInterface {
         gltfContent.scene.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
       }
       if (offset) {
-        gltfContent.scene.position.set(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0);
+        gltfContent.scene.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
       }
     }
 

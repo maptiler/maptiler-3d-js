@@ -49,8 +49,8 @@ const map = new Map({
   const meshId = "some-mesh";
   await layer3D.addMeshFromURL(
     meshId,
+    "models/hintze_hall_nhm_london_point_cloud.glb",
     {
-      url: "models/hintze_hall_nhm_london_point_cloud.glb",
       lngLat: [-0.17642900347709656, 51.496198574865645],
       heading: 83.6,
       scale: 1,

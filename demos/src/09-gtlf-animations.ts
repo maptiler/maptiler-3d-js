@@ -66,15 +66,14 @@ const map = new Map({
 
   const originalPlaneID = "flamingo";
 
-  await layer3D.addMeshFromURL(originalPlaneID, {
-    url: "models/Flamingo.glb",
+  await layer3D.addMeshFromURL(originalPlaneID, "models/Flamingo.glb", {
     lngLat: lakeNatron,
     heading: 12,
     scale: 100,
     altitude: 5000,
     animationMode: "manual",
     altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
-    initialTransform: {
+    transform: {
       rotation: {
         x: 0,
         y: Math.PI / 2,

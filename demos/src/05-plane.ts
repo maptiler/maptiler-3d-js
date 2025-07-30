@@ -61,8 +61,7 @@ const map = new Map({
   };
 
   const originalPlaneID = "plane";
-  await layer3D.addMeshFromURL(originalPlaneID, {
-    url: "models/plane_a340.glb",
+  await layer3D.addMeshFromURL(originalPlaneID, "models/plane_a340.glb", {
     scale: guiObj.scale,
     altitude: guiObj.altitude,
     altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,

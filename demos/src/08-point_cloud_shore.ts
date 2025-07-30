@@ -48,8 +48,8 @@ const map = new Map({
   const meshId = "some-mesh";
   await layer3D.addMeshFromURL(
     meshId,
+    "models/parque_copan_design_proposal.glb",
     {
-      url: "models/parque_copan_design_proposal.glb",
       lngLat: [-74.0839886924465, 40.5804232016599],
       scale: 1,
       visible: true,

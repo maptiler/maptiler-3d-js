@@ -15,7 +15,6 @@ async function main() {
     pitch: 60,
   });
 
-  //@ts-expect-error
   window.__map = map;
 
   await map.onReadyAsync();
@@ -32,16 +31,14 @@ async function main() {
     color: "#ffffff",
   });
 
-  layer3d.addMeshFromURL("duck", {
-    url: "models/rubber_duck/scene.gltf",
+  layer3d.addMeshFromURL("duck", "models/rubber_duck/scene.gltf", {
     lngLat: [0, 0],
     altitude: 50,
     altitudeReference: AltitudeReference.GROUND,
     scale: 100,
   });
 
-  //@ts-expect-error
-  window.__layer3d = layer3d;
+  window.__layer3D = layer3d;
 }
 
 main();

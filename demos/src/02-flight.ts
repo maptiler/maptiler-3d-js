@@ -64,8 +64,7 @@ const map = new Map({
   layer3D.addPointLight("point-light", { intensity: 30 });
 
   const originalPlaneID = "plane";
-  await layer3D.addMeshFromURL(originalPlaneID, {
-    url: "models/plane_a340.glb",
+  await layer3D.addMeshFromURL(originalPlaneID, "models/plane_a340.glb", {
     lngLat: paris,
     heading: 12,
     scale: 5,
