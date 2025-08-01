@@ -5,10 +5,6 @@ import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
 import { AltitudeReference, Layer3D } from "../../src/Layer3D";
 import GUI from "lil-gui";
 
-// const newYorkCity: [number, number] = [-73.98918779556983, 40.74072950731568];
-// const capeTown: [number, number] = [18.428021658130994, -33.913973526198134];
-// const melbourne: [number, number] = [144.84097472271193, -37.94589718135184];
-
 setupMapTilerApiKey({ config });
 addPerformanceStats();
 

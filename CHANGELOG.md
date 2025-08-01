@@ -1,5 +1,5 @@
 # MapTiler 3D Models Changelog
-### 2.2.0
+### NEXT (2.2.0)
 
 ## ✨ New Features
 - GLTF Models are now animateable 🎬 🚀
