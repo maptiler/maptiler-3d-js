@@ -62,7 +62,10 @@ const map = new Map({
 
   const originalPlaneID = "flamingo";
 
-  await layer3D.addMeshFromURL(originalPlaneID, "models/Flamingo.glb", {
+  await layer3D.addMeshFromURL(originalPlaneID,
+    // Model by https://mirada.com/ for https://experiments.withgoogle.com/3-dreams-of-black
+    "models/Flamingo.glb",
+    {
     lngLat: lakeNatron,
     heading: 12,
     scale: 100,
