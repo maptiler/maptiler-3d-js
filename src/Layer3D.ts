@@ -14,7 +14,6 @@ import {
   Matrix4,
   Mesh,
   Scene,
-  WebGLRenderer,
   type Group,
   type Object3D,
   PointLight,
@@ -29,6 +28,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 import { getTransformationMatrix, isPointLight } from "./utils";
 import { SourceOrientation } from "./types";
+import addLayerToWebGLRenderManager, { type WebGLRenderManager } from "./WebGLRenderManager";
 
 /**
  * The altitude of a mesh can be relative to the ground surface, or to the mean sea level
@@ -221,9 +221,8 @@ export class Layer3D implements CustomLayerInterface {
 
   public minZoom: number;
   public maxZoom: number;
-  private antialias: boolean;
 
-  private renderer!: WebGLRenderer;
+  private renderer!: WebGLRenderManager;
   private readonly scene: Scene;
   private readonly camera: Camera;
   private readonly ambientLight: AmbientLight;
@@ -245,8 +244,6 @@ export class Layer3D implements CustomLayerInterface {
      */
     this.minZoom = options.minZoom ?? Number.NEGATIVE_INFINITY;
     this.maxZoom = options.maxZoom ?? 22;
-
-    this.antialias = options.antialias ?? true;
 
     this.camera = new Camera();
     this.camera.matrixWorldAutoUpdate = false;
@@ -274,14 +271,13 @@ export class Layer3D implements CustomLayerInterface {
 
     this.map = map;
 
-    this.renderer = new WebGLRenderer({
-      canvas: map.getCanvas(),
-      context: gl,
-      antialias: this.antialias,
-      powerPreference: "high-performance",
+    this.renderer = addLayerToWebGLRenderManager({
+      map,
+      gl,
+      layer: this,
+      scene: this.scene,
+      camera: this.camera,
     });
-
-    this.renderer.autoClear = false;
 
     const { unsubscribe: unsubscribeOnTerrainAnimationStart } = this.map.on("terrainAnimationStart", () => {
       this.isElevationNeedUpdate = true;
@@ -299,7 +295,7 @@ export class Layer3D implements CustomLayerInterface {
    */
   onRemove?(_map: MapSDK, _gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     this.clear();
-    this.renderer.dispose();
+    this.renderer.dispose(this.id);
 
     for (const callback of this.onRemoveCallbacks) {
       callback();
@@ -309,9 +305,9 @@ export class Layer3D implements CustomLayerInterface {
   }
 
   /**
-   * Automaticaly called by the rendering engine. (should not be called manually)
+   *
    */
-  render(_gl: WebGLRenderingContext | WebGL2RenderingContext, options: CustomRenderMethodInput) {
+  prepareRender(options: CustomRenderMethodInput) {
     if (this.isInZoomRange() === false) {
       return;
     }
@@ -372,8 +368,10 @@ export class Layer3D implements CustomLayerInterface {
     const m = new Matrix4().fromArray(matrix);
 
     this.camera.projectionMatrix = m.multiply(sceneMatrix);
-    this.renderer.resetState();
-    this.renderer.render(this.scene, this.camera);
+  }
+
+  render() {
+    return null;
   }
 
   /**
