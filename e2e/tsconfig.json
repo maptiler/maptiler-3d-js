@@ -5,6 +5,10 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "moduleResolution": "node",
-    "resolveJsonModule": true
-  }
+    "resolveJsonModule": true,
+  },
+  "include": [
+    "./global.d.ts",
+    "./src/**/*.ts"
+  ]
 }

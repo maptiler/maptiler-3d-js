@@ -15,7 +15,6 @@ async function main() {
     pitch: 60,
   });
 
-  //@ts-expect-error
   window.__map = map;
 
   await map.onReadyAsync();
@@ -39,8 +38,7 @@ async function main() {
     scale: 100,
   });
 
-  //@ts-expect-error
-  window.__layer3d = layer3d;
+  window.__layer3D = layer3d;
 }
 
 main();

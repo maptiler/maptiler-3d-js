@@ -7,6 +7,7 @@ export default defineConfig({
         mapLoad: 'public/mapLoad.html',
         basic: 'public/basic.html',
         withModel: 'public/withModel.html',
+        withAnimatedModel: 'public/withAnimatedModel.html',
       },
     },
   },
