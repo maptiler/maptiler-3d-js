@@ -48,7 +48,6 @@ const map = new Map({
   const meshId = "some-mesh";
   await layer3D.addMeshFromURL(
     meshId,
-    // https://sketchfab.com/3d-models/parque-copan-design-proposal-ddfa8cf8aafa4d619e429d9e653ffe81
     "models/parque_copan_design_proposal.glb",
     {
       lngLat: [-74.0839886924465, 40.5804232016599],

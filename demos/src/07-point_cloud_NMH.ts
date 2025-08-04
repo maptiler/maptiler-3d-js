@@ -49,7 +49,6 @@ const map = new Map({
   const meshId = "some-mesh";
   await layer3D.addMeshFromURL(
     meshId,
-    // https://sketchfab.com/3d-models/hintze-hall-nhm-london-point-cloud-be909aa8afa545118be6d36397529e2f
     "models/hintze_hall_nhm_london_point_cloud.glb",
     {
       lngLat: [-0.17642900347709656, 51.496198574865645],

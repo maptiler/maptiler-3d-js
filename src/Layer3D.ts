@@ -16,13 +16,21 @@ import {
   Scene,
   WebGLRenderer,
   type Group,
-  type Object3D,
   PointLight,
   type ColorRepresentation,
   AmbientLight,
   Color,
   type Points,
   type PointsMaterial,
+  AnimationMixer,
+  type AnimationClip,
+  type AnimationAction,
+  Clock,
+  LoopOnce,
+  LoopRepeat,
+  LoopPingPong,
+  Object3D,
+  Vector3,
 } from "three";
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
@@ -111,12 +119,33 @@ export type MeshOptions = GenericObject3DOptions & {
    * Default: `false`
    */
   wireframe?: boolean;
+
+  /**
+   * Animation mode.
+   * Default: `continuous`
+   */
+  animationMode?: AnimationMode;
+};
+
+export type AddMeshFromURLOptions = MeshOptions & {
+  transform?: {
+    rotation?: {
+      x?: number;
+      y?: number;
+      z?: number;
+    };
+    offset?: {
+      x?: number;
+      y?: number;
+      z?: number;
+    };
+  };
 };
 
 /**
  * Options for adding a point light
  */
-export type PointLightOptions = GenericObject3DOptions & {
+export type PointLightOptions = Omit<GenericObject3DOptions, "id"> & {
   /**
    * Light color.
    * Default: `0xffffff` (white)
@@ -204,6 +233,9 @@ export type Item3D = {
   wireframe: boolean;
   additionalTransformationMatrix: Matrix4;
   elevation: number;
+  animationMixer?: AnimationMixer;
+  animations?: Record<string, AnimationAction>;
+  animationMode: AnimationMode;
 };
 
 // An epsilon to make sure the reference anchor point is not exactly at the center of the viewport, but still very close.
@@ -212,6 +244,16 @@ export type Item3D = {
 const EPSILON = 0.01;
 
 const USE_DEBUG_LOGS: boolean = false;
+
+const AnimationLoopOptionsMap = {
+  once: LoopOnce,
+  loop: LoopRepeat,
+  pingPong: LoopPingPong,
+};
+
+export type AnimationLoopOptions = keyof typeof AnimationLoopOptionsMap;
+
+export type AnimationMode = "continuous" | "manual";
 
 export class Layer3D implements CustomLayerInterface {
   public readonly id: string;
@@ -223,6 +265,7 @@ export class Layer3D implements CustomLayerInterface {
   public maxZoom: number;
   private antialias: boolean;
 
+  private clock = new Clock();
   private renderer!: WebGLRenderer;
   private readonly scene: Scene;
   private readonly camera: Camera;
@@ -256,6 +299,8 @@ export class Layer3D implements CustomLayerInterface {
     this.ambientLight = new AmbientLight(options.ambientLightColor ?? 0xffffff, options.ambientLightIntensity ?? 0.5);
 
     this.scene.add(this.ambientLight);
+
+    this.animate = this.animate.bind(this);
   }
 
   /**
@@ -373,13 +418,16 @@ export class Layer3D implements CustomLayerInterface {
 
     this.camera.projectionMatrix = m.multiply(sceneMatrix);
     this.renderer.resetState();
+
     this.renderer.render(this.scene, this.camera);
   }
 
   /**
    * Adjust the settings of the ambient light
+   * @param options - The options to set the ambient light with
+   * @returns {Layer3D} The layer
    */
-  setAmbientLight(options: { color?: ColorRepresentation; intensity?: number } = {}) {
+  public setAmbientLight(options: { color?: ColorRepresentation; intensity?: number } = {}) {
     if (typeof options.intensity === "number") {
       this.ambientLight.intensity = options.intensity;
     }
@@ -387,12 +435,37 @@ export class Layer3D implements CustomLayerInterface {
     if ("color" in options) {
       this.ambientLight.color = new Color(options.color as ColorRepresentation);
     }
+    return this;
   }
 
   /**
-   * Add an existing mesh to the map, with options.
+   * Add an existing mesh to the map
+   * @param id - The ID of the mesh
+   * @param options - The options to add the mesh with
+   * @returns {Layer3D} The layer
    */
-  addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {}) {
+  public addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {}) {
+    this.addMeshInternal({
+      ...options,
+      id,
+      mesh,
+    });
+    return this;
+  }
+  /**
+   * Add an existing mesh to the map, with options.
+   * @param id - The ID of the mesh
+   * @param mesh - The mesh to add
+   * @param animations - The animations to add
+   * @param {MeshOptions} options - The options for the mesh
+   * @returns {Layer3D} The layer
+   */
+  private addMeshInternal({
+    id,
+    mesh,
+    animations,
+    ...options
+  }: MeshOptions & { id: string; mesh: Mesh | Group | Object3D; animations?: AnimationClip[] }) {
     this.throwUniqueID(id);
 
     const sourceOrientation = options.sourceOrientation ?? SourceOrientation.Y_UP;
@@ -420,6 +493,18 @@ export class Layer3D implements CustomLayerInterface {
     const additionalTransformationMatrix = getTransformationMatrix(scale, heading, sourceOrientation);
     const elevation = this.map.queryTerrainElevation(lngLat) || 0;
 
+    const mixer = new AnimationMixer(mesh);
+
+    const animationMap = animations
+      ? animations.reduce(
+          (acc, clip) => {
+            acc[clip.name] = mixer.clipAction(clip);
+            return acc;
+          },
+          {} as Record<string, AnimationAction>,
+        )
+      : {};
+
     const item: Item3D = {
       id,
       lngLat: LngLat.convert(lngLat),
@@ -435,6 +520,9 @@ export class Layer3D implements CustomLayerInterface {
       wireframe: wireframe,
       additionalTransformationMatrix,
       elevation,
+      animations: animationMap,
+      animationMixer: mixer,
+      animationMode: options.animationMode ?? "continuous",
     };
 
     this.items3D.set(id, item);
@@ -444,13 +532,149 @@ export class Layer3D implements CustomLayerInterface {
     this.scene.add(mesh);
 
     this.map.triggerRepaint();
+
+    return this;
   }
 
   /**
+   * Play an animation
+   * @param meshId - The ID of the mesh
+   * @param animationName - The name of the animation to play
+   * @param {AnimationLoopOptions} loop - The loop type of the animation, can either be "loop", "once" or "pingPong"
+   */
+  public playAnimation(meshId: string, animationName: string, loop?: AnimationLoopOptions) {
+    const item = this.items3D.get(meshId);
+    if (!item) return;
+    if (!item.mesh) return;
+
+    const animation = item.animations?.[animationName] ?? null;
+
+    if (!animation) return;
+
+    animation.play();
+    animation.paused = false;
+
+    if (loop) {
+      const loopType = AnimationLoopOptionsMap[loop];
+      animation.loop = loopType ?? null;
+    }
+
+    if (item.animationMode === "continuous") {
+      this.renderer.setAnimationLoop(() => this.animate());
+    }
+
+    return this;
+  }
+
+  /**
+   * Get an animation by name
+   * @param meshId - The ID of the mesh
+   * @param animationName - The name of the animation to get
+   * @returns {AnimationAction | null} The animation action or null if not found
+   */
+  public getAnimation(meshId: string, animationName: string): AnimationAction | null {
+    const item = this.items3D.get(meshId);
+    if (!item) return null;
+    if (!item.mesh) return null;
+    return item.animations?.[animationName] ?? null;
+  }
+
+  /**
+   * Pause an animation
+   * @param meshId - The ID of the mesh
+   * @param animationName - The name of the animation to pause
+   */
+  pauseAnimation(meshId: string, animationName: string) {
+    const item = this.items3D.get(meshId);
+    if (!item) return;
+    if (!item.mesh) return;
+
+    const animation = item.animations?.[animationName] ?? null;
+
+    if (!animation) return;
+
+    animation.paused = true;
+
+    return this;
+  }
+
+  /**
+   * Get the names of the animations of a mesh
+   * @param meshId - The ID of the mesh
+   * @returns {string[]} The names of all the animations of the mesh
+   */
+  public getAnimationNames(meshId: string): string[] {
+    const item = this.items3D.get(meshId);
+    if (!item) return [];
+    if (!item.mesh) return [];
+
+    return Object.keys(item.animations ?? {});
+  }
+
+  /**
+   * Update the animation of a mesh by a delta time
+   * @param meshId - The ID of the mesh
+   * @param delta - The delta time to update the animation by
+   */
+  public updateAnimation(meshId: string, delta = 0.02) {
+    const item = this.items3D.get(meshId);
+    if (!item) return;
+
+    if (!item.mesh) return;
+    if (!item.animationMixer) return;
+    const mixer = item.animationMixer;
+
+    if (!mixer) return;
+
+    mixer.update(delta);
+    this.map.triggerRepaint();
+  }
+
+  /**
+   * Set the time of an animation to a specific time
+   * @param meshId - The ID of the mesh
+   * @param time - The time to set the animation to
+   */
+  public setAnimationTime(meshId: string, time: number) {
+    const item = this.items3D.get(meshId);
+    if (!item) return;
+    if (!item.mesh) return;
+    if (!item.animationMixer) return;
+    const mixer = item.animationMixer;
+    if (!mixer) return;
+
+    mixer.setTime(time);
+    this.map.triggerRepaint();
+  }
+
+  /**
+   * The callback used to animate the scene
+   * @private
+   * @param manual - Whether the animation is being called manually or by the renderer
+   */
+  private animate(manual = false) {
+    const delta = manual ? 0.001 : this.clock.getDelta();
+    let someItemsHaveContinuousAnimation = false;
+    for (const [_, item] of this.items3D) {
+      if (item.animationMixer) {
+        item.animationMixer.update(delta);
+      }
+
+      if (item.animationMode === "continuous") {
+        someItemsHaveContinuousAnimation = true;
+      }
+    }
+    if (someItemsHaveContinuousAnimation) {
+      this.map.triggerRepaint();
+    }
+  }
+  /**
    * Modify an existing mesh. The provided options will overwrite
    * their current state, the omited ones will remain the same.
+   * @param id - The ID of the mesh
+   * @param options - The options to modify the mesh with
    */
-  modifyMesh(id: string, options: MeshOptions) {
+  modifyMesh(id: string, options: Partial<MeshOptions> = {}) {
     const item = this.items3D.get(id);
     if (!item) return;
     if (!item.mesh) return;
@@ -502,20 +726,25 @@ export class Layer3D implements CustomLayerInterface {
     }
 
     this.map.triggerRepaint();
+
+    return this;
   }
 
   /**
    *
    * Clone an existing mesh. Extra options can be provided to overwrite the clone configuration
+   * @param sourceId - The ID of the mesh to clone
+   * @param id - The ID of the cloned mesh
+   * @param options - The options to clone the mesh with
    */
-  cloneMesh(sourceId: string, id: string, options: MeshOptions) {
+  cloneMesh(sourceId: string, id: string, options: Partial<MeshOptions> = {}) {
     this.throwUniqueID(id);
     const sourceItem = this.items3D.get(sourceId);
     if (!sourceItem) return;
     if (!sourceItem.mesh) return;
 
     // Cloning the source item options and overwriting some with the provided options
-    const cloneOptions: MeshOptions = {
+    const cloneOptions: Partial<MeshOptions> = {
       lngLat: new LngLat(sourceItem.lngLat.lng, sourceItem.lngLat.lat),
       altitude: sourceItem.altitude,
       altitudeReference: sourceItem.altitudeReference,
@@ -541,10 +770,19 @@ export class Layer3D implements CustomLayerInterface {
       }
     });
 
-    this.addMesh(id, clonedObject, cloneOptions);
+    this.addMeshInternal({
+      ...cloneOptions,
+      id,
+      mesh: clonedObject,
+    });
   }
 
-  modifyPointLight(id: string, options: PointLightOptions) {
+  /**
+   * Modify a point light
+   * @param id - The ID of the point light
+   * @param options - The options to modify the point light with
+   */
+  public modifyPointLight(id: string, options: PointLightOptions) {
     const item = this.items3D.get(id);
 
     if (item === undefined) {
@@ -584,38 +822,70 @@ export class Layer3D implements CustomLayerInterface {
     }
 
     this.map.triggerRepaint();
+
+    return this;
   }
 
   /**
    * Load a GLTF file from its URL and add it to the map
+   * @param id - The ID of the mesh
+   * @param options - The options to add the mesh with
    */
-  async addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {}) {
+  async addMeshFromURL(id: string, url: string, options: AddMeshFromURLOptions = {}) {
     this.throwUniqueID(id);
 
-    const fileExt = meshURL.trim().toLowerCase().split(".").pop();
+    const fileExt = url.trim().toLowerCase().split(".").pop();
 
     if (!(fileExt === "glb" || fileExt === "gltf")) {
       throw new Error("Mesh files must be glTF/glb.");
     }
 
     const loader = new GLTFLoader();
-    const gltfContent = await loader.loadAsync(meshURL);
-    const mesh = gltfContent.scene;
-    mesh.userData._originalUrl = meshURL;
-    this.addMesh(id, mesh, options);
+    const gltfContent = await loader.loadAsync(url);
+    const mesh = options.transform ? new Object3D() : gltfContent.scene;
+
+    if (options.transform) {
+      const { rotation, offset } = options.transform;
+
+      mesh.add(gltfContent.scene);
+
+      if (rotation) {
+        gltfContent.scene.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+      }
+      if (offset) {
+        gltfContent.scene.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
+      }
+    }
+
+    mesh.userData._originalUrl = url;
+
+    this.addMeshInternal({
+      animations: gltfContent.animations,
+      ...options,
+      id,
+      mesh,
+      animationMode: options.animationMode ?? "continuous",
+    });
+
+    return this;
   }
 
   /**
    * Remove all the meshes and point lights of the scene.
+   * @returns {Layer3D} The layer
    */
-  clear() {
+  public clear() {
     for (const [k, _item] of this.items3D) {
       this.removeMesh(k);
     }
+
+    return this;
   }
 
   /**
    * Remove a mesh from the scene using its ID.
+   * @param id - The ID of the mesh to remove
+   * @returns {Layer3D} The layer
    */
   removeMesh(id: string) {
     const item = this.items3D.get(id);
@@ -649,10 +919,16 @@ export class Layer3D implements CustomLayerInterface {
     // Removing the item from the index.
     this.items3D.delete(id);
     this.map.triggerRepaint();
+
+    return this;
   }
 
   /**
    * Traverse a Mesh/Group/Object3D to modify the opacities of the all the materials it finds
+   * @param obj - The object to modify the opacities of
+   * @param opacity - The opacity to set
+   * @param forceRepaint - Whether to force a repaint
+   * @returns {Layer3D} The layer
    */
   private setMeshOpacity(obj: Mesh | Group | Object3D | Points, opacity: number, forceRepaint = false) {
     obj.traverse((node) => {
@@ -667,10 +943,16 @@ export class Layer3D implements CustomLayerInterface {
     });
 
     if (forceRepaint) this.map.triggerRepaint();
+
+    return this;
   }
 
   /**
    * If a mesh is a point cloud, it defines the size of the points
+   * @param obj - The object to modify the point size of
+   * @param size - The size to set
+   * @param forceRepaint - Whether to force a repaint
+   * @returns {Layer3D} The layer
    */
   private setMeshPointSize(obj: Mesh | Group | Object3D | Points, size: number, forceRepaint = false) {
     obj.traverse((node) => {
@@ -684,10 +966,16 @@ export class Layer3D implements CustomLayerInterface {
     });
 
     if (forceRepaint) this.map.triggerRepaint();
+
+    return this;
   }
 
   /**
    * If a mesh can be rendered as wireframe, then the option is toggled according to the wireframe param
+   * @param obj - The object to modify the wireframe of
+   * @param wireframe - The wireframe to set
+   * @param forceRepaint - Whether to force a repaint
+   * @returns {Layer3D} The layer
    */
   private setMeshWireframe(obj: Mesh | Group | Object3D, wireframe: boolean, forceRepaint = false) {
     obj.traverse((node) => {
@@ -701,6 +989,8 @@ export class Layer3D implements CustomLayerInterface {
     });
 
     if (forceRepaint) this.map.triggerRepaint();
+
+    return this;
   }
 
   /**
@@ -711,6 +1001,9 @@ export class Layer3D implements CustomLayerInterface {
    * color: `0xffffff` (white)
    * intensity: `75`
    * decay: `0.2`
+   * @param id - The ID of the point light
+   * @param options - The options to add the point light with
+   * @returns {Layer3D} The layer
    */
   addPointLight(id: string, options: PointLightOptions = {}) {
     this.throwUniqueID(id);
@@ -722,15 +1015,20 @@ export class Layer3D implements CustomLayerInterface {
       options.decay ?? 0.2, // decay
     );
 
-    this.addMesh(id, pointLight, {
+    this.addMeshInternal({
+      id,
+      mesh: pointLight,
       lngLat: options.lngLat ?? [0, 0],
       altitude: options.altitude ?? 2000000,
       altitudeReference: options.altitudeReference ?? AltitudeReference.MEAN_SEA_LEVEL,
     });
+
+    return this;
   }
 
   /**
    * Throw an error if a mesh with such ID already exists
+   * @param id - The ID of the mesh to throw an error for
    */
   private throwUniqueID(id: string) {
     if (this.items3D.has(id)) {

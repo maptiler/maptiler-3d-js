@@ -1,4 +1,4 @@
-import { Map } from "@maptiler/sdk";
+import type { Map } from "@maptiler/sdk";
 import { JSHandle, Page, expect } from "@playwright/test";
 import path from "path";
 
@@ -8,6 +8,7 @@ interface IloadFixtureAndGetMapHandle {
   mockStyle?: boolean;
   mockTiles?: boolean;
   debug?: boolean;
+  waitUntil?: "load" | "domcontentloaded" | "networkidle";
 }
 
 export default async function loadFixtureAndGetMapHandle({
@@ -15,7 +16,8 @@ export default async function loadFixtureAndGetMapHandle({
   page,
   mockStyle = true,
   mockTiles = true,
-  debug = false
+  debug = false,
+  waitUntil = 'load',
 }: IloadFixtureAndGetMapHandle): Promise<{ mapHandle: JSHandle<Map | null> }> {
   if (mockStyle) {
     // mock style response
@@ -57,7 +59,7 @@ export default async function loadFixtureAndGetMapHandle({
   })
   
   await page.goto(`http://localhost:5173/${fixture}.html`, {
-    waitUntil: 'domcontentloaded',
+    waitUntil,
   });
 
   try {
@@ -65,9 +67,7 @@ export default async function loadFixtureAndGetMapHandle({
       return Promise.race<Map | null>([
       new Promise<Map | null>(async (resolve) => {
         try {
-          //@ts-expect-error This has been added to global.d.ts but still errors
           window.__map.on("idle", ()=> {
-          //@ts-expect-error This has been added to global.d.ts but still errors
           resolve(window.__map as Map);
         })
         } catch (e) {
@@ -91,7 +91,7 @@ export default async function loadFixtureAndGetMapHandle({
     console.error(e);
     const nullMap = await page.evaluateHandle(() => null)
     return {
-      mapHandle: nullMap,
+      mapHandle: nullMap as JSHandle<Map | null>,
     }
   }
 }

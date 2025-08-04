@@ -29,7 +29,7 @@ function createUI() {
   const actions = {
     addObject: () => {
       currentObjectID = `object-${Math.random()}`;
-      layer3D.cloneMesh(TEMPLATE_OBJECT_ID, currentObjectID, {});
+      layer3D.cloneMesh(TEMPLATE_OBJECT_ID, currentObjectID);
     },
   };
 

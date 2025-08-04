@@ -216,23 +216,23 @@ type GenericObject3DOptions = {
 
 - Options for adding meshes specifically:
 ```ts
-type MeshOptions = GenericObject3DOptions & {
+export type MeshOptions = GenericObject3DOptions & {
   /**
    * Rotation to apply to the model to add, as a Quaternion.
    * Default: a rotation of PI/2 around the x axis, to adjust from the default ThreeJS space (right-hand, Y up) to the Maplibre space (right-hand, Z up)
    */
-  sourceOrientation?: SourceOrientation,
+  sourceOrientation?: SourceOrientation;
 
   /**
    * Scale the mesh by a factor.
    * Default: no scaling added
    */
-  scale?: number,
+  scale?: number;
 
   /**
    * Heading measured in degrees clockwise from true north.
    */
-  heading?: number,
+  heading?: number;
 
   /**
    * Opacity of the mesh
@@ -250,6 +250,34 @@ type MeshOptions = GenericObject3DOptions & {
    * Default: `false`
    */
   wireframe?: boolean;
+
+  /**
+   * Animation mode. How the animation should update.
+   * "manual" puts the responsibility on an external render loop to update.
+   * "continuous" automatically advances the animation with it's on internal animation loop.
+   * Default: `continuous`
+   */
+  animationMode?: AnimationMode;
+};
+```
+
+- Additional options for tweaking models once they are loaded. ** only used in `addMeshFromURL` **
+```ts
+export type AddMeshFromURLOptions = MeshOptions & {
+  // wraps the object and transforms it accordingly.
+  // useful if your model does not point "north" or is not in the position you need it to be.
+  transform?: {
+    rotation?: {
+      x?: number;
+      y?: number;
+      z?: number;
+    };
+    offset?: {
+      x?: number;
+      y?: number;
+      z?: number;
+    };
+  };
 };
 ```
 
@@ -281,7 +309,7 @@ Here is the list of instance methods:
 To adjust the settings of the ambient light. The type `ColorRepresentation` means the color can be a `number` (such as a hex notation `0xff0000`, for red), a hex string (such as `"#FF0000"`, for red), or a ThreeJS color ([read more about these here](https://threejs.org/docs/#api/en/math/Color)).
 ℹ️ By default, the ambiant light is white (`0xffffff`) with an intensity of `0.5`.
 
-- **`.addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {})`** *async*
+- **`.addMeshFromURL(id: string, url: string, options: MeshOptions = {})`** *async*
 Adds a mesh from a URL to a glTF of glb file, given a mesh ID (will throw if not unique) and a set of options.
 
 - **`.addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {})`**
@@ -319,6 +347,24 @@ Remove a mesh or point light from the scene and frees the GPU memory associated 
 
 - **`.clear()`**
 Removes all the meshes and point lights from the scene and frees the GPU memory associated with them
+
+- **`.getAnimationNames(meshID: string)`**
+Gets all the animations that were loaded with the model.
+
+-- **`.getAnimation(meshID: string, animationName: string)`
+Get the AnimationAction named `animationName` from mesh with ID `meshID`
+
+- **`.playAnimation(meshId: string, animationName: string, loop: AnimationLoopOptions)`**
+Plays `animationName` on the mesh with `meshID`. Loop defines how the animation will loop. "loop" loops the animation infinity times; "once" loops it once; "pingPong" plays the animation until the end and then plays it in reverse.
+
+- **`.pauseAnimation(meshId: string, animationName: string)`**
+Pauses `animationName` on the mesh with `meshID`.
+
+- **`.updateAnimation(meshId: string, delta = 0.02)`**
+Updates the meshes animations by `delta` seconds
+
+- **`.setAnimationTime(meshId: string, time: number)`**
+sets the meshes animation to `time` seconds.
 
 ## E2E Testing
 
