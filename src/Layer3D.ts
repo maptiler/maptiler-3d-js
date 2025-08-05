@@ -10,7 +10,7 @@ import {
 import { name, version } from "../package.json";
 
 import {
-  AnimationAction,
+  type AnimationAction,
   Camera,
   Matrix4,
   Mesh,
@@ -792,7 +792,7 @@ export class Layer3D implements CustomLayerInterface {
         gltfContent.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
       }
     }
-   
+
     clonedObject.traverse((child) => {
       if (child instanceof Mesh) {
         if (Array.isArray(child.material)) {
