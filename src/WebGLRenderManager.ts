@@ -7,6 +7,8 @@ export class WebGLRenderManager {
   private map: MapSDK;
   private gl: WebGL2RenderingContext | WebGLRenderingContext;
 
+  private animationLoops: Map<string, () => void> = new Map();
+
   private layerData: Map<
     string,
     {
@@ -52,6 +54,10 @@ export class WebGLRenderManager {
     if (!this.map.getLayer(this.webGLManagerLayer.id)) {
       this.map.addLayer(this.webGLManagerLayer);
     }
+
+    this.animate = this.animate.bind(this);
+
+    this.renderer.setAnimationLoop(this.animate);
   }
 
   handleAddLayer(layer: Layer3D, scene: Scene, camera: Camera) {
@@ -71,6 +77,27 @@ export class WebGLRenderManager {
       this.renderer.dispose();
       this.map.removeLayer(this.webGLManagerLayer.id);
     }
+  }
+
+  animate() {
+    for (const loop of this.animationLoops.values()) {
+      loop();
+    }
+  }
+
+  addAnimationLoop(animationID: string, callback: () => void) {
+    if (this.animationLoops.has(animationID)) {
+      return;
+    }
+
+    this.animationLoops.set(animationID, callback);
+  }
+
+  removeAnimationLoop(layerID: string) {
+    const layer = this.layerData.get(layerID);
+    if (!layer) return;
+
+    this.animationLoops.delete(layerID);
   }
 
   /**

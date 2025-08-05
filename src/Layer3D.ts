@@ -10,6 +10,7 @@ import {
 import { name, version } from "../package.json";
 
 import {
+  AnimationAction,
   Camera,
   Matrix4,
   Mesh,
@@ -23,7 +24,6 @@ import {
   type PointsMaterial,
   AnimationMixer,
   type AnimationClip,
-  type AnimationAction,
   Clock,
   LoopOnce,
   LoopRepeat,
@@ -142,6 +142,8 @@ export type AddMeshFromURLOptions = MeshOptions & {
   };
 };
 
+export type CloneMeshOptions = AddMeshFromURLOptions;
+
 /**
  * Options for adding a point light
  */
@@ -234,7 +236,8 @@ export type Item3D = {
   additionalTransformationMatrix: Matrix4;
   elevation: number;
   animationMixer?: AnimationMixer;
-  animations?: Record<string, AnimationAction>;
+  animationMap?: Record<string, AnimationAction>;
+  animationClips?: AnimationClip[];
   animationMode: AnimationMode;
 };
 
@@ -517,7 +520,8 @@ export class Layer3D implements CustomLayerInterface {
       wireframe: wireframe,
       additionalTransformationMatrix,
       elevation,
-      animations: animationMap,
+      animationMap,
+      animationClips: animations,
       animationMixer: mixer,
       animationMode: options.animationMode ?? "continuous",
     };
@@ -544,7 +548,7 @@ export class Layer3D implements CustomLayerInterface {
     if (!item) return;
     if (!item.mesh) return;
 
-    const animation = item.animations?.[animationName] ?? null;
+    const animation = item.animationMap?.[animationName] ?? null;
 
     if (!animation) return;
 
@@ -557,7 +561,7 @@ export class Layer3D implements CustomLayerInterface {
     }
 
     if (item.animationMode === "continuous") {
-      this.renderer.setAnimationLoop(() => this.animate());
+      this.renderer.addAnimationLoop(`${this.id}_${meshId}_${animationName}`, () => this.animate());
     }
 
     return this;
@@ -573,7 +577,7 @@ export class Layer3D implements CustomLayerInterface {
     const item = this.items3D.get(meshId);
     if (!item) return null;
     if (!item.mesh) return null;
-    return item.animations?.[animationName] ?? null;
+    return item.animationMap?.[animationName] ?? null;
   }
 
   /**
@@ -586,11 +590,29 @@ export class Layer3D implements CustomLayerInterface {
     if (!item) return;
     if (!item.mesh) return;
 
-    const animation = item.animations?.[animationName] ?? null;
+    const animation = item.animationMap?.[animationName] ?? null;
 
     if (!animation) return;
 
     animation.paused = true;
+
+    return this;
+  }
+
+  /**
+   * Stop an animation
+   * @param meshId - The ID of the mesh
+   * @param animationName - The name of the animation to stop
+   */
+  stopAnimation(meshId: string, animationName: string) {
+    const item = this.items3D.get(meshId);
+    if (!item) return;
+    if (!item.mesh) return;
+
+    const animation = item.animationMap?.[animationName] ?? null;
+
+    if (!animation) return;
+    this.renderer.removeAnimationLoop(`${this.id}_${meshId}_${animationName}`);
 
     return this;
   }
@@ -605,7 +627,7 @@ export class Layer3D implements CustomLayerInterface {
     if (!item) return [];
     if (!item.mesh) return [];
 
-    return Object.keys(item.animations ?? {});
+    return Object.keys(item.animationMap ?? {});
   }
 
   /**
@@ -618,7 +640,7 @@ export class Layer3D implements CustomLayerInterface {
     if (!item) return;
 
     if (!item.mesh) return;
-    if (!item.animationMixer) return;
+
     const mixer = item.animationMixer;
 
     if (!mixer) return;
@@ -653,7 +675,7 @@ export class Layer3D implements CustomLayerInterface {
     const delta = manual ? 0.001 : this.clock.getDelta();
     let someItemsHaveContinuousAnimation = false;
     for (const [_, item] of this.items3D) {
-      if (item.animationMixer) {
+      if (item.animationMixer && item.animationMode === "continuous") {
         item.animationMixer.update(delta);
       }
 
@@ -734,7 +756,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param id - The ID of the cloned mesh
    * @param options - The options to clone the mesh with
    */
-  cloneMesh(sourceId: string, id: string, options: Partial<MeshOptions> = {}) {
+  cloneMesh(sourceId: string, id: string, options: CloneMeshOptions = {}) {
     this.throwUniqueID(id);
     const sourceItem = this.items3D.get(sourceId);
     if (!sourceItem) return;
@@ -757,6 +779,20 @@ export class Layer3D implements CustomLayerInterface {
      */
     const clonedObject = sourceItem.mesh.clone(true);
 
+    const gltfContent = clonedObject.getObjectByName(`${sourceId}_gltfContent_scene`);
+    if (options.transform && gltfContent) {
+      gltfContent.name = `${id}_gltfContent_scene`;
+      const { rotation, offset } = options.transform;
+      console.log("clone:rotation", rotation);
+      console.log("clone:offset", offset);
+      if (rotation) {
+        gltfContent.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+      }
+      if (offset) {
+        gltfContent.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
+      }
+    }
+   
     clonedObject.traverse((child) => {
       if (child instanceof Mesh) {
         if (Array.isArray(child.material)) {
@@ -771,6 +807,7 @@ export class Layer3D implements CustomLayerInterface {
       ...cloneOptions,
       id,
       mesh: clonedObject,
+      animations: sourceItem.animationClips,
     });
   }
 
@@ -843,6 +880,7 @@ export class Layer3D implements CustomLayerInterface {
 
     if (options.transform) {
       const { rotation, offset } = options.transform;
+      gltfContent.scene.name = `${id}_gltfContent_scene`;
 
       mesh.add(gltfContent.scene);
 
