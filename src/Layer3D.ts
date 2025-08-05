@@ -353,7 +353,8 @@ export class Layer3D implements CustomLayerInterface {
   }
 
   /**
-   *
+   * Prepare the render of the layer. This is called externally by the `WebGLManagerLayer`.
+   * @param {CustomRenderMethodInput} options - The render options from the map.
    */
   prepareRender(options: CustomRenderMethodInput) {
     if (this.isInZoomRange() === false) {

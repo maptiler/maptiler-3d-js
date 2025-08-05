@@ -104,6 +104,7 @@ Here are all the options for meshes:
 - `opacity` opacity of the mesh. If the mesh is a group of meshes, this is applied to all the child nodes that can deal with transparency
 - `pointSize` applicable only to point clouds, set the size of the points
 - `wireframe` applicable only to non-point cloud, applies a wireframe rendering to all the child nodes of the mesh that are compatible with the option
+- `transform` a set of props allowing for tweaking of the mesh before it's added to the map. This can be useful if a model internally points in the incorrect direction or if it needs a world space offset without having to tweak LngLat. `{ rotation: { x, y, z }, offset: { x, y, z } }`. These can also be applied when cloning a mesh. *Please Note*: The offset when cloning a mesh is _additive_ not absolute, it will be added to the world position of the _mesh you are cloning_.
 
 ### Reference documentation
 The constructor of the `Layer3D` class takes two arguments:
