@@ -641,7 +641,6 @@ export class Layer3D implements CustomLayerInterface {
     if (!item) return;
 
     if (!item.mesh) return;
-
     const mixer = item.animationMixer;
 
     if (!mixer) return;

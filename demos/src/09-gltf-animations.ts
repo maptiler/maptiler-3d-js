@@ -105,8 +105,6 @@ const map = new Map({
   gui.add(guiObj, fly).onChange((play) => {
     if (play) {
       playAnimation();
-    } else {
-      // layer3D.pauseAnimation(flamingoIDOne, animationName);
     }
   });
 
