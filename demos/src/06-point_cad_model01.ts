@@ -66,7 +66,10 @@ const map = new Map({
   };
 
   const meshId = "some-mesh";
-  await layer3D.addMeshFromURL(meshId, "models/building_f_agu_sagamihara_campus_lod2-3.glb", {
+  await layer3D.addMeshFromURL(meshId,
+    // https://sketchfab.com/3d-models/building-f-agu-sagamihara-campus-lod2-3-7d7b0d0d0a454a54aa50528f6483e2c6
+    "models/building_f_agu_sagamihara_campus_lod2-3.glb",
+    {
       lngLat: [139.401378125492, 35.567323827763786],
       heading: guiObj.heading,
       scale: guiObj.scale,
