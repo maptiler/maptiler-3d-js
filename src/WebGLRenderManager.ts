@@ -12,7 +12,7 @@ import type {
   Map as MapSDK,
   Point2D,
 } from "@maptiler/sdk";
-import type { Camera, Scene } from "three";
+import type { Camera, Intersection, Scene } from "three";
 import { Matrix4, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
 import type { Layer3D } from "./Layer3D";
 
@@ -194,7 +194,14 @@ export class WebGLRenderManager {
     }
   }
 
-  private raycast(point: Point2D, scene: Scene, camera: Camera) {
+  /**
+   * Raycast from the mouse position into the scene.
+   * @param point - The mouse position in screen coordinates.
+   * @param scene - The THREE.js scene to raycast into.
+   * @param camera - The THREE.js camera to use for the raycast.
+   * @returns {Array<Intersection>} The intersects with the scene.
+   */
+  private raycast(point: Point2D, scene: Scene, camera: Camera): Intersection[] {
     const mouseNDC = new Vector2();
 
     // we need to normalize the pointer to normalized device coordinates (NDC)
