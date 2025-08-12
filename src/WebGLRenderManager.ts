@@ -189,7 +189,6 @@ export class WebGLRenderManager {
     this.renderer.resetState();
     for (const { layer, scene, camera } of this.layerData.values()) {
       layer.prepareRender(options);
-      console.log(this.raycast(this.pointer, scene, camera));
       this.renderer.render(scene, camera);
     }
   }
