@@ -416,7 +416,8 @@ export class Layer3D implements CustomLayerInterface {
     const matrix = options.defaultProjectionData.mainMatrix;
     const m = new Matrix4().fromArray(matrix);
 
-    this.camera.projectionMatrix = m.multiply(sceneMatrix);
+    const maplibreMatrix = m.multiply(sceneMatrix);
+    this.camera.projectionMatrix.copy(maplibreMatrix);
   }
 
   render() {
