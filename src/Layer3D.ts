@@ -416,7 +416,8 @@ export class Layer3D implements CustomLayerInterface {
     const matrix = options.defaultProjectionData.mainMatrix;
     const m = new Matrix4().fromArray(matrix);
 
-    this.camera.projectionMatrix = m.multiply(sceneMatrix);
+    const maplibreMatrix = m.multiply(sceneMatrix);
+    this.camera.projectionMatrix.copy(maplibreMatrix);
   }
 
   render() {
@@ -783,8 +784,6 @@ export class Layer3D implements CustomLayerInterface {
     if (options.transform && gltfContent) {
       gltfContent.name = `${id}_gltfContent_scene`;
       const { rotation, offset } = options.transform;
-      console.log("clone:rotation", rotation);
-      console.log("clone:offset", offset);
       if (rotation) {
         gltfContent.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
       }

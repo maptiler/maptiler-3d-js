@@ -5,9 +5,15 @@
  * manages scenes, cameras, and animation loops for multiple layers, and integrates
  * into the MapTiler SDK's custom layer interface.
  */
-import type { CustomLayerInterface, CustomRenderMethodInput, Map as MapSDK } from "@maptiler/sdk";
-import type { Camera, Scene } from "three";
-import { WebGLRenderer } from "three";
+import type {
+  CustomLayerInterface,
+  CustomRenderMethodInput,
+  MapEventType,
+  Map as MapSDK,
+  Point2D,
+} from "@maptiler/sdk";
+import type { Camera, Intersection, Scene } from "three";
+import { Matrix4, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
 import type { Layer3D } from "./Layer3D";
 
 /**
@@ -61,6 +67,9 @@ export class WebGLRenderManager {
    * @type {WebGLManagerLayer}
    */
   private webGLManagerLayer: WebGLManagerLayer;
+
+  private raycaster = new Raycaster();
+  private pointer = new Vector2();
 
   /**
    * Constructs a new WebGLRenderManager.
@@ -185,6 +194,38 @@ export class WebGLRenderManager {
   }
 
   /**
+   * Raycast from the mouse position into the scene.
+   * @param point - The mouse position in screen coordinates.
+   * @param scene - The THREE.js scene to raycast into.
+   * @param camera - The THREE.js camera to use for the raycast.
+   * @returns {Array<Intersection>} The intersects with the scene.
+   */
+  private raycast(point: Point2D, scene: Scene, camera: Camera): Intersection[] {
+    const mouseNDC = new Vector2();
+
+    // we need to normalize the pointer to normalized device coordinates (NDC)
+    // for use with the Raycaster
+    mouseNDC.x = (point.x / this.map.transform.width) * 2 - 1;
+    mouseNDC.y = 1 - (point.y / this.map.transform.height) * 2;
+
+    // Because the three.js camera is not updated normally by setting position etc,
+    // (it's `projectionMatrix` is updated manually in `prepareRender`)
+    // we have to do some matrix math to correctly raycast into "map space"
+    const camInverseProjection = new Matrix4().copy(camera.projectionMatrix).invert();
+    const cameraPosition = new Vector3().applyMatrix4(camInverseProjection);
+    const mousePosition = new Vector3(mouseNDC.x, mouseNDC.y, 1).applyMatrix4(camInverseProjection);
+    const viewDirection = mousePosition.clone().sub(cameraPosition).normalize();
+
+    this.raycaster.set(cameraPosition, viewDirection);
+
+    return this.raycaster.intersectObjects(scene.children, true);
+  }
+
+  handleMouseMove(point: Point2D) {
+    this.pointer.set(point.x, point.y);
+  }
+
+  /**
    * Clears the renderer's buffers.
    */
   clear() {
@@ -243,21 +284,36 @@ export class WebGLManagerLayer implements CustomLayerInterface {
   public readonly type = "custom";
   public readonly renderingMode = "3d";
 
+  private map!: MapSDK;
+  private webGLRenderManager: WebGLRenderManager;
+
   /**
    * Constructs a new WebGLManagerLayer.
    * @param {WebGLRenderManager} webGLRenderManager - The WebGLRenderManager instance to use for rendering.
    */
-  constructor(private webGLRenderManager: WebGLRenderManager) {}
+  constructor(webGLRenderManager: WebGLRenderManager) {
+    this.webGLRenderManager = webGLRenderManager;
+    this.handleMouseMove = this.handleMouseMove.bind(this);
+  }
+
+  handleMouseMove(event: MapEventType["mousemove"]) {
+    this.webGLRenderManager.handleMouseMove(event.point);
+  }
 
   /**
    * Called when the layer is added to the map. (No-op)
    */
-  onAdd() {}
+  onAdd(map: MapSDK) {
+    this.map = map;
+    this.map.on("mousemove", this.handleMouseMove);
+  }
 
   /**
    * Called when the layer is removed from the map. (No-op)
    */
-  onRemove() {}
+  onRemove() {
+    this.map.off("mousemove", this.handleMouseMove);
+  }
 
   /**
    * Called by the map to render the layer.
