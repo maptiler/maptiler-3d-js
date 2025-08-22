@@ -1,6 +1,6 @@
 import "@maptiler/sdk/style.css";
 import GUI from "lil-gui";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Layer3D } from "../../src";
 import { Map, MapStyle, config } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
 
@@ -80,29 +80,29 @@ const map = new Map({
     },
   );
 
+
+  const item = layer3D.getItem3D(meshId);
   gui.add(guiObj, "heading", 0, 360, 0.1).onChange((heading) => {
-    layer3D.modifyMesh(meshId, { heading });
+    item?.setHeading(heading);
   });
 
   gui.add(guiObj, "scale", 0.01, 5, 0.01).onChange((scale) => {
-    layer3D.modifyMesh(meshId, { scale });
+    item?.setScale(scale);
   });
 
   gui.add(guiObj, "altitude", -100, 100, 0.01).onChange((altitude) => {
-    layer3D.modifyMesh(meshId, { altitude });
+    item?.setAltitude(altitude);
   });
 
   gui.add(guiObj, "opacity", 0, 1).onChange((opacity) => {
-    layer3D.modifyMesh(meshId, { opacity });
+    item?.setOpacity(opacity);
   });
 
   gui.add(guiObj, "altitudeReference", ["GROUND", "MEAN_SEA_LEVEL"]).onChange((altRef: keyof AltitudeReference) => {
-    layer3D.modifyMesh(meshId, {
-      altitudeReference: AltitudeReference[altRef],
-    });
+    item?.setAltitudeReference(AltitudeReference[altRef]);
   });
 
   gui.add(guiObj, "wireframe").onChange((wireframe) => {
-    layer3D.modifyMesh(meshId, { wireframe });
+    item?.setWireframe(wireframe);
   });
 })();

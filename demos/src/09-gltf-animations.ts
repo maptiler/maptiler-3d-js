@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { type LngLatLike, Map, MapStyle, config, math } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Item3D, Layer3D } from "../../src";
 import GUI from "lil-gui";
 
 setupMapTilerApiKey({ config });
@@ -29,7 +29,7 @@ const map = new Map({
   style: MapStyle.AQUARELLE.VIVID,
   center: lakeNatron,
   maxPitch: 85,
-  terrainControl: true,
+  terrainControl: false,
   terrain: false,
   maptilerLogo: true,
   projectionControl: true,
@@ -70,7 +70,7 @@ const map = new Map({
     lngLat: lakeNatron,
     heading: 12,
     scale: 100,
-    altitude: 5000,
+    altitude: 5500,
     animationMode: "continuous",
     altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
     transform: {
@@ -112,9 +112,13 @@ const map = new Map({
 
   let progress = 0;
 
-  const animationNames = layer3D.getAnimationNames(flamingoIDOne);
+  const animationNames = layer3D.getItem3D(flamingoIDOne)?.getAnimationNames();
 
-  const animationName = animationNames[0];
+  const animationName = animationNames?.[0];
+
+  if (!animationName) {
+    throw new Error(`No animation found with name '${animationName}'`);
+  }
 
   layer3D.cloneMesh(flamingoIDOne, flamingoIDTwo, {
     animationMode: "manual",
@@ -127,14 +131,12 @@ const map = new Map({
     },
   })
 
-  layer3D.playAnimation(
-    flamingoIDOne,
+  layer3D.getItem3D(flamingoIDOne)?.playAnimation(
     animationName,
     "loop",
   );
 
-  layer3D.playAnimation(
-    flamingoIDTwo,
+  layer3D.getItem3D(flamingoIDTwo)?.playAnimation(
     animationName,
     "loop",
   );
@@ -142,13 +144,12 @@ const map = new Map({
   const distance = math.haversineDistanceWgs84(lakeNatron, makadikadi);
 
   const initialHeading = calculateHeading(makadikadi[1], makadikadi[0], lakeNatron[1], lakeNatron[0]);
-  layer3D.modifyMesh(flamingoIDOne, { heading: initialHeading });
-  layer3D.modifyMesh(flamingoIDTwo, { heading: initialHeading });
 
-  const flamingoOneItem = layer3D.items3D.get(flamingoIDOne);
-  const flamingoTwoItem = layer3D.items3D.get(flamingoIDTwo);
+  const flamingoOneMesh = layer3D.getItem3D(flamingoIDOne) as Item3D;
+  const flamingoTwoMesh = layer3D.getItem3D(flamingoIDTwo) as Item3D;
 
-  console.log(flamingoOneItem, flamingoTwoItem);
+  flamingoOneMesh.modify({ heading: initialHeading });
+  flamingoTwoMesh.modify({ heading: initialHeading });
 
   function playAnimation() {
     progress += guiObj[speed];
@@ -157,7 +158,7 @@ const map = new Map({
       progress = 0;
     }
 
-    const nextPosition = math.haversineIntermediateWgs84(lakeNatron, makadikadi, progress - guiObj[speed]) as LngLatLike;
+    const nextPosition = math.haversineIntermediateWgs84(lakeNatron, makadikadi, progress - (guiObj[speed] === 0 ? 0.001 : guiObj[speed])) as LngLatLike;
     const position = math.haversineIntermediateWgs84(lakeNatron, makadikadi, progress) as LngLatLike;
 
     const roughHeading = calculateHeading(position[1], position[0], nextPosition[1], nextPosition[0]);
@@ -166,12 +167,13 @@ const map = new Map({
     // to automatically play the animation independently of map updates, set the item
     // animationMode: "continuous"
 
-    layer3D.updateAnimation(flamingoIDTwo, guiObj[speed] * 50);
+    flamingoTwoMesh.updateAnimation(guiObj[speed] * 50);
 
     const distanceFromStart = math.haversineDistanceWgs84(lakeNatron, [position[0], position[1]]);
     const progressPercentage = distanceFromStart / distance;
-    layer3D.modifyMesh(flamingoIDOne, { lngLat: position, heading: roughHeading });
-    layer3D.modifyMesh(flamingoIDTwo, { lngLat: position, heading: roughHeading });
+
+    flamingoOneMesh.modify({ lngLat: position, heading: roughHeading });
+    flamingoTwoMesh.modify({ lngLat: position, heading: roughHeading });
 
     if (guiObj[migrate]) {
       map.setCenter(position);

@@ -11,10 +11,12 @@ import type {
   MapEventType,
   Map as MapSDK,
   Point2D,
+  PointLike,
 } from "@maptiler/sdk";
 import type { Camera, Intersection, Scene } from "three";
 import { Matrix4, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
 import type { Layer3D } from "./Layer3D";
+import { handleMeshClickMethodSymbol, handleMeshDoubleClickMethodSymbol, handleMeshMouseEnterMethodSymbol, handleMeshMouseLeaveMethodSymbol, prepareRenderMethodSymbol } from "./symbols";
 
 /**
  * Manages the WebGL rendering for all 3D layers on the map.
@@ -71,6 +73,9 @@ export class WebGLRenderManager {
   private raycaster = new Raycaster();
   private pointer = new Vector2();
 
+  private currentRaycastIntersection: Intersection | null = null;
+
+
   /**
    * Constructs a new WebGLRenderManager.
    * @param {object} options - The options for initialization.
@@ -84,6 +89,7 @@ export class WebGLRenderManager {
     map: MapSDK;
     gl: WebGL2RenderingContext | WebGLRenderingContext;
   }) {
+
     if (!gl) {
       throw new Error("A WebGL or WebGL2 context is required to initialize the WebGLRenderManager");
     }
@@ -188,8 +194,80 @@ export class WebGLRenderManager {
   render(options: CustomRenderMethodInput) {
     this.renderer.resetState();
     for (const { layer, scene, camera } of this.layerData.values()) {
-      layer.prepareRender(options);
+      if (!layer) continue;
+
+      layer[prepareRenderMethodSymbol](options);
       this.renderer.render(scene, camera);
+
+    }
+  }
+
+  handleMouseClick(event: MapEventType["click"]) {
+    if (this.currentRaycastIntersection) {
+      const { object, ...intersection } = this.currentRaycastIntersection;
+      const layer = this.layerData.get(object.userData.layerID);
+
+      layer?.layer[handleMeshClickMethodSymbol]({
+        intersection,
+        object,
+        meshID: object.userData.meshID,
+        layerID: object.userData.layerID,
+        lngLat: event.lngLat,
+        point: event.point,
+      });
+    }
+  }
+
+  handleMouseMove(point: Point2D) {
+    this.pointer.set(point.x, point.y);
+
+    for (const { layer, scene, camera } of this.layerData.values()) {
+
+    const intersections = this.raycast(this.pointer, scene, camera);
+
+    if (!intersections[0] && !this.currentRaycastIntersection) return;
+
+    if (this.currentRaycastIntersection?.object === intersections[0]?.object) return;
+
+    const { object, ...intersection } = this.currentRaycastIntersection ?? intersections[0];
+
+    const methodSymbol = this.currentRaycastIntersection
+      ? handleMeshMouseLeaveMethodSymbol
+      : handleMeshMouseEnterMethodSymbol;
+
+    const mouse = {
+      x: this.pointer.x,
+      y: this.pointer.y,
+    }
+
+    layer[methodSymbol]({
+      intersection,
+      object,
+      meshID: object.userData.meshID,
+      layerID: object.userData.layerID,
+      lngLat: this.map.unproject(mouse as PointLike),
+      point: mouse,
+    });
+
+      this.currentRaycastIntersection = intersections[0] || null;  
+    }
+  }
+
+  handleMouseDoubleClick(event: MapEventType["dblclick"]) {
+    event.preventDefault();
+
+    if (this.currentRaycastIntersection) {
+      const { object, ...intersection } = this.currentRaycastIntersection;
+      const layer = this.layerData.get(object.userData.layerID);
+
+      layer?.layer[handleMeshDoubleClickMethodSymbol]({
+        intersection,
+        object,
+        meshID: object.userData.meshID,
+        layerID: object.userData.layerID,
+        lngLat: event.lngLat,
+        point: event.point,
+      });
     }
   }
 
@@ -219,10 +297,6 @@ export class WebGLRenderManager {
     this.raycaster.set(cameraPosition, viewDirection);
 
     return this.raycaster.intersectObjects(scene.children, true);
-  }
-
-  handleMouseMove(point: Point2D) {
-    this.pointer.set(point.x, point.y);
   }
 
   /**
@@ -294,10 +368,20 @@ export class WebGLManagerLayer implements CustomLayerInterface {
   constructor(webGLRenderManager: WebGLRenderManager) {
     this.webGLRenderManager = webGLRenderManager;
     this.handleMouseMove = this.handleMouseMove.bind(this);
+    this.handleMouseClick = this.handleMouseClick.bind(this);
+    this.handleMouseDoubleClick = this.handleMouseDoubleClick.bind(this);
   }
 
-  handleMouseMove(event: MapEventType["mousemove"]) {
+  private handleMouseMove(event: MapEventType["mousemove"]) {
     this.webGLRenderManager.handleMouseMove(event.point);
+  }
+
+  private handleMouseClick(event: MapEventType["click"]) {
+    this.webGLRenderManager.handleMouseClick(event);
+  }
+
+  private handleMouseDoubleClick(event: MapEventType["dblclick"]) {
+    this.webGLRenderManager.handleMouseDoubleClick(event);
   }
 
   /**
@@ -306,6 +390,8 @@ export class WebGLManagerLayer implements CustomLayerInterface {
   onAdd(map: MapSDK) {
     this.map = map;
     this.map.on("mousemove", this.handleMouseMove);
+    this.map.on("click", this.handleMouseClick);
+    this.map.on("dblclick", this.handleMouseDoubleClick);
   }
 
   /**
