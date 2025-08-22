@@ -1,6 +1,6 @@
 import "@maptiler/sdk/style.css";
 import { Map, MapStyle, config } from "@maptiler/sdk";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Layer3D } from "../../src";
 import GUI from "lil-gui";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
 
@@ -67,11 +67,12 @@ const map = new Map({
     fov: map.transform.fov,
   };
 
+  const item = layer3D.getItem3D(meshId);
   gui.add(guiObj, "opacity", 0, 1).onChange((opacity) => {
-    layer3D.modifyMesh(meshId, { opacity });
+    item?.setOpacity(opacity);
   });
 
   gui.add(guiObj, "pointSize", 0, 20, 0.1).onChange((pointSize) => {
-    layer3D.modifyMesh(meshId, { pointSize });
+    item?.setPointSize(pointSize);
   });
 })();
