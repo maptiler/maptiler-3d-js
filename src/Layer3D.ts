@@ -1,10 +1,4 @@
-import {
-  type Map as MapSDK,
-  type LngLatLike,
-  type CustomRenderMethodInput,
-  LngLat,
-  getVersion,
-} from "@maptiler/sdk";
+import { type Map as MapSDK, type LngLatLike, type CustomRenderMethodInput, LngLat, getVersion } from "@maptiler/sdk";
 
 import { name, version } from "../package.json";
 

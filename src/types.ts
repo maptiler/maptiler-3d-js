@@ -1,17 +1,10 @@
 import type { CustomLayerInterface, CustomRenderMethodInput, LngLat, LngLatLike, Point2D } from "@maptiler/sdk";
-import {
-  LoopOnce,
-  LoopPingPong,
-  LoopRepeat,
-  type ColorRepresentation,
-  type Object3D,
-  type Intersection,
-} from "three";
+import { LoopOnce, LoopPingPong, LoopRepeat, type ColorRepresentation, type Object3D, type Intersection } from "three";
 import {
   handleMeshClickMethodSymbol,
   handleMeshMouseEnterMethodSymbol,
   handleMeshMouseLeaveMethodSymbol,
-  prepareRenderMethodSymbol
+  prepareRenderMethodSymbol,
 } from "./symbols";
 
 /**
@@ -33,7 +26,6 @@ export enum SourceOrientation {
    */
   Z_UP = 3,
 }
-
 
 /**
  * The altitude of a mesh can be relative to the ground surface, or to the mean sea level
@@ -226,7 +218,6 @@ export const AnimationLoopOptionsMap = {
 export type AnimationLoopOptions = keyof typeof AnimationLoopOptionsMap;
 
 export type AnimationMode = "continuous" | "manual";
-
 
 export interface Layer3DInternalApiEvent {
   intersection: Omit<Intersection, "object">;

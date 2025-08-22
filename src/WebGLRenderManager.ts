@@ -16,7 +16,13 @@ import type {
 import type { Camera, Intersection, Scene } from "three";
 import { Matrix4, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
 import type { Layer3D } from "./Layer3D";
-import { handleMeshClickMethodSymbol, handleMeshDoubleClickMethodSymbol, handleMeshMouseEnterMethodSymbol, handleMeshMouseLeaveMethodSymbol, prepareRenderMethodSymbol } from "./symbols";
+import {
+  handleMeshClickMethodSymbol,
+  handleMeshDoubleClickMethodSymbol,
+  handleMeshMouseEnterMethodSymbol,
+  handleMeshMouseLeaveMethodSymbol,
+  prepareRenderMethodSymbol,
+} from "./symbols";
 
 /**
  * Manages the WebGL rendering for all 3D layers on the map.
@@ -75,7 +81,6 @@ export class WebGLRenderManager {
 
   private currentRaycastIntersection: Intersection | null = null;
 
-
   /**
    * Constructs a new WebGLRenderManager.
    * @param {object} options - The options for initialization.
@@ -89,7 +94,6 @@ export class WebGLRenderManager {
     map: MapSDK;
     gl: WebGL2RenderingContext | WebGLRenderingContext;
   }) {
-
     if (!gl) {
       throw new Error("A WebGL or WebGL2 context is required to initialize the WebGLRenderManager");
     }
@@ -198,7 +202,6 @@ export class WebGLRenderManager {
 
       layer[prepareRenderMethodSymbol](options);
       this.renderer.render(scene, camera);
-
     }
   }
 
@@ -222,34 +225,33 @@ export class WebGLRenderManager {
     this.pointer.set(point.x, point.y);
 
     for (const { layer, scene, camera } of this.layerData.values()) {
+      const intersections = this.raycast(this.pointer, scene, camera);
 
-    const intersections = this.raycast(this.pointer, scene, camera);
+      if (!intersections[0] && !this.currentRaycastIntersection) return;
 
-    if (!intersections[0] && !this.currentRaycastIntersection) return;
+      if (this.currentRaycastIntersection?.object === intersections[0]?.object) return;
 
-    if (this.currentRaycastIntersection?.object === intersections[0]?.object) return;
+      const { object, ...intersection } = this.currentRaycastIntersection ?? intersections[0];
 
-    const { object, ...intersection } = this.currentRaycastIntersection ?? intersections[0];
+      const methodSymbol = this.currentRaycastIntersection
+        ? handleMeshMouseLeaveMethodSymbol
+        : handleMeshMouseEnterMethodSymbol;
 
-    const methodSymbol = this.currentRaycastIntersection
-      ? handleMeshMouseLeaveMethodSymbol
-      : handleMeshMouseEnterMethodSymbol;
+      const mouse = {
+        x: this.pointer.x,
+        y: this.pointer.y,
+      };
 
-    const mouse = {
-      x: this.pointer.x,
-      y: this.pointer.y,
-    }
+      layer[methodSymbol]({
+        intersection,
+        object,
+        meshID: object.userData.meshID,
+        layerID: object.userData.layerID,
+        lngLat: this.map.unproject(mouse as PointLike),
+        point: mouse,
+      });
 
-    layer[methodSymbol]({
-      intersection,
-      object,
-      meshID: object.userData.meshID,
-      layerID: object.userData.layerID,
-      lngLat: this.map.unproject(mouse as PointLike),
-      point: mouse,
-    });
-
-      this.currentRaycastIntersection = intersections[0] || null;  
+      this.currentRaycastIntersection = intersections[0] || null;
     }
   }
 

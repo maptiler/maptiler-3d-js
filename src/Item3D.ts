@@ -1,7 +1,24 @@
-import type { AnimationAction, AnimationClip, AnimationMixer, Group, Matrix4, Mesh, Object3D, Points, PointsMaterial } from "three";
+import type {
+  AnimationAction,
+  AnimationClip,
+  AnimationMixer,
+  Group,
+  Matrix4,
+  Mesh,
+  Object3D,
+  Points,
+  PointsMaterial,
+} from "three";
 import type { Layer3D } from "./Layer3D";
 import { Evented, LngLat, type LngLatLike, type Map as MapSDK } from "@maptiler/sdk";
-import { AltitudeReference, type AnimationLoopOptions, AnimationLoopOptionsMap, type AnimationMode, type MeshOptions, SourceOrientation } from "./types";
+import {
+  AltitudeReference,
+  type AnimationLoopOptions,
+  AnimationLoopOptionsMap,
+  type AnimationMode,
+  type MeshOptions,
+  SourceOrientation,
+} from "./types";
 import { getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
 import { getItem3DEventTypesSymbol } from "./symbols";
@@ -10,7 +27,7 @@ export interface Item3DConstructorOptions {
   // the id of the item
   id: string;
   // the three.js mesh, group or object3d that is being rendered
-  mesh: Mesh | Group | Object3D | null; 
+  mesh: Mesh | Group | Object3D | null;
   // the lngLat of the item
   lngLat: LngLat;
   // the altitude of the item
@@ -45,10 +62,10 @@ export interface Item3DConstructorOptions {
   // if "continuous", the animation will play continuously
   // if "manual", the animation needs to be manually updated by calling the `updateAnimation` method
   animationMode: AnimationMode;
-};
+}
 
 export class Item3D extends Evented {
-  public readonly id!: string
+  public readonly id!: string;
   // the Three.js mesh, group or object3d that is being rendered
   public readonly mesh: Mesh | Group | Object3D | null = null;
   // the lngLat of the item
@@ -90,7 +107,7 @@ export class Item3D extends Evented {
   // the map instance of the item
   private map: MapSDK;
 
-  private parentLayer: Layer3D
+  private parentLayer: Layer3D;
 
   private nextUpdateTick: number | null = null;
 
@@ -318,7 +335,6 @@ export class Item3D extends Evented {
     this.additionalTransformationMatrix = getTransformationMatrix(this.scale, this.heading, this.sourceOrientation);
   }
 
-
   /**
    * Traverse a Mesh/Group/Object3D to modify the opacities of the all the materials it finds
    * @param obj - The object to modify the opacities of
@@ -365,7 +381,6 @@ export class Item3D extends Evented {
 
     return this;
   }
-
 
   /**
    * Play an animation
@@ -482,33 +497,33 @@ export class Item3D extends Evented {
     this.map.triggerRepaint();
   }
 
-    /**
+  /**
    * The callback used to animate the scene
    * @private
    * @param manual - Whether the animation is being called manually or by the renderer
    */
-    private animate(manual = false) {
-      const delta = manual ? 0.001 : this.parentLayer.clock.getDelta();
-      if (this.animationMixer && this.animationMode === "continuous") {
-        this.animationMixer.update(delta);
-      }
-  
-      if (this.animationMode === "continuous") {
-        this.map.triggerRepaint();
-      }
+  private animate(manual = false) {
+    const delta = manual ? 0.001 : this.parentLayer.clock.getDelta();
+    if (this.animationMixer && this.animationMode === "continuous") {
+      this.animationMixer.update(delta);
     }
+
+    if (this.animationMode === "continuous") {
+      this.map.triggerRepaint();
+    }
+  }
 
   /**
    * Cue a repaint of the item
-   * This used to avoid 
+   * This used to avoid
    * @private
    */
-    private cueUpdate() {
-      if (this.nextUpdateTick) return;
+  private cueUpdate() {
+    if (this.nextUpdateTick) return;
 
-      this.nextUpdateTick = requestAnimationFrame(() => {
-        this.map.triggerRepaint();
-        this.nextUpdateTick = null;
-      });
-    }
-};
+    this.nextUpdateTick = requestAnimationFrame(() => {
+      this.map.triggerRepaint();
+      this.nextUpdateTick = null;
+    });
+  }
+}
