@@ -90,17 +90,16 @@ const map = new Map({
 
   gui.add(guiObj, "model", [originalLanternID, originalDuckID, originalPlaneID, originalDragonID]);
 
-  const item = layer3D.getItem3D(latestMeshID);
   // We can change the heading of the latest mesh added
   gui.add(guiObj, "heading", 0, 360, 0.1).onChange((heading) => {
-    item?.setHeading(heading);
+    layer3D.getItem3D(latestMeshID)?.setHeading(heading);
   });
 
   gui.add(guiObj, "scale", 0.01, 10, 0.01).onChange((scale) => {
-    item?.setScale(scale);
+    layer3D.getItem3D(latestMeshID)?.setScale(scale);
   });
 
   gui.add(guiObj, "altitude", -100, 1000, 1).onChange((altitude) => {
-    item?.setAltitude(altitude);
+    layer3D.getItem3D(latestMeshID)?.setAltitude(altitude);
   });
 })();
