@@ -138,7 +138,7 @@ function setInfo(text: string) {
     });
     
     mesh?.on("click", (event) => {
-      if (mesh?.scale === initialScale) {
+      if (mesh?.scale[0] === initialScale) {
         mesh?.setScale(initialScale * 1.5);
       } else {
         mesh?.setScale(initialScale);

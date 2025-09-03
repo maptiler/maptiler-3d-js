@@ -22,6 +22,8 @@ import {
   handleMeshMouseEnterMethodSymbol,
   handleMeshMouseLeaveMethodSymbol,
   prepareRenderMethodSymbol,
+  handleMeshMouseDownSymbol,
+  handleMeshMouseUpSymbol,
 } from "./symbols";
 
 /**
@@ -273,6 +275,38 @@ export class WebGLRenderManager {
     }
   }
 
+  handleMouseDown(event: MapEventType["mousedown"]) {
+    if (this.currentRaycastIntersection) {
+      const { object, ...intersection } = this.currentRaycastIntersection;
+      const layer = this.layerData.get(object.userData.layerID);
+
+      layer?.layer[handleMeshMouseDownSymbol]({
+        intersection,
+        object,
+        meshID: object.userData.meshID,
+        layerID: object.userData.layerID,
+        lngLat: event.lngLat,
+        point: event.point,
+      });
+    }
+  }
+
+  handleMouseUp(event: MapEventType["mouseup"]) {
+    if (this.currentRaycastIntersection) {
+      const { object, ...intersection } = this.currentRaycastIntersection;
+      const layer = this.layerData.get(object.userData.layerID);
+
+      layer?.layer[handleMeshMouseUpSymbol]({
+        intersection,
+        object,
+        meshID: object.userData.meshID,
+        layerID: object.userData.layerID,
+        lngLat: event.lngLat,
+        point: event.point,
+      });
+    }
+  }
+
   /**
    * Raycast from the mouse position into the scene.
    * @param point - The mouse position in screen coordinates.
@@ -372,6 +406,8 @@ export class WebGLManagerLayer implements CustomLayerInterface {
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleMouseClick = this.handleMouseClick.bind(this);
     this.handleMouseDoubleClick = this.handleMouseDoubleClick.bind(this);
+    this.handleMouseDown = this.handleMouseDown.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this);
   }
 
   private handleMouseMove(event: MapEventType["mousemove"]) {
@@ -386,6 +422,14 @@ export class WebGLManagerLayer implements CustomLayerInterface {
     this.webGLRenderManager.handleMouseDoubleClick(event);
   }
 
+  private handleMouseDown(event: MapEventType["mousedown"]) {
+    this.webGLRenderManager.handleMouseDown(event);
+  }
+
+  private handleMouseUp(event: MapEventType["mouseup"]) {
+    this.webGLRenderManager.handleMouseUp(event);
+  }
+
   /**
    * Called when the layer is added to the map. (No-op)
    */
@@ -394,6 +438,8 @@ export class WebGLManagerLayer implements CustomLayerInterface {
     this.map.on("mousemove", this.handleMouseMove);
     this.map.on("click", this.handleMouseClick);
     this.map.on("dblclick", this.handleMouseDoubleClick);
+    this.map.on("mousedown", this.handleMouseDown);
+    this.map.on("mouseup", this.handleMouseUp);
   }
 
   /**
@@ -401,6 +447,10 @@ export class WebGLManagerLayer implements CustomLayerInterface {
    */
   onRemove() {
     this.map.off("mousemove", this.handleMouseMove);
+    this.map.off("click", this.handleMouseClick);
+    this.map.off("dblclick", this.handleMouseDoubleClick);
+    this.map.off("mousedown", this.handleMouseDown);
+    this.map.off("mouseup", this.handleMouseUp);
   }
 
   /**
