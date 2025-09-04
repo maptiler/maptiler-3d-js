@@ -383,7 +383,7 @@ export class Item3D extends Evented {
         const method = this[methodName as keyof Item3D];
         if (method) {
           // call the method with the property value and cue a repaint
-          method.call(this, propertyValue);
+          method.call(this, propertyValue, true);
         } else {
           if (USE_DEBUG_LOGS)
             console.warn(
