@@ -63,7 +63,7 @@ const munros =  [
     lngLat: [-4.986615, 56.805237],
     mesh: new Mesh(
       new OctahedronGeometry(5),
-      new MeshStandardMaterial({ color: "orange", roughness: 0.5, metalness: 0.5 })
+      new MeshStandardMaterial({ color: "hotpink", roughness: 0.5, metalness: 0.5 })
     ),
 
     name: "Carn Mor Dearg", 
@@ -76,15 +76,15 @@ const munros =  [
 const info = document.getElementById("event-info") as HTMLElement;
 
 function setInfo(text: string, visible: boolean) {
-  // info.style.cursor = visible ? "none" : "default";
-  // info.innerHTML = text;
-  // info.style.transform = `scale(${visible ? 1 : 0})`;
-  // info.style.opacity = visible ? "1" : "0";
+  info.style.cursor = visible ? "none" : "default";
+  info.innerHTML = text;
+  info.style.transform = `scale(${visible ? 1 : 0})`;
+  info.style.opacity = visible ? "1" : "0";
 }
 
 function handleMouseMove(e: MouseEvent) {
-  // info.style.left = `${e.clientX + 24}px`;
-  // info.style.top = `${e.clientY - info.clientHeight / 2}px`;
+  info.style.left = `${e.clientX + 24}px`;
+  info.style.top = `${e.clientY - info.clientHeight / 2}px`;
 }
 
 window.addEventListener("mousemove", handleMouseMove);
@@ -108,7 +108,6 @@ window.addEventListener("mousemove", handleMouseMove);
       scale: 40,
       altitude: 200,
       opacity: 0.75,
-      wireframe: true,
       states: {
         hover: {
           opacity: 1,
@@ -116,6 +115,7 @@ window.addEventListener("mousemove", handleMouseMove);
           wireframe: false,
         },
         active: {
+          wireframe: true,
           opacity: 0.5,
           scale: [2, 2, 2],
         }
@@ -147,4 +147,4 @@ window.addEventListener("mousemove", handleMouseMove);
 
   loop();
 
-})();
+})()

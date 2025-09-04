@@ -195,10 +195,14 @@ export class Item3D extends Evented {
   // the map instance of the item
   private map: MapSDK;
 
+  // the parent layer of the item
   private parentLayer: Layer3D;
 
+  // the next update tick of the item
   private nextUpdateTick: number | null = null;
 
+  // the user data of the item
+  // this is used to store any custom data that the user wants
   public userData: Record<string, any> = {};
 
   /**
@@ -230,6 +234,11 @@ export class Item3D extends Evented {
     this.initDefaultState();
   }
 
+  /**
+   * Initialize the default state of the item.
+   * This is called when the item is created and sets the default state of the item.
+   * @private
+   */
   private initDefaultState() {
     const defaultState = item3DStatePropertiesNames.reduce((acc, key) => {
       const accKey = key as keyof Item3DMeshUIStateProperties;
@@ -285,9 +294,10 @@ export class Item3D extends Evented {
    * This is used to ensure that the active state fallsback to the last state applied.
    * Eg if the object is hovered ("hover state"), and then the user clicks on it ("active state"), when the mouse comes up
    * the object should revert to the hover state, _not_ to the default state.
+   * Think of this as akin to the DOM `classList` property
    * @private
    */
-  private activeStates: Item3DMeshUIStateName[] = [];
+  private activeStates: Item3DMeshUIStateName[] = ["default"];
 
   /**
    * Set the active state of the item.
@@ -303,14 +313,6 @@ export class Item3D extends Evented {
   }
 
   /**
-   * Get the last active state name.
-   * @private
-   */
-  private getLastActiveStateName() {
-    return this.activeStates[this.activeStates.length - 2] ?? "default";
-  }
-
-  /**
    * Remove the active state of the item.
    * @param name - The name of the state to remove
    * @private
@@ -319,17 +321,6 @@ export class Item3D extends Evented {
     this.activeStates = this.activeStates.filter((state) => state !== name);
 
   }
-
-  // private fallbackStateProperties: Item3DMeshUIStates = {};
-
-  // private updateFallbackStateProperties() {
-  //   this.fallbackStateProperties = Array.from(this.currentStates)
-  //     .map(([_, { props }]) => ({ ...props }))
-  //     .reduce((acc, stateProps) => {
-  //       Object.assign(acc, stateProps);
-  //       return acc;
-  //     }, {} as Item3DMeshUIStates);
-  // }
 
   /**
    * Add a state change handler to the item.
@@ -341,7 +332,7 @@ export class Item3D extends Evented {
    */
   private addItem3DStateChangeHandler(name: Item3DMeshUIStateName, props: Item3DMeshUIStateProperties) {
     const handlerEventNames = item3DStateEventMap.get(name);
-    if (!handlerEventNames) return () => {};
+    if (!handlerEventNames || name === "default") return () => {};
 
     /**
      * Set the active state of the item.
@@ -349,16 +340,20 @@ export class Item3D extends Evented {
      */
     const commitActiveState = () => {
       this.addActiveState(name);
-
+      const sumOfAllStatesProps = this.activeStates
+        .map((name) => [name, this.currentStates.get(name)?.props ?? {}])
+        .reduce((acc, stateProps, i) => {
+          Object.assign(acc, stateProps, props);
+          return acc;
+        }, {} as Item3DMeshUIStateProperties);
+        
       // iterate over the properties, map to the correct method and call it
-      for (const [propertyName, propertyValue] of Object.entries(props)) {
-        console.log("commitActiveState: propertyName", propertyName, propertyValue);
+      for (const [propertyName, propertyValue] of Object.entries(sumOfAllStatesProps)) {
         const propName = propertyName as keyof Item3DMeshUIStateProperties;
         const methodName = item3DSetStatePropertyToMethodMap.get(propName);
         const method = this[methodName as keyof Item3D];
 
-        if (method && propertyValue) {
-
+        if (method && typeof propertyValue !== "undefined") {
           // call the method with the property value and cue a repaint
           method.call(this, propertyValue, true);
         } else {
@@ -376,29 +371,17 @@ export class Item3D extends Evented {
      * This is called when the state is deactivated eg on "mouseleave", or on "mouseup".
      */
     const commitInactiveState = () => {
-      // get the state that it should fallback to when the state is deactivated
-      const { props: previousState } = this.currentStates.get(this.getLastActiveStateName()) ?? {};
-      // const previousState = this.fallbackStateProperties;
-      // remove the active state from the stack
       this.removeActiveState(name);
 
-      const removedPropsWithDefaultValues = {} as Record<string, any>;
-      for (const [propertyName, propertyValue] of Object.entries(props ?? {})) {
-        if (previousState && !(propertyName in previousState)) {
-          console.log("commitInactiveState: property was removed", propertyName, propertyValue);
-          removedPropsWithDefaultValues[propertyName] = this.getDefaultValueForProperty(propertyName as keyof Item3DMeshUIStateProperties);
-        }
-      }
-
-      const stateToCommit = {
-        ...previousState,
-        ...removedPropsWithDefaultValues,
-      };
-
-      // console.log("commitInactiveState: propValuesMissingFromPreviousState", propValuesMissingFromPreviousState);
+      const sumOfAllStates = this.activeStates
+        .map((name) => this.currentStates.get(name)?.props ?? {})
+        .reduce((acc, stateProps) => {
+          Object.assign(acc, stateProps);
+          return acc;
+        }, {} as Item3DMeshUIStateProperties);
 
       // iterate over the properties, map to the correct method and call it
-      for (const [propertyName, propertyValue] of Object.entries(stateToCommit ?? {})) {
+      for (const [propertyName, propertyValue] of Object.entries(sumOfAllStates ?? {})) {
         const methodName = item3DSetStatePropertyToMethodMap.get(propertyName as keyof Item3DMeshUIStateProperties);
         const method = this[methodName as keyof Item3D];
         if (method) {
@@ -469,21 +452,6 @@ export class Item3D extends Evented {
       return undefined;
     }
 
-    return value;
-  }
-
-  private getDefaultValueForProperty(propertyName: keyof Item3DMeshUIStateProperties) {
-    const internalPropertyName = item3DStateToInstancePropertyMap.get(propertyName);
-    if (!internalPropertyName) {
-      if (USE_DEBUG_LOGS) console.warn(`Item3D: Property "${String(propertyName)}" not found on item "${this.id}"`);
-      return undefined;
-    }
-
-    const value = item3DDefaultValuesMap.get(internalPropertyName as keyof Item3DMeshUIStateProperties | "relativeScale");
-    if (!value) {
-      if (USE_DEBUG_LOGS) console.warn(`Item3D: No value for property "${String(propertyName)}" found in default values map`);
-      return undefined;
-    }
     return value;
   }
 
