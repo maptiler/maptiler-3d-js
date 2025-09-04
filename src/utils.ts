@@ -45,12 +45,15 @@ export function filterKeysFromObject<T extends Record<string, any>>(
   keys: (keyof T)[] = [],
 ): Partial<T> {
   console.log("filterKeysFromObject: keys", keys);
-  return keys.reduce((acc, key) => {
-    if (obj[key] !== undefined) {
-      acc[key] = obj[key];
-    }
-    return acc;
-  }, {} as Partial<T>);
+  return keys.reduce(
+    (acc, key) => {
+      if (obj[key] !== undefined) {
+        acc[key] = obj[key];
+      }
+      return acc;
+    },
+    {} as Partial<T>,
+  );
 }
 
 export { isPointLight, getTransformationMatrix };

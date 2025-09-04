@@ -127,7 +127,6 @@ const item3DStateToInstancePropertyMap = new Map([
   ["transform", "transform"],
 ]);
 
-
 export const item3DDefaultValuesMap = new Map<keyof Item3DMeshUIStateProperties | "relativeScale", any>([
   ["opacity", 1],
   ["scale", [1, 1, 1]],
@@ -319,7 +318,6 @@ export class Item3D extends Evented {
    */
   private removeActiveState(name: Item3DMeshUIStateName) {
     this.activeStates = this.activeStates.filter((state) => state !== name);
-
   }
 
   /**
@@ -346,7 +344,7 @@ export class Item3D extends Evented {
           Object.assign(acc, stateProps, props);
           return acc;
         }, {} as Item3DMeshUIStateProperties);
-        
+
       // iterate over the properties, map to the correct method and call it
       for (const [propertyName, propertyValue] of Object.entries(sumOfAllStatesProps)) {
         const propName = propertyName as keyof Item3DMeshUIStateProperties;
@@ -363,7 +361,6 @@ export class Item3D extends Evented {
             );
         }
       }
-
     };
 
     /**
