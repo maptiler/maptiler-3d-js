@@ -340,7 +340,7 @@ export class Item3D extends Evented {
       this.addActiveState(name);
       const sumOfAllStatesProps = this.activeStates
         .map((name) => [name, this.currentStates.get(name)?.props ?? {}])
-        .reduce((acc, stateProps, i) => {
+        .reduce((acc, stateProps) => {
           Object.assign(acc, stateProps, props);
           return acc;
         }, {} as Item3DMeshUIStateProperties);
