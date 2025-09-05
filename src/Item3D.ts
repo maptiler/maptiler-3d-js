@@ -12,16 +12,23 @@ import type {
 import type { Layer3D } from "./Layer3D";
 import { Evented, LngLat, type LngLatLike, type Map as MapSDK } from "@maptiler/sdk";
 import {
-  AltitudeReference,
   type AnimationLoopOptions,
-  AnimationLoopOptionsMap,
   type AnimationMode,
+  type Item3DMeshUIStates,
   type MeshOptions,
+  type Item3DMeshUIStateName,
+  type Item3DMeshUIStateProperties,
+  type Item3DEventTypes,
+  type Item3DTransform,
+  AltitudeReference,
+  AnimationLoopOptionsMap,
   SourceOrientation,
+  item3DStatePropertiesNames,
 } from "./types";
 import { getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
 import { getItem3DEventTypesSymbol } from "./symbols";
+import { USE_DEBUG_LOGS } from "./config";
 
 export interface Item3DConstructorOptions {
   // the id of the item
@@ -33,7 +40,7 @@ export interface Item3DConstructorOptions {
   // the altitude of the item
   altitude: number;
   // the scale of the item
-  scale: number;
+  scale: number | [number, number, number];
   // the heading of the item
   heading: number;
   // the source orientation of the item, can be "y-up" or "z-up"
@@ -62,7 +69,76 @@ export interface Item3DConstructorOptions {
   // if "continuous", the animation will play continuously
   // if "manual", the animation needs to be manually updated by calling the `updateAnimation` method
   animationMode: AnimationMode;
+  // the states of the item
+  states: Item3DMeshUIStates;
+
+  // custom meta data that the user can add to the item
+  userData: Record<string, any>;
 }
+
+const item3DStateEventMap = new Map<
+  Item3DMeshUIStateName,
+  { activate: Item3DEventTypes; deactivate: Item3DEventTypes }
+>([
+  [
+    "hover" as Item3DMeshUIStateName,
+    {
+      activate: "mouseenter",
+      deactivate: "mouseleave",
+    },
+  ],
+  [
+    "active" as Item3DMeshUIStateName,
+    {
+      activate: "mousedown",
+      deactivate: "mouseup",
+    },
+  ],
+  [
+    "selected" as Item3DMeshUIStateName,
+    {
+      activate: "click",
+      deactivate: "click",
+    },
+  ],
+]);
+
+const item3DSetStatePropertyToMethodMap = new Map<keyof Item3DMeshUIStateProperties, keyof Item3D>([
+  ["opacity", "setOpacity"],
+  ["scale", "setRelativeScale"],
+  ["heading", "setHeading"],
+  ["altitude", "setAltitude"],
+  ["lngLat", "setLngLat"],
+  ["wireframe", "setWireframe"],
+  ["pointSize", "setPointSize"],
+  ["elevation", "setElevation"],
+  ["transform", "setTransform"],
+]);
+
+const item3DStateToInstancePropertyMap = new Map([
+  ["scale", "relativeScale"],
+  ["opacity", "opacity"],
+  ["heading", "heading"],
+  ["altitude", "altitude"],
+  ["lngLat", "lngLat"],
+  ["wireframe", "wireframe"],
+  ["pointSize", "pointSize"],
+  ["elevation", "elevation"],
+  ["transform", "transform"],
+]);
+
+export const item3DDefaultValuesMap = new Map<keyof Item3DMeshUIStateProperties | "relativeScale", any>([
+  ["opacity", 1],
+  ["scale", [1, 1, 1]],
+  ["relativeScale", [1, 1, 1]],
+  ["heading", 0],
+  ["altitude", 0],
+  ["lngLat", new LngLat(0, 0)],
+  ["wireframe", false],
+  ["pointSize", 1],
+  ["elevation", 0],
+  ["transform", createDefaultTransform()],
+]);
 
 export class Item3D extends Evented {
   public readonly id!: string;
@@ -75,7 +151,12 @@ export class Item3D extends Evented {
   // the altitude of the item, altitude is the height of the model above the ground
   public altitude = 0;
   // the scale of the item
-  public scale = 1;
+  public scale: [number, number, number] = [1, 1, 1];
+
+  // the relative scale of the item, this is the scale of the item relative to the parent layer
+  // it used internally for hover and UI states
+  private relativeScale: [number, number, number] = [1, 1, 1];
+
   // the heading of the item, in degrees
   public heading = 0;
   // the source orientation of the item, can be "y-up" or "z-up"
@@ -88,6 +169,12 @@ export class Item3D extends Evented {
   public opacity = 1;
   // whether the item is a wireframe
   public wireframe = false;
+  // the point size of the item
+  public pointSize = 1;
+
+  // the default state of the item
+  public transform: Item3DTransform = createDefaultTransform();
+
   // the animation mixer of the item
   private animationMixer: AnimationMixer | null = null;
   // the animation map of the item
@@ -107,9 +194,15 @@ export class Item3D extends Evented {
   // the map instance of the item
   private map: MapSDK;
 
+  // the parent layer of the item
   private parentLayer: Layer3D;
 
+  // the next update tick of the item
   private nextUpdateTick: number | null = null;
+
+  // the user data of the item
+  // this is used to store any custom data that the user wants
+  public userData: Record<string, any> = {};
 
   /**
    * The registered event types of the item
@@ -119,12 +212,49 @@ export class Item3D extends Evented {
    */
   private registeredEventTypes: string[] = [];
 
-  constructor(parentLayer: Layer3D, options: Item3DConstructorOptions) {
+  /**
+   * A Map of the current states of the item, hover, active, etc.
+   * These states are used to modify the item in real time, eg on hover the item can be scaled up, or on selected the item can be highlighted
+   */
+  private currentStates: Map<Item3DMeshUIStateName, { props: Item3DMeshUIStateProperties; cleanup: () => void }> =
+    new Map();
+
+  constructor(parentLayer: Layer3D, { scale, states, ...options }: Item3DConstructorOptions) {
     super();
     this.parentLayer = parentLayer;
     this.map = parentLayer.getMapInstance();
     this.renderer = parentLayer.getRendererInstance();
+    this.scale = Array.isArray(scale) ? scale : [scale, scale, scale];
+
+    this.setStates(states);
+
     Object.assign(this, options as Item3DConstructorOptions);
+
+    this.initDefaultState();
+  }
+
+  /**
+   * Initialize the default state of the item.
+   * This is called when the item is created and sets the default state of the item.
+   * @private
+   */
+  private initDefaultState() {
+    const defaultState = item3DStatePropertiesNames.reduce((acc, key) => {
+      const accKey = key as keyof Item3DMeshUIStateProperties;
+
+      const value = this.getInitValueForProperty(accKey);
+
+      if (typeof value !== "undefined") {
+        (acc as any)[accKey] = value;
+      }
+
+      return acc;
+    }, {} as Item3DMeshUIStateProperties);
+
+    this.currentStates.set("default", {
+      props: defaultState as Item3DMeshUIStateProperties,
+      cleanup: () => {},
+    });
   }
 
   /**
@@ -133,7 +263,7 @@ export class Item3D extends Evented {
    * @param callback - The callback to call when the event is triggered
    * @returns {Item3D} The item
    */
-  public override on(event: string, callback: (event: any) => void) {
+  public override on(event: Item3DEventTypes, callback: (event: any) => void) {
     this.registeredEventTypes.push(event);
     return super.on(event, callback);
   }
@@ -144,7 +274,7 @@ export class Item3D extends Evented {
    * @param callback - The callback to unregister
    * @returns {Item3D} The item
    */
-  public override off(event: string, callback: (event: any) => void) {
+  public override off(event: Item3DEventTypes, callback: (event: any) => void) {
     this.registeredEventTypes = this.registeredEventTypes.filter((type) => type !== event);
     return super.off(event, callback);
   }
@@ -158,6 +288,212 @@ export class Item3D extends Evented {
     return this.registeredEventTypes;
   }
 
+  /**
+   * A stack of the active states applied.
+   * This is used to ensure that the active state fallsback to the last state applied.
+   * Eg if the object is hovered ("hover state"), and then the user clicks on it ("active state"), when the mouse comes up
+   * the object should revert to the hover state, _not_ to the default state.
+   * Think of this as akin to the DOM `classList` property
+   * @private
+   */
+  private activeStates: Item3DMeshUIStateName[] = ["default"];
+
+  /**
+   * Set the active state of the item.
+   * @param stateName - The name of the state to set
+   * @private
+   */
+  private addActiveState(stateName: Item3DMeshUIStateName) {
+    if (this.activeStates.includes(stateName)) {
+      return;
+    }
+
+    this.activeStates.push(stateName);
+  }
+
+  /**
+   * Remove the active state of the item.
+   * @param name - The name of the state to remove
+   * @private
+   */
+  private removeActiveState(name: Item3DMeshUIStateName) {
+    this.activeStates = this.activeStates.filter((state) => state !== name);
+  }
+
+  /**
+   * Add a state change handler to the item.
+   * This method maps the state (eg "hover") to its relevant events (eg "mouseenter", "mouseleave")
+   * and applies the state properties to the item via the appropriate methods.
+   * @param name - The name of the state to add
+   * @param props - The properties of the state
+   * @private
+   */
+  private addItem3DStateChangeHandler(name: Item3DMeshUIStateName, props: Item3DMeshUIStateProperties) {
+    const handlerEventNames = item3DStateEventMap.get(name);
+    if (!handlerEventNames || name === "default") return () => {};
+
+    /**
+     * Set the active state of the item.
+     * This is called when the state is activated eg on mouseenter, or on mousedown.
+     */
+    const commitActiveState = () => {
+      this.addActiveState(name);
+      const sumOfAllStatesProps = this.activeStates
+        .map((name) => [name, this.currentStates.get(name)?.props ?? {}])
+        .reduce((acc, stateProps) => {
+          Object.assign(acc, stateProps, props);
+          return acc;
+        }, {} as Item3DMeshUIStateProperties);
+
+      // iterate over the properties, map to the correct method and call it
+      for (const [propertyName, propertyValue] of Object.entries(sumOfAllStatesProps)) {
+        const propName = propertyName as keyof Item3DMeshUIStateProperties;
+        const methodName = item3DSetStatePropertyToMethodMap.get(propName);
+        const method = this[methodName as keyof Item3D];
+
+        if (method && typeof propertyValue !== "undefined") {
+          // call the method with the property value and cue a repaint
+          method.call(this, propertyValue, true);
+        } else {
+          if (USE_DEBUG_LOGS)
+            console.warn(
+              `Item3D: Method ${String(methodName)} not found for setting property "${propertyName}" in ${name} state`,
+            );
+        }
+      }
+    };
+
+    /**
+     * Set the inactive state of the item.
+     * This is called when the state is deactivated eg on "mouseleave", or on "mouseup".
+     */
+    const commitInactiveState = () => {
+      this.removeActiveState(name);
+
+      const sumOfAllStates = this.activeStates
+        .map((name) => this.currentStates.get(name)?.props ?? {})
+        .reduce((acc, stateProps) => {
+          Object.assign(acc, stateProps);
+          return acc;
+        }, {} as Item3DMeshUIStateProperties);
+
+      // iterate over the properties, map to the correct method and call it
+      for (const [propertyName, propertyValue] of Object.entries(sumOfAllStates ?? {})) {
+        const methodName = item3DSetStatePropertyToMethodMap.get(propertyName as keyof Item3DMeshUIStateProperties);
+        const method = this[methodName as keyof Item3D];
+        if (method) {
+          // call the method with the property value and cue a repaint
+          method.call(this, propertyValue, true);
+        } else {
+          if (USE_DEBUG_LOGS)
+            console.warn(
+              `Item3D: Method ${String(methodName)} not found for setting property "${propertyName}" in ${name} state`,
+            );
+        }
+      }
+    };
+
+    // add the activate event listener
+    this.on(handlerEventNames.activate as Item3DEventTypes, commitActiveState);
+
+    // add the deactivate event listener
+    this.on(handlerEventNames.deactivate as Item3DEventTypes, commitInactiveState);
+
+    /**
+     * Cleanup the state change handler.
+     * This is called when the state is removed.
+     */
+    const cleanup = () => {
+      this.off(handlerEventNames.activate as Item3DEventTypes, commitActiveState);
+      this.off(handlerEventNames.deactivate as Item3DEventTypes, commitInactiveState);
+      commitInactiveState();
+    };
+
+    return cleanup;
+  }
+
+  /**
+   * Maps the state config to the internal state Map, set up handlers and store the state and cleanup function.
+   * This is only used on Item3D construction to set the initial states but can be called publicly.
+   * @param stateUpdate - The states to set
+   * @returns {Item3D} The item
+   */
+  public setStates(stateUpdate: Item3DMeshUIStates | ((currentState: Item3DMeshUIStates) => Item3DMeshUIStates)) {
+    const currentState = Array.from(this.currentStates)
+      .map(([name, { props }]) => ({ name, props }))
+      .reduce((acc, { name, props }) => {
+        acc[name] = props;
+        return acc;
+      }, {} as Item3DMeshUIStates);
+
+    const states = typeof stateUpdate === "function" ? stateUpdate(currentState) : stateUpdate;
+
+    for (const [name, state] of Object.entries(states)) {
+      const cleanup = this.addItem3DStateChangeHandler(name as Item3DMeshUIStateName, state);
+      this.currentStates.set(name as Item3DMeshUIStateName, { props: state, cleanup });
+    }
+
+    return this;
+  }
+
+  /**
+   * Get the default value for a property.
+   * @param propertyName - The name of the property to get the default value for
+   * @returns {any} The default value for the property
+   */
+  private getInitValueForProperty(propertyName: keyof Item3DMeshUIStateProperties) {
+    const internalPropertyName = item3DStateToInstancePropertyMap.get(propertyName) as keyof this;
+    const value = this[internalPropertyName];
+    if (!value) {
+      if (USE_DEBUG_LOGS) console.warn(`Item3D: Property "${String(propertyName)}" not found on item "${this.id}"`);
+      return undefined;
+    }
+
+    return value;
+  }
+
+  /**
+   * Add a state to the item.
+   * @param name - The name of the state to add
+   * @param state - The state to add
+   * @returns {Item3D} The item
+   */
+  public addState(name: Item3DMeshUIStateName, state: Item3DMeshUIStateProperties) {
+    const cleanup = this.addItem3DStateChangeHandler(name, state);
+    this.currentStates.set(name, { props: state, cleanup });
+    return this;
+  }
+
+  /**
+   * Remove a state from the item and calls the cleanup function.
+   * @param name - The name of the state to remove
+   * @returns {Item3D} The item
+   */
+  public removeState(name: Item3DMeshUIStateName) {
+    const cleanup = this.currentStates.get(name)?.cleanup;
+    if (cleanup) cleanup();
+    this.currentStates.delete(name);
+    return this;
+  }
+
+  /**
+   * Set the transform of the item
+   * @param transform - The transform to set
+   * @returns {Item3D} The item
+   */
+  public setTransform(transform?: Partial<Item3DTransform>) {
+    if (!transform) {
+      this.transform = createDefaultTransform();
+      return this;
+    }
+
+    this.transform = {
+      ...this.transform,
+      ...transform,
+    };
+
+    return this;
+  }
   /**
    * Modify the item with a set of options
    * @param options - The options to modify the item with
@@ -178,6 +514,11 @@ export class Item3D extends Evented {
     }
 
     if (typeof options.scale === "number") {
+      this.scale = [options.scale, options.scale, options.scale];
+      isTransformNeedUpdate = true;
+    }
+
+    if (Array.isArray(options.scale)) {
       this.scale = options.scale;
       isTransformNeedUpdate = true;
     }
@@ -197,19 +538,19 @@ export class Item3D extends Evented {
     }
 
     if (isTransformNeedUpdate === true) {
-      this.additionalTransformationMatrix = getTransformationMatrix(this.scale, this.heading, this.sourceOrientation);
+      this.applyTransformUpdate();
     }
 
     if (typeof options.opacity === "number") {
-      this.setOpacity(options.opacity);
+      this.setOpacity(options.opacity, false);
     }
 
     if (typeof options.pointSize === "number") {
-      this.setPointSize(options.pointSize);
+      this.setPointSize(options.pointSize, false);
     }
 
     if (typeof options.wireframe === "boolean") {
-      this.setWireframe(options.wireframe);
+      this.setWireframe(options.wireframe, false);
     }
 
     this.map.triggerRepaint();
@@ -256,13 +597,36 @@ export class Item3D extends Evented {
   }
 
   /**
-   * Set the scale of the item
+   * Set the relative scale of the item. The relative scale is the scale of the item relative to it's original scale.
+   * This is used internally to scale the item up or down from a state, but can also be called publicly to scale the item.
    * @param scale - The scale to set
    * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
    * @returns {Item3D} The item
    */
-  public setScale(scale: number, cueRepaint = true) {
-    this.scale = scale;
+  public setRelativeScale(scale: number | [number, number, number], cueRepaint = true) {
+    if (typeof scale !== "number" && !Array.isArray(scale)) {
+      throw new Error("Scale must be a number or an array of three numbers");
+    }
+
+    this.relativeScale = (Array.isArray(scale) ? scale : [scale, scale, scale]) as [number, number, number];
+    this.applyTransformUpdate();
+    if (cueRepaint) this.cueUpdate();
+    return this;
+  }
+
+  /**
+   * Set the absolute scale of the item. The absolute scale is the scale of the item relative to the map.
+   * @param scale - The scale to set
+   * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
+   * @returns {Item3D} The item
+   */
+  public setScale(scale: number | [number, number, number], cueRepaint = true) {
+    if (typeof scale !== "number" && !Array.isArray(scale)) {
+      throw new Error("Scale must be a number or an array of three numbers");
+    }
+
+    this.scale = Array.isArray(scale) ? scale : [scale, scale, scale];
+
     this.applyTransformUpdate();
     if (cueRepaint) this.cueUpdate();
     return this;
@@ -311,16 +675,22 @@ export class Item3D extends Evented {
    * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
    * @returns {Item3D} The item
    */
-  public setWireframe(wireframe: boolean, cueRepaint = true) {
+  public setWireframe(wireframe?: boolean, cueRepaint = true) {
+    const wireframeValue = Boolean(wireframe);
     this.mesh?.traverse((node) => {
       if ("isMesh" in node && node.isMesh === true) {
         const mesh = node as Mesh;
         const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         for (const mat of materials) {
-          if ("wireframe" in mat && typeof mat.wireframe === "boolean") mat.wireframe = wireframe;
+          if ("wireframe" in mat && typeof mat.wireframe === "boolean") {
+            mat.wireframe = wireframeValue;
+            mat.needsUpdate = true;
+          }
         }
       }
     });
+
+    this.wireframe = wireframeValue;
 
     if (cueRepaint) this.cueUpdate();
 
@@ -332,7 +702,8 @@ export class Item3D extends Evented {
    * @private
    */
   private applyTransformUpdate() {
-    this.additionalTransformationMatrix = getTransformationMatrix(this.scale, this.heading, this.sourceOrientation);
+    const scale = this.relativeScale.map((s, i) => s * this.scale[i]) as [number, number, number];
+    this.additionalTransformationMatrix = getTransformationMatrix(scale, this.heading, this.sourceOrientation);
   }
 
   /**
@@ -350,6 +721,7 @@ export class Item3D extends Evented {
         for (const mat of materials) {
           mat.opacity = opacity;
           mat.transparent = true;
+          mat.needsUpdate = true;
         }
       }
     });
@@ -376,6 +748,8 @@ export class Item3D extends Evented {
         }
       }
     });
+
+    this.pointSize = size;
 
     if (cueRepaint) this.cueUpdate();
 
@@ -526,4 +900,19 @@ export class Item3D extends Evented {
       this.nextUpdateTick = null;
     });
   }
+}
+
+function createDefaultTransform(): Item3DTransform {
+  return {
+    rotation: {
+      x: 0,
+      y: 0,
+      z: 0,
+    },
+    translate: {
+      x: 0,
+      y: 0,
+      z: 0,
+    },
+  };
 }

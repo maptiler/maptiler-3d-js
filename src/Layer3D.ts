@@ -45,6 +45,8 @@ import {
   handleMeshDoubleClickMethodSymbol,
   handleMeshMouseEnterMethodSymbol,
   handleMeshMouseLeaveMethodSymbol,
+  handleMeshMouseUpSymbol,
+  handleMeshMouseDownSymbol,
   prepareRenderMethodSymbol,
 } from "./symbols";
 
@@ -218,6 +220,20 @@ export class Layer3D implements Layer3DInternalApi {
     }
   }
 
+  [handleMeshMouseDownSymbol](event: Layer3DInternalApiEvent) {
+    const item = this.getItem3D(event.meshID);
+    if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("mousedown")) {
+      item.fire("mousedown", event);
+    }
+  }
+
+  [handleMeshMouseUpSymbol](event: Layer3DInternalApiEvent) {
+    const item = this.getItem3D(event.meshID);
+    if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("mouseup")) {
+      item.fire("mouseup", event);
+    }
+  }
+
   /**
    * Handle the double click event for a mesh.
    * This is used to trigger the `dblclick` event for the item by WebGLRenderManager.
@@ -337,15 +353,14 @@ export class Layer3D implements Layer3DInternalApi {
    * Add an existing mesh to the map
    * @param id - The ID of the mesh
    * @param options - The options to add the mesh with
-   * @returns {Layer3D} The layer
+   * @returns {Item3D} The item
    */
   public addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {}) {
-    this.addMeshInternal({
+    return this.addMeshInternal({
       ...options,
       id,
       mesh,
     });
-    return this;
   }
   /**
    * Add an existing mesh to the map, with options.
@@ -374,7 +389,7 @@ export class Layer3D implements Layer3DInternalApi {
     const heading = options.heading ?? 0;
     const visible = options.visible ?? true;
     const opacity = options.opacity ?? 1;
-    const scale = options.scale ?? 1;
+    const scale = options.scale ?? [1, 1, 1];
     const pointSize = options.pointSize ?? 1;
     const wireframe = options.wireframe ?? false;
 
@@ -390,7 +405,11 @@ export class Layer3D implements Layer3DInternalApi {
       this.setMeshWireframe(mesh, wireframe);
     }
 
-    const additionalTransformationMatrix = getTransformationMatrix(scale, heading, sourceOrientation);
+    const additionalTransformationMatrix = getTransformationMatrix(
+      scale as [number, number, number],
+      heading,
+      sourceOrientation,
+    );
     const elevation = this.map.queryTerrainElevation(lngLat) || 0;
 
     const mixer = new AnimationMixer(mesh);
@@ -424,6 +443,8 @@ export class Layer3D implements Layer3DInternalApi {
       animationClips: animations,
       animationMixer: mixer,
       animationMode: options.animationMode ?? "continuous",
+      states: options.states ?? {},
+      userData: options.userData ?? {},
     });
 
     this.items3D.set(id, item);
@@ -434,7 +455,7 @@ export class Layer3D implements Layer3DInternalApi {
 
     this.map.triggerRepaint();
 
-    return this;
+    return item;
   }
 
   public getItem3D(id: string): Item3D | null {
@@ -585,15 +606,13 @@ export class Layer3D implements Layer3DInternalApi {
 
     mesh.userData._originalUrl = url;
 
-    this.addMeshInternal({
+    return this.addMeshInternal({
       animations: gltfContent.animations,
       ...options,
       id,
       mesh,
       animationMode: options.animationMode ?? "continuous",
     });
-
-    return this;
   }
 
   /**

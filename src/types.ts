@@ -85,7 +85,7 @@ export type MeshOptions = GenericObject3DOptions & {
    * Scale the mesh by a factor.
    * Default: no scaling added
    */
-  scale?: number;
+  scale?: number | [number, number, number];
 
   /**
    * Heading measured in degrees clockwise from true north.
@@ -114,6 +114,71 @@ export type MeshOptions = GenericObject3DOptions & {
    * Default: `continuous`
    */
   animationMode?: AnimationMode;
+
+  states?: Item3DMeshUIStates;
+
+  userData?: Record<string, any>;
+};
+
+/**
+ * The name of the state of the item
+ * hover: when the mouse is over the item
+ * active: when the mouse is down on the item
+ */
+export type Item3DMeshUIStateName = "default" | "hover" | "active";
+
+export type Item3DTransform = {
+  rotation?: {
+    x?: number;
+    y?: number;
+    z?: number;
+  };
+  translate?: {
+    x?: number;
+    y?: number;
+    z?: number;
+  };
+};
+
+export type ComputeValueFunction<T> = (currentValue: T) => T;
+
+export type Item3DComputableParameter =
+  | number
+  | LngLatLike
+  | number
+  | [number, number, number]
+  | Item3DTransform
+  | boolean;
+
+export type Item3DMeshUIStateProperties = {
+  opacity?: number;
+  scale?: number | [number, number, number];
+  transform?: Item3DTransform;
+  heading?: number;
+  altitude?: number;
+  lngLat?: LngLatLike;
+  wireframe?: boolean;
+  pointSize?: number;
+  elevation?: number;
+  // outlineWidth?: number;
+  // outlineColor?: ColorRepresentation;
+  // outlineOpacity?: number;
+};
+
+export const item3DStatePropertiesNames = [
+  "opacity",
+  "scale",
+  "transform",
+  "heading",
+  "altitude",
+  "lngLat",
+  "wireframe",
+  "pointSize",
+  "elevation",
+] as const;
+
+export type Item3DMeshUIStates = {
+  [key in Item3DMeshUIStateName]?: Item3DMeshUIStateProperties;
 };
 
 export type AddMeshFromURLOptions = MeshOptions & {
@@ -227,6 +292,8 @@ export interface Layer3DInternalApiEvent {
   lngLat: LngLat;
   point: Point2D;
 }
+
+export type Item3DEventTypes = "click" | "mouseenter" | "mouseleave" | "mousedown" | "mouseup" | "doubleclick";
 
 export interface Layer3DInternalApi extends CustomLayerInterface {
   [handleMeshClickMethodSymbol]: (event: Layer3DInternalApiEvent) => void;
