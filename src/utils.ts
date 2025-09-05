@@ -44,7 +44,6 @@ export function filterKeysFromObject<T extends Record<string, any>>(
   obj: T = {} as T,
   keys: (keyof T)[] = [],
 ): Partial<T> {
-  console.log("filterKeysFromObject: keys", keys);
   return keys.reduce(
     (acc, key) => {
       if (obj[key] !== undefined) {
