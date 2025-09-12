@@ -8,6 +8,7 @@
     "resolveJsonModule": true,
   },
   "include": [
+    "./tests/**/*.test.ts",
     "./global.d.ts",
     "./src/**/*.ts"
   ]

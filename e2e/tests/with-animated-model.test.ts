@@ -32,6 +32,7 @@ test("animates the model", async ({ page }, testInfo) => {
 
     for (let i = 0; i < NUM_SCREENSHOTS; i++) {
       for (let j = 0; j < NUM_FRAMES_BETWEEN_SCREENSHOTS; j++) {
+        console.log("ADVANCING ANIMATION", i, j);
         advanceAnimation();
       }
 

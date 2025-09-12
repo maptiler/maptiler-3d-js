@@ -33,7 +33,8 @@ test("modifies the mesh correctly", async ({ page }, testInfo) => {
   await page.evaluate(() => {
     // @ts-expect-error
     const layer3d = window.__layer3D as Layer3D;
-    layer3d.modifyMesh('duck', {
+    const item3d = layer3d.getItem3D('duck')
+    item3d?.modify({
       altitude: 50,
       scale: 50,
       lngLat: [0.001, 0.001],

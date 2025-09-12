@@ -1,7 +1,8 @@
 import "@maptiler/sdk/dist/maptiler-sdk.css";
 import { Map as MapTiler, MapStyle, coordinates, LngLat } from "@maptiler/sdk";
 import { BoxGeometry, Color, DoubleSide, Mesh, MeshBasicMaterial, MeshStandardMaterial } from "three";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { Layer3D } from "../../src/Layer3D";
+import { AltitudeReference } from "../../src/types";
 
 async function main() {
   const map = new MapTiler({
@@ -55,14 +56,16 @@ async function main() {
 
     const normalised = [lng, lat].map((n) => n * multiplier) as [number, number];
 
-    layer3d.addMesh(`cube-${lng}-${lat}-${alt}`, mesh, {
+
+    const meshID = `cube-${lng}-${lat}-${alt}`;
+    const item = layer3d.addMesh(meshID, mesh, {
       lngLat: LngLat.convert(normalised),
       altitude: alt * 50,
       altitudeReference: AltitudeReference.GROUND,
       scale: 1,
     });
 
-    layer3d.modifyMesh(`cube-${lng}-${lat}-${alt}`, {
+    item.modify({
       lngLat: LngLat.convert(normalised),
       heading: i * 10,
     });
