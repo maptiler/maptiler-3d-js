@@ -53,22 +53,5 @@ test("Loads and renders Mesh", async ({ page }, testInfo) => {
   await expect(consoleLogs).toContain("mousedown");
   await expect(consoleLogs).toContain("mouseleave");
   await expect(consoleLogs).toContain("dblclick");
-
-  // await page.evaluate(() => {
-  //   // @ts-expect-error
-  //   const layer3d = window.__layer3D as Layer3D;
-  //   const item3dId = window.__pageObjects.meshId;
-  //   if (!item3dId) {
-  //     throw new Error("Mesh ID is not set, the test will fail. Make sure to set the mesh ID in the fixture, `window.__pageObjects.meshId`");
-  //   }
-
-  //   const item3d = layer3d.getItem3D(item3dId)
-
-  //   item3d?.modify({
-  //     altitude: 50,
-  //     scale: 50,
-  //     lngLat: [0.001, 0.001],
-  //   });
-  // });
 })
 
