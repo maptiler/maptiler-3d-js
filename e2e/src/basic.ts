@@ -56,7 +56,6 @@ async function main() {
 
     const normalised = [lng, lat].map((n) => n * multiplier) as [number, number];
 
-
     const meshID = `cube-${lng}-${lat}-${alt}`;
     const item = layer3d.addMesh(meshID, mesh, {
       lngLat: LngLat.convert(normalised),

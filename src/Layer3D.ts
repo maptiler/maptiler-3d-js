@@ -613,8 +613,8 @@ export class Layer3D implements Layer3DInternalApi {
         ...options,
         id,
         mesh,
-          animationMode: options.animationMode ?? "continuous",
-        });
+        animationMode: options.animationMode ?? "continuous",
+      });
     } catch (error) {
       console.error("Error adding mesh from URL", error);
       throw error;

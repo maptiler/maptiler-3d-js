@@ -25,23 +25,25 @@ async function main() {
 
   // Increasing the intensity of the ambient light
   layer3D.setAmbientLight({ intensity: 2 });
-map.on("moveend", e => console.log(e.target.getCenter()))
+  map.on("moveend", (e) => console.log(e.target.getCenter()));
   // Adding a point light
   layer3D.addPointLight("point-light", { intensity: 30 });
 
   const flamingoID = "flamingo-1";
 
-  const item3d = await layer3D.addMeshFromURL(flamingoID,
+  const item3d = await layer3D.addMeshFromURL(
+    flamingoID,
     // Model by https://mirada.com/ for https://experiments.withgoogle.com/3-dreams-of-black
     "models/Flamingo.glb",
     {
-    lngLat: LngLat.convert([0, 0]),
-    heading: 12,
-    scale: 1,
-    altitude: 10,
-    animationMode: "manual",
-    altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
-  });
+      lngLat: LngLat.convert([0, 0]),
+      heading: 12,
+      scale: 1,
+      altitude: 10,
+      animationMode: "manual",
+      altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
+    },
+  );
 
   const animationNames = item3d.getAnimationNames();
 

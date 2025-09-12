@@ -56,7 +56,6 @@ async function main() {
     });
   });
 
-
   const mousedownHandler = () => {
     console.log("mousedown");
     item.modify({
