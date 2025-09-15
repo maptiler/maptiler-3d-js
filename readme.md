@@ -31,6 +31,12 @@ With this MapTiler SDK module, you can add 3D objects to your basemap with plent
 
 [![](images/nhm.jpeg)Display a point cloud 3D building model on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
 
+[![](images/flamingos.gif)Import and play GLTF animations from GLTF files](/demos/src/09-gltf-animations.ts)
+
+[![](images/ui-events.gif)Listen for mouse events on 3D objects](/demos//src/10-item3D-mouse-events.ts)
+
+[!Apply declarative UI 'states' to 3D objects](/demos/src/11-item3D-UI-states.ts)
+
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
 ```shell
@@ -74,7 +80,7 @@ Once created and added, a mesh can be added. In this version any *glTF* and thei
 To add a mesh:
 ```ts
 // The call can be awaited for the whole download of the mesh to complete
-await layer3D.addMeshFromURL(
+const item3D = await layer3D.addMeshFromURL(
   // ID to give to this mesh, unique within this Layer3D instance
   "flatiron",
 
@@ -91,6 +97,8 @@ await layer3D.addMeshFromURL(
     altitudeReference: maptiler3d.AltitudeReference.GROUND,
   }
 );
+
+// do stuff with the item 3D...
 ```
 
 Here are all the options for meshes:
