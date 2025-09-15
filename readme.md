@@ -35,7 +35,7 @@ With this MapTiler SDK module, you can add 3D objects to your basemap with plent
 
 [![](images/ui-events.gif)Listen for mouse events on 3D objects](/demos//src/10-item3D-mouse-events.ts)
 
-[!Apply declarative UI 'states' to 3D objects](/demos/src/11-item3D-UI-states.ts)
+[Apply declarative UI 'states' to 3D objects](/demos/src/11-item3D-UI-states.ts)
 
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
