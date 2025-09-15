@@ -275,27 +275,63 @@ export type Layer3DOptions = {
 };
 
 export const AnimationLoopOptionsMap = {
+  /**
+   * Play the animation once.
+   */
   once: LoopOnce,
+  /**
+   * Play the animation in a loop.
+   */
   loop: LoopRepeat,
+  /**
+   * Play the animation forward until the end, then play it backwards until the start.
+   */
   pingPong: LoopPingPong,
 };
 
 export type AnimationLoopOptions = keyof typeof AnimationLoopOptionsMap;
 
+/**
+ * The animation mode.
+ * "continuous" means the animation will be advanced by the internal animation loop.
+ * "manual" means the animation will be advanced by the external render loop.
+ */
 export type AnimationMode = "continuous" | "manual";
 
 export interface Layer3DInternalApiEvent {
+  /**
+   * The intersection of the event.
+   * @see {Raycaster} https://threejs.org/docs/?q=Rayc#api/en/core/Raycaster
+   */
   intersection: Omit<Intersection, "object">;
+  /**
+   * The object of the event.
+   * @see {Object3D} https://threejs.org/docs/#api/en/core/Object3D
+   */
   object: Object3D;
+  /**
+   * The id of the mesh.
+   */
   meshID: string;
+  /**
+   * The id of the layer.
+   */
   layerID: string;
+  /**
+   * The lngLat of the event.
+   * @see {LngLat} https://docs.maptiler.com/sdk-js/api/geography/#lnglat
+   */
   lngLat: LngLat;
+  /**
+   * The screen point of the event.
+   * @see {Point2D} https://docs.maptiler.com/sdk-js/api/geography/#point2d
+   */
   point: Point2D;
 }
 
 export type Item3DEventTypes = "click" | "mouseenter" | "mouseleave" | "mousedown" | "mouseup" | "dblclick";
 
-export interface Layer3DInternalApi extends CustomLayerInterface {
+export interface Layer3DInternalAPIInterface extends CustomLayerInterface {
   [handleMeshClickMethodSymbol]: (event: Layer3DInternalApiEvent) => void;
   [handleMeshMouseEnterMethodSymbol]: (event: Layer3DInternalApiEvent) => void;
   [handleMeshMouseLeaveMethodSymbol]: (event: Layer3DInternalApiEvent) => void;

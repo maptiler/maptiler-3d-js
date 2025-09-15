@@ -1,3 +1,7 @@
+/**
+ * Whether to use debug logs.
+ * @private
+ */
 export const USE_DEBUG_LOGS: boolean = false;
 
 /**

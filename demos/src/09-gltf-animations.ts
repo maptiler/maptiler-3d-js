@@ -36,6 +36,9 @@ const map = new Map({
   zoom: 10,
   bearing: 0,
   pitch: 45,
+  attributionControl: {
+    customAttribution: "Model by <a href='https://mirada.com/' target='_blank'>Mirada</a> for <a href='https://experiments.withgoogle.com/3-dreams-of-black' target='_blank'>3 Dreams of Black</a>",
+  }
 });
 
 (async () => {
