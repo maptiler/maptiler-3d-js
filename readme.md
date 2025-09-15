@@ -55,6 +55,11 @@ From CDN and using the UMD bundle, in the `<head></head>` section of your HTML f
 <script src="https://cdn.maptiler.com/maptiler-3d/v1.0.0/maptiler-3d.umd.js"></script>
 ```
 
+To generate the typedoc documentation and serve them locally:
+```shell
+npm run doc && npx http-server docs
+```
+
 With the UMD bundle (on CDN), the namespace for this project is `maptiler3d`. So the `layer3D` class is available at `maptiler3d.Layer3D`.
 
 ### Basic usage
