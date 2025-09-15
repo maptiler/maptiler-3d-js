@@ -562,7 +562,7 @@ export class Item3D extends Evented {
    * @param options - The options to modify the item with
    * @returns {Item3D} The item
    */
-  public modify(options: Partial<MeshOptions>) {
+  public modify(options: Omit<Partial<MeshOptions>, "states" | "userData">) {
     if (!this.mesh) return this;
 
     let isTransformNeedUpdate = false;
