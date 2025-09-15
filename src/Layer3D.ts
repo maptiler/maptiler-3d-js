@@ -68,76 +68,76 @@ import {
 ```
  */
 export class Layer3D implements Layer3DInternalAPIInterface {
-  /** 
+  /**
    * The id of the layer, this is used to identify the layer in the map
    */
   public readonly id: string;
 
-  /** 
+  /**
    * The type of the layer, this is used to identify the layer in the map
    * @see {CustomLayerInterface#type} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#type
    */
   public readonly type = "custom";
-  /** 
+  /**
    * The rendering mode of the layer, this is used to identify the layer in the map
    * @see {CustomLayerInterface#renderingMode} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#renderingmode
    */
   public readonly renderingMode: "2d" | "3d" = "3d";
 
-  /** 
+  /**
    * The map instance of the layer
    * @see {MapSDK} https://docs.maptiler.com/sdk-js/api/map/#map
    */
   private map!: MapSDK;
 
-  /** 
+  /**
    * The minimum zoom of the layer
    * @see {CustomLayerInterface#minZoom} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#minzoom
    */
   public minZoom: number;
-  /** 
+  /**
    * The maximum zoom of the layer
    * @see {CustomLayerInterface#maxZoom} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#maxzoom
    */
   public maxZoom: number;
 
-  /** 
+  /**
    * The renderer instance of the layer
    * @see {WebGLRenderManager} https://docs.maptiler.com/sdk-js/api/webglrendermanager/#webglrendermanager
    */
   private renderer!: WebGLRenderManager;
-  /** 
+  /**
    * The three.js clock instance of the layer. Used internally for animations.
    * @see {Clock} https://threejs.org/docs/#api/en/core/Clock
    */
   public readonly clock = new Clock();
-  /** 
+  /**
    * The three.js scene instance of the layer.
    * @see {Scene} https://threejs.org/docs/#api/en/scenes/Scene
    */
   private readonly scene: Scene;
-  /** 
+  /**
    * The three.js camera instance of the layer.
    * @see {Camera} https://threejs.org/docs/#api/en/cameras/Camera
    */
   private readonly camera: Camera;
-  /** 
+  /**
    * The three.js ambient light instance of the layer.
    * @see {AmbientLight} https://threejs.org/docs/#api/en/lights/AmbientLight
    */
   private readonly ambientLight: AmbientLight;
-  /** 
+  /**
    * The map of the items in the layer.
    */
 
   private readonly items3D = new Map<string, Item3D>();
-  /** 
+  /**
    * The callbacks to unsubscribe when the layer is removed.
    * This is used to unsubscribe from internal events.
    * @see {Array} https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
    */
   private onRemoveCallbacks: Array<() => void> = [];
-  /** 
+  /**
    * Whether the elevation needs to be updated.
    * This is used to update the elevation of the items in the layer.
    */

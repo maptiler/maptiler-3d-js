@@ -141,7 +141,7 @@ export const item3DDefaultValuesMap = new Map<keyof Item3DMeshUIStateProperties 
 ]);
 
 export class Item3D extends Evented {
-  /** 
+  /**
    * The id of the item, this is used to identify the item in the layer and set in the constructor
    * when the item is created in the Layer3D class
    * @see {Layer3D#addMesh}
@@ -149,120 +149,120 @@ export class Item3D extends Evented {
    * @see {Layer3D#addMeshFromUrl}
    */
   public readonly id!: string;
-  /** 
+  /**
    * The Three.js mesh, group or object3d that is being rendered
    * @see {Mesh} https://threejs.org/docs/#api/en/objects/Mesh
    * @see {Group} https://threejs.org/docs/#api/en/objects/Group
    * @see {Object3D} https://threejs.org/docs/#api/en/core/Object3D
    */
   public readonly mesh: Mesh | Group | Object3D | null = null;
-  /** 
+  /**
    * The lngLat of the item
    * @see {LngLat} https://docs.maptiler.com/sdk-js/api/geography/#lnglat
    */
   public lngLat!: LngLat;
-  /** 
+  /**
    * Elevation is the height of the model at ground level, this is used to calculate the altitude / transform of the item
    */
   public elevation = 0;
-  /**   
+  /**
    * The altitude of the item, altitude is the height of the model above the ground
    */
   public altitude = 0;
-  /** 
+  /**
    * The scale of the item [x, y, z].
    */
   public scale: [number, number, number] = [1, 1, 1];
 
-  /** 
+  /**
    * The relative scale of the item, this is used internally in the states. 1.5 == 150% the original scale
    */
   private relativeScale: [number, number, number] = [1, 1, 1];
 
-  /** 
+  /**
    * The heading of the item, in degrees
    */
   public heading = 0;
-  /** 
+  /**
    * The source orientation of the item, can be "y-up" or "z-up"
    */
   public sourceOrientation: SourceOrientation = SourceOrientation.Y_UP;
-  /** 
+  /**
    * The altitude reference of the item, can be "ground" or "sea"
    */
   public altitudeReference: AltitudeReference = AltitudeReference.GROUND;
-  /** 
+  /**
    * The url of the item, if the item is a model, this is the url of the model
    */
   public readonly url!: string | null;
-  /** 
+  /**
    * The opacity of the item
    */
   public opacity = 1;
-  /** 
+  /**
    * Whether the item is rendering as a wireframe
    */
   public wireframe = false;
-  /** 
+  /**
    * The point size of the item (if drawing points)
    */
   public pointSize = 1;
 
-  /** 
+  /**
    * The default state of the item, used for UI states
    * @type {Item3DTransform}
    */
   public transform: Item3DTransform = createDefaultTransform();
 
-  /** 
+  /**
    * The animation mixer of the item
    * @type {AnimationMixer | null}
    */
   private animationMixer: AnimationMixer | null = null;
-  /** 
+  /**
    * The animation map of the item
    */
   private animationMap: Record<string, AnimationAction> | null = null;
-  /** 
+  /**
    * The animation clips of the item
    * @see {AnimationClip} https://threejs.org/docs/#api/en/animation/AnimationClip
    */
   public animationClips: AnimationClip[] | null = null;
-  /** 
+  /**
    * The animation mode of the item, can be "continuous" or "manual"
    * if "continuous", the animation will play continuously
    * if "manual", the animation needs to be manually updated by calling the `updateAnimation` method
    */
   public animationMode: AnimationMode = "continuous";
-  /** 
+  /**
    * The renderer of the item the singleton instance of WebGLRenderManager
    */
   private renderer: WebGLRenderManager;
 
-  /** 
+  /**
    * The additional transformation matrix of the item, this is used to apply additional transformations to the item
    */
   public additionalTransformationMatrix!: Matrix4;
 
-  /** 
+  /**
    * The map instance of the item
    */
   private map: MapSDK;
 
-  /** 
+  /**
    * The parent layer of the item
    */
   private parentLayer: Layer3D;
 
-  /** 
+  /**
    * The next update tick of the item
    */
   private nextUpdateTick: number | null = null;
 
-  /** 
+  /**
    * Custom user data of the item
    * This can be used to store any custom data that the user wants
-  */
+   */
   public userData: Record<string, any> = {};
 
   /**
