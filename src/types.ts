@@ -293,7 +293,7 @@ export interface Layer3DInternalApiEvent {
   point: Point2D;
 }
 
-export type Item3DEventTypes = "click" | "mouseenter" | "mouseleave" | "mousedown" | "mouseup" | "doubleclick";
+export type Item3DEventTypes = "click" | "mouseenter" | "mouseleave" | "mousedown" | "mouseup" | "dblclick";
 
 export interface Layer3DInternalApi extends CustomLayerInterface {
   [handleMeshClickMethodSymbol]: (event: Layer3DInternalApiEvent) => void;

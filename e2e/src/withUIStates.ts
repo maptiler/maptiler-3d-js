@@ -7,11 +7,12 @@ import { AltitudeReference } from "../../src/types";
 async function main() {
   const map = new MapTiler({
     container: "map",
-    apiKey: "DOESNT_MATTER",
+    apiKey: "NrHbzRcISmjG1VwSD6jh",
+
     style: MapStyle.SATELLITE,
     projection: "mercator",
     zoom: 17,
-    bearing: 0,
+    bearing: 45,
     center: [0, 0],
     pitch: 60,
   });
@@ -32,14 +33,33 @@ async function main() {
     color: "#ffffff",
   });
 
-  layer3d.addMeshFromURL("duck", "models/rubber_duck/scene.gltf", {
-    lngLat: [0, 0],
-    altitude: 50,
+  const cubeMesh = new Mesh(new BoxGeometry(10, 10, 10), new MeshStandardMaterial({ color: "blue" }));
+  const cubeMeshID = "cube";
+
+  const item = layer3d.addMesh(cubeMeshID, cubeMesh, {
+    lngLat: LngLat.convert([0, 0]),
+    altitude: 100,
+    scale: 10,
     altitudeReference: AltitudeReference.GROUND,
-    scale: 100,
+    states: {
+      hover: {
+        opacity: 1,
+        scale: [1.5, 1.5, 1.5],
+        wireframe: false,
+      },
+      active: {
+        opacity: 0.5,
+        scale: [2, 2, 2],
+        wireframe: true,
+      },
+    },
   });
 
   window.__layer3D = layer3d;
+
+  window.__pageObjects = {
+    meshId: cubeMeshID,
+  };
 }
 
 main();

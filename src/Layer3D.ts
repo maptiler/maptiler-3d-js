@@ -267,6 +267,7 @@ export class Layer3D implements Layer3DInternalApi {
    */
   [prepareRenderMethodSymbol](options: CustomRenderMethodInput) {
     if (this.isInZoomRange() === false) {
+      console.log("isInZoomRange", this.isInZoomRange());
       return;
     }
 
@@ -586,33 +587,38 @@ export class Layer3D implements Layer3DInternalApi {
       throw new Error("Mesh files must be glTF/glb.");
     }
 
-    const loader = new GLTFLoader();
-    const gltfContent = await loader.loadAsync(url);
-    const mesh = options.transform ? new Object3D() : gltfContent.scene;
+    try {
+      const loader = new GLTFLoader();
+      const gltfContent = await loader.loadAsync(url);
+      const mesh = options.transform ? new Object3D() : gltfContent.scene;
 
-    if (options.transform) {
-      const { rotation, offset } = options.transform;
-      gltfContent.scene.name = `${id}_gltfContent_scene`;
+      if (options.transform) {
+        const { rotation, offset } = options.transform;
+        gltfContent.scene.name = `${id}_gltfContent_scene`;
 
-      mesh.add(gltfContent.scene);
+        mesh.add(gltfContent.scene);
 
-      if (rotation) {
-        gltfContent.scene.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+        if (rotation) {
+          gltfContent.scene.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+        }
+        if (offset) {
+          gltfContent.scene.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
+        }
       }
-      if (offset) {
-        gltfContent.scene.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
-      }
+
+      mesh.userData._originalUrl = url;
+
+      return this.addMeshInternal({
+        animations: gltfContent.animations,
+        ...options,
+        id,
+        mesh,
+        animationMode: options.animationMode ?? "continuous",
+      });
+    } catch (error) {
+      console.error("Error adding mesh from URL", error);
+      throw error;
     }
-
-    mesh.userData._originalUrl = url;
-
-    return this.addMeshInternal({
-      animations: gltfContent.animations,
-      ...options,
-      id,
-      mesh,
-      animationMode: options.animationMode ?? "continuous",
-    });
   }
 
   /**

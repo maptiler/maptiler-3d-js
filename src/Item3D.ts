@@ -231,6 +231,7 @@ export class Item3D extends Evented {
     Object.assign(this, options as Item3DConstructorOptions);
 
     this.initDefaultState();
+    this.applyTransformUpdate();
   }
 
   /**
