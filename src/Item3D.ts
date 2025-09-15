@@ -141,67 +141,128 @@ export const item3DDefaultValuesMap = new Map<keyof Item3DMeshUIStateProperties 
 ]);
 
 export class Item3D extends Evented {
+  /**
+   * The id of the item, this is used to identify the item in the layer and set in the constructor
+   * when the item is created in the Layer3D class
+   * @see {Layer3D#addMesh}
+   * @see {Layer3D#getItem3D}
+   * @see {Layer3D#addMeshFromUrl}
+   */
   public readonly id!: string;
-  // the Three.js mesh, group or object3d that is being rendered
+  /**
+   * The Three.js mesh, group or object3d that is being rendered
+   * @see {Mesh} https://threejs.org/docs/#api/en/objects/Mesh
+   * @see {Group} https://threejs.org/docs/#api/en/objects/Group
+   * @see {Object3D} https://threejs.org/docs/#api/en/core/Object3D
+   */
   public readonly mesh: Mesh | Group | Object3D | null = null;
-  // the lngLat of the item
+  /**
+   * The lngLat of the item
+   * @see {LngLat} https://docs.maptiler.com/sdk-js/api/geography/#lnglat
+   */
   public lngLat!: LngLat;
-  // the elevation of the item is the height of the ground below the model
+  /**
+   * Elevation is the height of the model at ground level, this is used to calculate the altitude / transform of the item
+   */
   public elevation = 0;
-  // the altitude of the item, altitude is the height of the model above the ground
+  /**
+   * The altitude of the item, altitude is the height of the model above the ground
+   */
   public altitude = 0;
-  // the scale of the item
+  /**
+   * The scale of the item [x, y, z].
+   */
   public scale: [number, number, number] = [1, 1, 1];
 
-  // the relative scale of the item, this is the scale of the item relative to the parent layer
-  // it used internally for hover and UI states
+  /**
+   * The relative scale of the item, this is used internally in the states. 1.5 == 150% the original scale
+   */
   private relativeScale: [number, number, number] = [1, 1, 1];
 
-  // the heading of the item, in degrees
+  /**
+   * The heading of the item, in degrees
+   */
   public heading = 0;
-  // the source orientation of the item, can be "y-up" or "z-up"
+  /**
+   * The source orientation of the item, can be "y-up" or "z-up"
+   */
   public sourceOrientation: SourceOrientation = SourceOrientation.Y_UP;
-  // the altitude reference of the item, can be "ground" or "sea"
+  /**
+   * The altitude reference of the item, can be "ground" or "sea"
+   */
   public altitudeReference: AltitudeReference = AltitudeReference.GROUND;
-  // the url of the item, if the item is a model, this is the url of the model
+  /**
+   * The url of the item, if the item is a model, this is the url of the model
+   */
   public readonly url!: string | null;
-  // the opacity of the item
+  /**
+   * The opacity of the item
+   */
   public opacity = 1;
-  // whether the item is a wireframe
+  /**
+   * Whether the item is rendering as a wireframe
+   */
   public wireframe = false;
-  // the point size of the item
+  /**
+   * The point size of the item (if drawing points)
+   */
   public pointSize = 1;
 
-  // the default state of the item
+  /**
+   * The default state of the item, used for UI states
+   * @type {Item3DTransform}
+   */
   public transform: Item3DTransform = createDefaultTransform();
 
-  // the animation mixer of the item
+  /**
+   * The animation mixer of the item
+   * @type {AnimationMixer | null}
+   */
   private animationMixer: AnimationMixer | null = null;
-  // the animation map of the item
+  /**
+   * The animation map of the item
+   */
   private animationMap: Record<string, AnimationAction> | null = null;
-  // the animation clips of the item
+  /**
+   * The animation clips of the item
+   * @see {AnimationClip} https://threejs.org/docs/#api/en/animation/AnimationClip
+   */
   public animationClips: AnimationClip[] | null = null;
-  // the animation mode of the item, can be "continuous" or "manual"
-  // if "continuous", the animation will play continuously
-  // if "manual", the animation needs to be manually updated by calling the `updateAnimation` method
+  /**
+   * The animation mode of the item, can be "continuous" or "manual"
+   * if "continuous", the animation will play continuously
+   * if "manual", the animation needs to be manually updated by calling the `updateAnimation` method
+   */
   public animationMode: AnimationMode = "continuous";
-  // the renderer of the item the singleton instance of WebGLRenderManager
+  /**
+   * The renderer of the item the singleton instance of WebGLRenderManager
+   */
   private renderer: WebGLRenderManager;
 
-  // the additional transformation matrix of the item, this is used to apply additional transformations to the item
+  /**
+   * The additional transformation matrix of the item, this is used to apply additional transformations to the item
+   */
   public additionalTransformationMatrix!: Matrix4;
 
-  // the map instance of the item
+  /**
+   * The map instance of the item
+   */
   private map: MapSDK;
 
-  // the parent layer of the item
+  /**
+   * The parent layer of the item
+   */
   private parentLayer: Layer3D;
 
-  // the next update tick of the item
+  /**
+   * The next update tick of the item
+   */
   private nextUpdateTick: number | null = null;
 
-  // the user data of the item
-  // this is used to store any custom data that the user wants
+  /**
+   * Custom user data of the item
+   * This can be used to store any custom data that the user wants
+   */
   public userData: Record<string, any> = {};
 
   /**
@@ -283,6 +344,7 @@ export class Item3D extends Evented {
   /**
    * Get the registered event types of the item. This only used by the Layer3D class to check if an event is registered for this item.
    * @internal
+   * @private
    * @returns {string[]} The registered event types
    */
   [getItem3DEventTypesSymbol](): string[] {
@@ -709,9 +771,8 @@ export class Item3D extends Evented {
 
   /**
    * Traverse a Mesh/Group/Object3D to modify the opacities of the all the materials it finds
-   * @param obj - The object to modify the opacities of
    * @param opacity - The opacity to set
-   * @param cueRepaint - whether to cue a repaint, if false, the repaint will be triggered when only the map is updated
+   * @param cueRepaint - whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
    * @returns {Layer3D} The layer
    */
   public setOpacity(opacity: number, cueRepaint = true) {
@@ -734,7 +795,6 @@ export class Item3D extends Evented {
 
   /**
    * If a mesh is a point cloud, it defines the size of the points
-   * @param obj - The object to modify the point size of
    * @param size - The size to set
    * @param cueRepaint - whether to cue a repaint, if false, the repaint will be triggered when only the map is updated
    * @returns {Layer3D} The layer
@@ -759,7 +819,6 @@ export class Item3D extends Evented {
 
   /**
    * Play an animation
-   * @param meshId - The ID of the mesh
    * @param animationName - The name of the animation to play
    * @param {AnimationLoopOptions} loop - The loop type of the animation, can either be "loop", "once" or "pingPong"
    */
@@ -787,7 +846,6 @@ export class Item3D extends Evented {
 
   /**
    * Get an animation by name
-   * @param meshId - The ID of the mesh
    * @param animationName - The name of the animation to get
    * @returns {AnimationAction | null} The animation action or null if not found
    */
@@ -798,7 +856,6 @@ export class Item3D extends Evented {
 
   /**
    * Pause an animation
-   * @param meshId - The ID of the mesh
    * @param animationName - The name of the animation to pause
    */
   public pauseAnimation(animationName: string) {
@@ -815,7 +872,6 @@ export class Item3D extends Evented {
 
   /**
    * Stop an animation
-   * @param meshId - The ID of the mesh
    * @param animationName - The name of the animation to stop
    */
   public stopAnimation(animationName: string) {
@@ -832,7 +888,6 @@ export class Item3D extends Evented {
 
   /**
    * Get the names of the animations of a mesh
-   * @param meshId - The ID of the mesh
    * @returns {string[]} The names of all the animations of the mesh
    */
   public getAnimationNames(): string[] {
@@ -843,7 +898,6 @@ export class Item3D extends Evented {
 
   /**
    * Update the animation of a mesh by a delta time
-   * @param meshId - The ID of the mesh
    * @param delta - The delta time to update the animation by
    */
   public updateAnimation(delta = 0.02) {
@@ -859,7 +913,6 @@ export class Item3D extends Evented {
 
   /**
    * Set the time of an animation to a specific time
-   * @param meshId - The ID of the mesh
    * @param time - The time to set the animation to
    */
   public setAnimationTime(time: number) {

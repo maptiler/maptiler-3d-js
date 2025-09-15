@@ -31,7 +31,7 @@ import {
   type AddMeshFromURLOptions,
   type CloneMeshOptions,
   type PointLightOptions,
-  type Layer3DInternalApi,
+  type Layer3DInternalAPIInterface,
   type Layer3DInternalApiEvent,
   SourceOrientation,
   AltitudeReference,
@@ -49,24 +49,98 @@ import {
   handleMeshMouseDownSymbol,
   prepareRenderMethodSymbol,
 } from "./symbols";
+/**
+ * The Layer3D class is the main class for the 3D layer.
+ * It is used to add meshes to the layer, and to manage the items in the layer.
+ * @example
+ * ```ts
+  const layer3D = new Layer3D("layer-id");
+  map.addLayer(layer3D);
 
-export class Layer3D implements Layer3DInternalApi {
+  layer3D.setAmbientLight({ intensity: 2 });
+  layer3D.addPointLight("point-light", { intensity: 30 });
+  layer3D.modifyPointLight("point-light", { intensity: 100 });
+
+  await layer3D.addMeshFromURL("duck", "./models/Duck.glb", {
+    ...state,
+    sourceOrientation: SourceOrientation.Y_UP,
+  });
+```
+ */
+export class Layer3D implements Layer3DInternalAPIInterface {
+  /**
+   * The id of the layer, this is used to identify the layer in the map
+   */
   public readonly id: string;
+
+  /**
+   * The type of the layer, this is used to identify the layer in the map
+   * @see {CustomLayerInterface#type} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#type
+   */
   public readonly type = "custom";
+  /**
+   * The rendering mode of the layer, this is used to identify the layer in the map
+   * @see {CustomLayerInterface#renderingMode} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#renderingmode
+   */
   public readonly renderingMode: "2d" | "3d" = "3d";
+
+  /**
+   * The map instance of the layer
+   * @see {MapSDK} https://docs.maptiler.com/sdk-js/api/map/#map
+   */
   private map!: MapSDK;
 
+  /**
+   * The minimum zoom of the layer
+   * @see {CustomLayerInterface#minZoom} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#minzoom
+   */
   public minZoom: number;
+  /**
+   * The maximum zoom of the layer
+   * @see {CustomLayerInterface#maxZoom} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#maxzoom
+   */
   public maxZoom: number;
 
+  /**
+   * The renderer instance of the layer
+   * @see {WebGLRenderManager} https://docs.maptiler.com/sdk-js/api/webglrendermanager/#webglrendermanager
+   */
   private renderer!: WebGLRenderManager;
+  /**
+   * The three.js clock instance of the layer. Used internally for animations.
+   * @see {Clock} https://threejs.org/docs/#api/en/core/Clock
+   */
   public readonly clock = new Clock();
+  /**
+   * The three.js scene instance of the layer.
+   * @see {Scene} https://threejs.org/docs/#api/en/scenes/Scene
+   */
   private readonly scene: Scene;
+  /**
+   * The three.js camera instance of the layer.
+   * @see {Camera} https://threejs.org/docs/#api/en/cameras/Camera
+   */
   private readonly camera: Camera;
+  /**
+   * The three.js ambient light instance of the layer.
+   * @see {AmbientLight} https://threejs.org/docs/#api/en/lights/AmbientLight
+   */
   private readonly ambientLight: AmbientLight;
+  /**
+   * The map of the items in the layer.
+   */
 
   private readonly items3D = new Map<string, Item3D>();
+  /**
+   * The callbacks to unsubscribe when the layer is removed.
+   * This is used to unsubscribe from internal events.
+   * @see {Array} https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+   */
   private onRemoveCallbacks: Array<() => void> = [];
+  /**
+   * Whether the elevation needs to be updated.
+   * This is used to update the elevation of the items in the layer.
+   */
   private isElevationNeedUpdate = false;
 
   constructor(id: string, options: Layer3DOptions = {}) {
@@ -142,10 +216,18 @@ export class Layer3D implements Layer3DInternalApi {
     this.onRemoveCallbacks = [];
   }
 
+  /**
+   * Get the map instance of the layer.
+   * @returns {MapSDK} The map instance
+   */
   public getMapInstance(): MapSDK {
     return this.map;
   }
 
+  /**
+   * Get the renderer instance of the layer. This is internally for animations and batch rendering layers.
+   * @returns {WebGLRenderManager} The renderer instance
+   */
   public getRendererInstance(): WebGLRenderManager {
     return this.renderer;
   }
@@ -177,6 +259,7 @@ export class Layer3D implements Layer3DInternalApi {
    * Handle the mouse enter event for a mesh.
    * This is used to trigger the `mouseenter` event for the item by WebGLRenderManager.
    * @internal
+   * @private
    * @see {WebGLRenderManager#handleMouseMove}
    * @param event - The event data
    */
@@ -197,10 +280,10 @@ export class Layer3D implements Layer3DInternalApi {
   }
 
   /**
-   * @name handleMeshMouseLeaveMethod
    * Handle the mouse leave event for a mesh.
    * This is used to trigger the `mouseleave` event for the item by WebGLRenderManager.
    * @internal
+   * @private
    * @see {WebGLRenderManager#handleMouseMove}
    * @param event - The event data
    */
@@ -220,6 +303,14 @@ export class Layer3D implements Layer3DInternalApi {
     }
   }
 
+  /**
+   * Handle the mouse down event for a mesh.
+   * This is used to trigger the `mousedown` event for the item by WebGLRenderManager.
+   * @internal
+   * @private
+   * @see {WebGLRenderManager#handleMouseDown}
+   * @param event - The event data
+   */
   [handleMeshMouseDownSymbol](event: Layer3DInternalApiEvent) {
     const item = this.getItem3D(event.meshID);
     if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("mousedown")) {
@@ -227,6 +318,14 @@ export class Layer3D implements Layer3DInternalApi {
     }
   }
 
+  /**
+   * Handle the mouse up event for a mesh.
+   * This is used to trigger the `mouseup` event for the item by WebGLRenderManager.
+   * @internal
+   * @private
+   * @see {WebGLRenderManager#handleMouseUp}
+   * @param event - The event data
+   */
   [handleMeshMouseUpSymbol](event: Layer3DInternalApiEvent) {
     const item = this.getItem3D(event.meshID);
     if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("mouseup")) {
@@ -238,6 +337,7 @@ export class Layer3D implements Layer3DInternalApi {
    * Handle the double click event for a mesh.
    * This is used to trigger the `dblclick` event for the item by WebGLRenderManager.
    * @internal
+   * @private
    * @see {WebGLRenderManager#handleMouseDoubleClick}
    * @param event - The event data
    */
@@ -264,6 +364,7 @@ export class Layer3D implements Layer3DInternalApi {
    * @see {WebGLRenderManager}
    * @param {CustomRenderMethodInput} options - The render options from the map.
    * @internal
+   * @private
    */
   [prepareRenderMethodSymbol](options: CustomRenderMethodInput) {
     if (this.isInZoomRange() === false) {
@@ -330,6 +431,15 @@ export class Layer3D implements Layer3DInternalApi {
     this.camera.projectionMatrix.copy(maplibreMatrix);
   }
 
+  /**
+   * Render the layer. Normally this method is called by the Map instance on every frame to calculate matrices
+   * and update the camera projection matrix.
+   * However, this would require a multiple instances of Three.js renderers, which is not optimal.
+   * So instead we use the `WebGLManagerLayer` to render the layer and return null.
+   * @see {Layer3D#[prepareRenderMethodSymbol]} where all the calculations for the layer are done.
+   * @see {WebGLManagerLayer}
+   * @returns {null}
+   */
   render() {
     return null;
   }

@@ -20,8 +20,9 @@
     "glTF"
   ],
   "scripts": {
-    "biome": "biome check --max-diagnostics=1000",
+    "biome": "tsc --noEmit && biome check --max-diagnostics=1000",
     "biome:fix": "biome check --max-diagnostics=1000 --write",
+    "doc": "rm -rf docs/* && typedoc --entryPoints src/index.ts --out docs && cp -r images docs/",
     "make": "npm run biome:fix && npm run build",
     "build": "npm run build-es; npm run build-umd",
     "build-dev": "NODE_ENV=development npm run build-es; NODE_ENV=development npm run build-umd",
@@ -55,6 +56,7 @@
     "lil-gui": "^0.20.0",
     "lint-staged": "^15.4.3",
     "stats.js": "^0.17.0",
+    "typedoc": "^0.28.13",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
     "vite-plugin-dts": "^4.4.0"

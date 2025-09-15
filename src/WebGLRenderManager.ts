@@ -207,6 +207,12 @@ export class WebGLRenderManager {
     }
   }
 
+  /**
+   * Handle the mouse click event for a mesh and delegate to the correct layer,
+   * which then delegates to the correct Item3D instance which then emits the event.
+   * @see {WebGLRenderManager#handleMouseClick}
+   * @param event - The event data
+   */
   handleMouseClick(event: MapEventType["click"]) {
     if (this.currentRaycastIntersection) {
       const { object, ...intersection } = this.currentRaycastIntersection;
@@ -223,6 +229,12 @@ export class WebGLRenderManager {
     }
   }
 
+  /**
+   * Handle the mouse move event for a mesh and delegate to the correct layer,
+   * which then delegates to the correct Item3D instance which then emits the mouseneter or mouseleave event.
+   * @see {WebGLRenderManager#handleMouseMove}
+   * @param point - The mouse position in screen coordinates.
+   */
   handleMouseMove(point: Point2D) {
     this.pointer.set(point.x, point.y);
 
@@ -257,6 +269,13 @@ export class WebGLRenderManager {
     }
   }
 
+  /**
+   * Handle the mouse double click event for a mesh, and delegate to the correct layer,
+   * which then delegates to the correct Item3D instance which then emits the dblclick event.
+   * NOTE: Dblclick events also fire a two click events for each click.
+   * @see {WebGLRenderManager#handleMouseDoubleClick}
+   * @param event - The event data
+   */
   handleMouseDoubleClick(event: MapEventType["dblclick"]) {
     event.preventDefault();
 
@@ -275,6 +294,12 @@ export class WebGLRenderManager {
     }
   }
 
+  /**
+   * Handle the mouse down event for a mesh and delegate to the correct layer,
+   * which then delegates to the correct Item3D instance which then emits the mousedown event.
+   * @see {WebGLRenderManager#handleMouseDown}
+   * @param event - The event data
+   */
   handleMouseDown(event: MapEventType["mousedown"]) {
     if (this.currentRaycastIntersection) {
       const { object, ...intersection } = this.currentRaycastIntersection;
@@ -291,6 +316,12 @@ export class WebGLRenderManager {
     }
   }
 
+  /**
+   * Handle the mouse up event for a mesh and delegate to the correct layer,
+   * which then delegates to the correct Item3D instance which then emits the mouseup event.
+   * @see {WebGLRenderManager#handleMouseUp}
+   * @param event - The event data
+   */
   handleMouseUp(event: MapEventType["mouseup"]) {
     if (this.currentRaycastIntersection) {
       const { object, ...intersection } = this.currentRaycastIntersection;
