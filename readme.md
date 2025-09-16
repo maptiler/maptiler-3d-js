@@ -310,6 +310,15 @@ export type Item3DMeshUIStateProperties = {
 export type Item3DMeshUIStates = {
   [key in Item3DMeshUIStateName]?: Item3DMeshUIStateProperties;
 };
+
+// example
+const item = layer3D.addMesh('mesh-id', mesh, {
+  opacity: 0.5,
+  states: {
+    hover: { opacity: 1 },
+    active: { scale: [2,2,2] }
+  }
+})
 ```
 
 - Additional options for tweaking models once they are loaded. ** only used in `addMeshFromURL` **
