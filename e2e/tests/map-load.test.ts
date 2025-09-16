@@ -4,7 +4,7 @@ import loadFixtureAndGetMapHandle from "./helpers/loadFixtureAndGetMapHandle";
 
 test("Awaits until map ready and takes snapshot", async ({ page }, testInfo) => {
 
-  const { map } = await loadFixtureAndGetMapHandle({
+  await loadFixtureAndGetMapHandle({
     fixture: "mapLoad",
     page,
   });
