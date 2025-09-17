@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { type LngLatLike, Map, MapStyle, config, math } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Item3D, Layer3D } from "../../src";
 import GUI from "lil-gui";
 
 setupMapTilerApiKey({ config });
@@ -29,13 +29,16 @@ const map = new Map({
   style: MapStyle.AQUARELLE.VIVID,
   center: lakeNatron,
   maxPitch: 85,
-  terrainControl: true,
+  terrainControl: false,
   terrain: false,
   maptilerLogo: true,
   projectionControl: true,
   zoom: 10,
   bearing: 0,
   pitch: 45,
+  attributionControl: {
+    customAttribution: "Model by <a href='https://mirada.com/' target='_blank'>Mirada</a> for <a href='https://experiments.withgoogle.com/3-dreams-of-black' target='_blank'>3 Dreams of Black</a>",
+  }
 });
 
 (async () => {
@@ -60,14 +63,18 @@ const map = new Map({
   // Adding a point light
   layer3D.addPointLight("point-light", { intensity: 30 });
 
-  const originalPlaneID = "flamingo";
+  const flamingoIDOne = "flamingo";
+  const flamingoIDTwo = "flamingo-clone";
 
-  await layer3D.addMeshFromURL(originalPlaneID, "models/Flamingo.glb", {
+  await layer3D.addMeshFromURL(flamingoIDOne,
+    // Model by https://mirada.com/ for https://experiments.withgoogle.com/3-dreams-of-black
+    "models/Flamingo.glb",
+    {
     lngLat: lakeNatron,
     heading: 12,
     scale: 100,
-    altitude: 5000,
-    animationMode: "manual",
+    altitude: 5500,
+    animationMode: "continuous",
     altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
     transform: {
       rotation: {
@@ -78,7 +85,7 @@ const map = new Map({
       offset: {
         x: 0,
         y: 0,
-        z: 0,
+        z: -150,
       },
     },
   });
@@ -101,13 +108,6 @@ const map = new Map({
   gui.add(guiObj, fly).onChange((play) => {
     if (play) {
       playAnimation();
-      layer3D.playAnimation(
-        originalPlaneID,
-        animationName,
-        "loop",
-      );
-    } else {
-      layer3D.pauseAnimation(originalPlaneID, animationName);
     }
   });
 
@@ -115,14 +115,44 @@ const map = new Map({
 
   let progress = 0;
 
-  const animationNames = layer3D.getAnimationNames(originalPlaneID);
+  const animationNames = layer3D.getItem3D(flamingoIDOne)?.getAnimationNames();
 
-  const animationName = animationNames[0];
+  const animationName = animationNames?.[0];
+
+  if (!animationName) {
+    throw new Error(`No animation found with name '${animationName}'`);
+  }
+
+  layer3D.cloneMesh(flamingoIDOne, flamingoIDTwo, {
+    animationMode: "manual",
+    transform: {
+      offset: {
+        x: 0,
+        y: 0,
+        z: 300,
+      },
+    },
+  })
+
+  layer3D.getItem3D(flamingoIDOne)?.playAnimation(
+    animationName,
+    "loop",
+  );
+
+  layer3D.getItem3D(flamingoIDTwo)?.playAnimation(
+    animationName,
+    "loop",
+  );
 
   const distance = math.haversineDistanceWgs84(lakeNatron, makadikadi);
 
   const initialHeading = calculateHeading(makadikadi[1], makadikadi[0], lakeNatron[1], lakeNatron[0]);
-  layer3D.modifyMesh(originalPlaneID, { heading: initialHeading });
+
+  const flamingoOneMesh = layer3D.getItem3D(flamingoIDOne) as Item3D;
+  const flamingoTwoMesh = layer3D.getItem3D(flamingoIDTwo) as Item3D;
+
+  flamingoOneMesh.modify({ heading: initialHeading });
+  flamingoTwoMesh.modify({ heading: initialHeading });
 
   function playAnimation() {
     progress += guiObj[speed];
@@ -131,7 +161,7 @@ const map = new Map({
       progress = 0;
     }
 
-    const nextPosition = math.haversineIntermediateWgs84(lakeNatron, makadikadi, progress - guiObj[speed]) as LngLatLike;
+    const nextPosition = math.haversineIntermediateWgs84(lakeNatron, makadikadi, progress - (guiObj[speed] === 0 ? 0.001 : guiObj[speed])) as LngLatLike;
     const position = math.haversineIntermediateWgs84(lakeNatron, makadikadi, progress) as LngLatLike;
 
     const roughHeading = calculateHeading(position[1], position[0], nextPosition[1], nextPosition[0]);
@@ -140,15 +170,17 @@ const map = new Map({
     // to automatically play the animation independently of map updates, set the item
     // animationMode: "continuous"
 
-    layer3D.updateAnimation(originalPlaneID, guiObj[speed] * 50);
+    flamingoTwoMesh.updateAnimation(guiObj[speed] * 50);
+
+    const distanceFromStart = math.haversineDistanceWgs84(lakeNatron, [position[0], position[1]]);
+    const progressPercentage = distanceFromStart / distance;
+
+    flamingoOneMesh.modify({ lngLat: position, heading: roughHeading });
+    flamingoTwoMesh.modify({ lngLat: position, heading: roughHeading });
 
     if (guiObj[migrate]) {
       map.setCenter(position);
-      const distanceFromStart = math.haversineDistanceWgs84(lakeNatron, [position[0], position[1]]);
-      const progressPercentage = distanceFromStart / distance;
       map.setZoom(10 - Math.sin(progressPercentage * Math.PI) * 2);
-      layer3D.modifyMesh(originalPlaneID, { lngLat: position, heading: roughHeading });
-
       map.setBearing(progressPercentage * -45);
     }
 

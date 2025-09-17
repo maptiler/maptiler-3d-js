@@ -7,6 +7,7 @@ declare global {
     __layer3D: Layer3D;
     __pageObjects: Record<string, any>;
     notifyScreenshotStateReady: (data: TTestTransferData) => Promise<void>;
+    notifyTest: (data: TTestTransferData) => Promise<void>;
   }
 
   type TTestTransferData = string | number | boolean | string[] | number[] | boolean[] | null | Record<string, unknown> | [number, number];

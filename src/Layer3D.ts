@@ -1,34 +1,23 @@
-import {
-  type CustomLayerInterface,
-  type Map as MapSDK,
-  type LngLatLike,
-  type CustomRenderMethodInput,
-  LngLat,
-  getVersion,
-} from "@maptiler/sdk";
+import { type Map as MapSDK, type LngLatLike, type CustomRenderMethodInput, LngLat, getVersion } from "@maptiler/sdk";
 
 import { name, version } from "../package.json";
 
 import {
+  type AnimationAction,
+  type Group,
+  type ColorRepresentation,
+  type Points,
+  type PointsMaterial,
+  type AnimationClip,
   Camera,
   Matrix4,
   Mesh,
   Scene,
-  WebGLRenderer,
-  type Group,
   PointLight,
-  type ColorRepresentation,
   AmbientLight,
   Color,
-  type Points,
-  type PointsMaterial,
   AnimationMixer,
-  type AnimationClip,
-  type AnimationAction,
   Clock,
-  LoopOnce,
-  LoopRepeat,
-  LoopPingPong,
   Object3D,
   Vector3,
 } from "three";
@@ -36,243 +25,122 @@ import {
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 import { getTransformationMatrix, isPointLight } from "./utils";
-import { SourceOrientation } from "./types";
-
+import {
+  type Layer3DOptions,
+  type MeshOptions,
+  type AddMeshFromURLOptions,
+  type CloneMeshOptions,
+  type PointLightOptions,
+  type Layer3DInternalAPIInterface,
+  type Layer3DInternalApiEvent,
+  SourceOrientation,
+  AltitudeReference,
+} from "./types";
+import addLayerToWebGLRenderManager, { type WebGLRenderManager } from "./WebGLRenderManager";
+import { EPSILON, USE_DEBUG_LOGS } from "./config";
+import { Item3D } from "./Item3D";
+import {
+  getItem3DEventTypesSymbol,
+  handleMeshClickMethodSymbol,
+  handleMeshDoubleClickMethodSymbol,
+  handleMeshMouseEnterMethodSymbol,
+  handleMeshMouseLeaveMethodSymbol,
+  handleMeshMouseUpSymbol,
+  handleMeshMouseDownSymbol,
+  prepareRenderMethodSymbol,
+} from "./symbols";
 /**
- * The altitude of a mesh can be relative to the ground surface, or to the mean sea level
+ * The Layer3D class is the main class for the 3D layer.
+ * It is used to add meshes to the layer, and to manage the items in the layer.
+ * @example
+ * ```ts
+  const layer3D = new Layer3D("layer-id");
+  map.addLayer(layer3D);
+
+  layer3D.setAmbientLight({ intensity: 2 });
+  layer3D.addPointLight("point-light", { intensity: 30 });
+  layer3D.modifyPointLight("point-light", { intensity: 100 });
+
+  await layer3D.addMeshFromURL("duck", "./models/Duck.glb", {
+    ...state,
+    sourceOrientation: SourceOrientation.Y_UP,
+  });
+```
  */
-export enum AltitudeReference {
+export class Layer3D implements Layer3DInternalAPIInterface {
   /**
-   * Use the ground as a reference point to compute the altitude
+   * The id of the layer, this is used to identify the layer in the map
    */
-  GROUND = 1,
-
-  /**
-   * Uses mean sea level as a reference point to compute the altitude
-   */
-  MEAN_SEA_LEVEL = 2,
-}
-
-/**
- * Generic options that apply to both point lights and meshes
- */
-export type GenericObject3DOptions = {
-  /**
-   * Position.
-   * Default: `[0, 0]` (Null Island)
-   */
-  lngLat?: LngLatLike;
-
-  /**
-   * Altitude above the reference (in meters).
-   * Default: `0` for meshes, or `2000000` for point lights.
-   */
-  altitude?: number;
-
-  /**
-   * Reference to compute and adjust the altitude.
-   * Default: `AltitudeReference.GROUND` for meshes and `AltitudeReference.MEAN_SEA_LEVEL` for point lights.
-   */
-  altitudeReference?: AltitudeReference;
-
-  /**
-   * Make the object visible or not.
-   * Default: `true`
-   */
-  visible?: boolean;
-};
-
-/**
- * Options to add or modify a mesh
- */
-export type MeshOptions = GenericObject3DOptions & {
-  /**
-   * Rotation to apply to the model to add, as a Quaternion.
-   * Default: a rotation of PI/2 around the x axis, to adjust from the default ThreeJS space (right-hand, Y up) to the Maplibre space (right-hand, Z up)
-   */
-  sourceOrientation?: SourceOrientation;
-
-  /**
-   * Scale the mesh by a factor.
-   * Default: no scaling added
-   */
-  scale?: number;
-
-  /**
-   * Heading measured in degrees clockwise from true north.
-   */
-  heading?: number;
-
-  /**
-   * Opacity of the mesh
-   */
-  opacity?: number;
-
-  /**
-   * Point size, applicable only to point clouds.
-   * Default: 1
-   */
-  pointSize?: number;
-
-  /**
-   * Displays a mesh as wireframe if true (does not apply to point cloud)
-   * Default: `false`
-   */
-  wireframe?: boolean;
-
-  /**
-   * Animation mode.
-   * Default: `continuous`
-   */
-  animationMode?: AnimationMode;
-};
-
-export type AddMeshFromURLOptions = MeshOptions & {
-  transform?: {
-    rotation?: {
-      x?: number;
-      y?: number;
-      z?: number;
-    };
-    offset?: {
-      x?: number;
-      y?: number;
-      z?: number;
-    };
-  };
-};
-
-/**
- * Options for adding a point light
- */
-export type PointLightOptions = Omit<GenericObject3DOptions, "id"> & {
-  /**
-   * Light color.
-   * Default: `0xffffff` (white)
-   */
-  color?: ColorRepresentation;
-
-  /**
-   * Intensity of the light.
-   * Default: `75`
-   */
-  intensity?: number;
-
-  /**
-   * Decay of the light relative to the distance to the subject.
-   * Default: `0.5`
-   */
-  decay?: number;
-};
-
-export type SerializedGenericItem = {
-  id: string;
-  isLight: boolean;
-  lngLat: [number, number];
-  altitude: number;
-  altitudeReference: AltitudeReference;
-  visible: boolean;
-  sourceOrientation: SourceOrientation;
-};
-
-export type SerializedMesh = SerializedGenericItem & {
-  url: string;
-  heading: number;
-  scale: number;
-};
-
-export type SerializedPointLight = SerializedGenericItem & {
-  color: string; // hex string
-  intensity: number;
-  decay: number;
-};
-
-export type Layer3DOptions = {
-  /**
-   * Bellow this zoom level, the meshes are not visible
-   * Default: 0
-   */
-  minZoom?: number;
-
-  /**
-   * Beyond this zoom level, the meshes are not visible.
-   * Default: 22
-   */
-  maxZoom?: number;
-
-  /**
-   * Default: true
-   */
-  antialias?: boolean;
-
-  /**
-   * Ambient light color.
-   * Default: `0xffffff` (white)
-   */
-  ambientLightColor?: ColorRepresentation;
-
-  /**
-   * Ambient light intensity.
-   * Default: `1`
-   */
-  ambientLightIntensity?: number;
-};
-
-export type Item3D = {
-  id: string;
-  mesh: Mesh | Group | Object3D | null;
-  lngLat: LngLat;
-  altitude: number;
-  scale: number;
-  heading: number;
-  sourceOrientation: SourceOrientation;
-  altitudeReference: AltitudeReference;
-  url: string | null;
-  opacity: number;
-  pointSize: number;
-  wireframe: boolean;
-  additionalTransformationMatrix: Matrix4;
-  elevation: number;
-  animationMixer?: AnimationMixer;
-  animations?: Record<string, AnimationAction>;
-  animationMode: AnimationMode;
-};
-
-// An epsilon to make sure the reference anchor point is not exactly at the center of the viewport, but still very close.
-// This is because ThreeJS light shaders were messed up with reference point in the center.
-// This issue is only happening because we are doing the projection matrix trick, otherwise we wouldn't bother with epsilon
-const EPSILON = 0.01;
-
-const USE_DEBUG_LOGS: boolean = false;
-
-const AnimationLoopOptionsMap = {
-  once: LoopOnce,
-  loop: LoopRepeat,
-  pingPong: LoopPingPong,
-};
-
-export type AnimationLoopOptions = keyof typeof AnimationLoopOptionsMap;
-
-export type AnimationMode = "continuous" | "manual";
-
-export class Layer3D implements CustomLayerInterface {
   public readonly id: string;
+
+  /**
+   * The type of the layer, this is used to identify the layer in the map
+   * @see {CustomLayerInterface#type} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#type
+   */
   public readonly type = "custom";
+  /**
+   * The rendering mode of the layer, this is used to identify the layer in the map
+   * @see {CustomLayerInterface#renderingMode} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#renderingmode
+   */
   public readonly renderingMode: "2d" | "3d" = "3d";
+
+  /**
+   * The map instance of the layer
+   * @see {MapSDK} https://docs.maptiler.com/sdk-js/api/map/#map
+   */
   private map!: MapSDK;
 
+  /**
+   * The minimum zoom of the layer
+   * @see {CustomLayerInterface#minZoom} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#minzoom
+   */
   public minZoom: number;
+  /**
+   * The maximum zoom of the layer
+   * @see {CustomLayerInterface#maxZoom} https://maplibre.org/maplibre-gl-js/docs/API/interfaces/CustomLayerInterface/#maxzoom
+   */
   public maxZoom: number;
-  private antialias: boolean;
 
-  private clock = new Clock();
-  private renderer!: WebGLRenderer;
+  /**
+   * The renderer instance of the layer
+   * @see {WebGLRenderManager} https://docs.maptiler.com/sdk-js/api/webglrendermanager/#webglrendermanager
+   */
+  private renderer!: WebGLRenderManager;
+  /**
+   * The three.js clock instance of the layer. Used internally for animations.
+   * @see {Clock} https://threejs.org/docs/#api/en/core/Clock
+   */
+  public readonly clock = new Clock();
+  /**
+   * The three.js scene instance of the layer.
+   * @see {Scene} https://threejs.org/docs/#api/en/scenes/Scene
+   */
   private readonly scene: Scene;
+  /**
+   * The three.js camera instance of the layer.
+   * @see {Camera} https://threejs.org/docs/#api/en/cameras/Camera
+   */
   private readonly camera: Camera;
+  /**
+   * The three.js ambient light instance of the layer.
+   * @see {AmbientLight} https://threejs.org/docs/#api/en/lights/AmbientLight
+   */
   private readonly ambientLight: AmbientLight;
+  /**
+   * The map of the items in the layer.
+   */
 
   private readonly items3D = new Map<string, Item3D>();
+  /**
+   * The callbacks to unsubscribe when the layer is removed.
+   * This is used to unsubscribe from internal events.
+   * @see {Array} https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+   */
   private onRemoveCallbacks: Array<() => void> = [];
+  /**
+   * Whether the elevation needs to be updated.
+   * This is used to update the elevation of the items in the layer.
+   */
   private isElevationNeedUpdate = false;
 
   constructor(id: string, options: Layer3DOptions = {}) {
@@ -289,8 +157,6 @@ export class Layer3D implements CustomLayerInterface {
     this.minZoom = options.minZoom ?? Number.NEGATIVE_INFINITY;
     this.maxZoom = options.maxZoom ?? 22;
 
-    this.antialias = options.antialias ?? true;
-
     this.camera = new Camera();
     this.camera.matrixWorldAutoUpdate = false;
 
@@ -299,8 +165,6 @@ export class Layer3D implements CustomLayerInterface {
     this.ambientLight = new AmbientLight(options.ambientLightColor ?? 0xffffff, options.ambientLightIntensity ?? 0.5);
 
     this.scene.add(this.ambientLight);
-
-    this.animate = this.animate.bind(this);
   }
 
   /**
@@ -319,14 +183,13 @@ export class Layer3D implements CustomLayerInterface {
 
     this.map = map;
 
-    this.renderer = new WebGLRenderer({
-      canvas: map.getCanvas(),
-      context: gl,
-      antialias: this.antialias,
-      powerPreference: "high-performance",
+    this.renderer = addLayerToWebGLRenderManager({
+      map,
+      gl,
+      layer: this,
+      scene: this.scene,
+      camera: this.camera,
     });
-
-    this.renderer.autoClear = false;
 
     const { unsubscribe: unsubscribeOnTerrainAnimationStart } = this.map.on("terrainAnimationStart", () => {
       this.isElevationNeedUpdate = true;
@@ -344,7 +207,7 @@ export class Layer3D implements CustomLayerInterface {
    */
   onRemove?(_map: MapSDK, _gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     this.clear();
-    this.renderer.dispose();
+    this.renderer.dispose(this.id);
 
     for (const callback of this.onRemoveCallbacks) {
       callback();
@@ -354,10 +217,158 @@ export class Layer3D implements CustomLayerInterface {
   }
 
   /**
-   * Automaticaly called by the rendering engine. (should not be called manually)
+   * Get the map instance of the layer.
+   * @returns {MapSDK} The map instance
    */
-  render(_gl: WebGLRenderingContext | WebGL2RenderingContext, options: CustomRenderMethodInput) {
+  public getMapInstance(): MapSDK {
+    return this.map;
+  }
+
+  /**
+   * Get the renderer instance of the layer. This is internally for animations and batch rendering layers.
+   * @returns {WebGLRenderManager} The renderer instance
+   */
+  public getRendererInstance(): WebGLRenderManager {
+    return this.renderer;
+  }
+
+  /**
+   * Handle the click event for a mesh
+   * This is used to trigger the `click` event for the item by WebGLRenderManager.
+   * @see {WebGLRenderManager#handleMouseClick}
+   * @param event - The event data
+   * @internal
+   */
+  [handleMeshClickMethodSymbol](event: Layer3DInternalApiEvent) {
+    const item = this.getItem3D(event.meshID);
+    // to make sure that the item has a listener and we don't just trigger the event anyway
+    if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("click")) {
+      const eventData = {
+        intersection: event.intersection,
+        lngLat: event.lngLat,
+        point: event.point,
+        meshID: event.meshID,
+        layerID: event.layerID,
+        item,
+      };
+      item.fire("click", eventData);
+    }
+  }
+
+  /**
+   * Handle the mouse enter event for a mesh.
+   * This is used to trigger the `mouseenter` event for the item by WebGLRenderManager.
+   * @internal
+   * @private
+   * @see {WebGLRenderManager#handleMouseMove}
+   * @param event - The event data
+   */
+  [handleMeshMouseEnterMethodSymbol](event: Layer3DInternalApiEvent) {
+    const item = this.getItem3D(event.meshID);
+    // to make sure that the item has a listener and we don't just trigger the event anyway
+    if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("mouseenter")) {
+      const eventData = {
+        intersection: event.intersection,
+        lngLat: event.lngLat,
+        point: event.point,
+        meshID: event.meshID,
+        layerID: event.layerID,
+        item,
+      };
+      item.fire("mouseenter", eventData);
+    }
+  }
+
+  /**
+   * Handle the mouse leave event for a mesh.
+   * This is used to trigger the `mouseleave` event for the item by WebGLRenderManager.
+   * @internal
+   * @private
+   * @see {WebGLRenderManager#handleMouseMove}
+   * @param event - The event data
+   */
+  [handleMeshMouseLeaveMethodSymbol](event: Layer3DInternalApiEvent) {
+    const item = this.getItem3D(event.meshID);
+    // to make sure that the item has a listener and we don't just trigger the event anyway
+    if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("mouseleave")) {
+      const eventData = {
+        intersection: event.intersection,
+        lngLat: event.lngLat,
+        point: event.point,
+        meshID: event.meshID,
+        layerID: event.layerID,
+        item,
+      };
+      item.fire("mouseleave", eventData);
+    }
+  }
+
+  /**
+   * Handle the mouse down event for a mesh.
+   * This is used to trigger the `mousedown` event for the item by WebGLRenderManager.
+   * @internal
+   * @private
+   * @see {WebGLRenderManager#handleMouseDown}
+   * @param event - The event data
+   */
+  [handleMeshMouseDownSymbol](event: Layer3DInternalApiEvent) {
+    const item = this.getItem3D(event.meshID);
+    if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("mousedown")) {
+      item.fire("mousedown", event);
+    }
+  }
+
+  /**
+   * Handle the mouse up event for a mesh.
+   * This is used to trigger the `mouseup` event for the item by WebGLRenderManager.
+   * @internal
+   * @private
+   * @see {WebGLRenderManager#handleMouseUp}
+   * @param event - The event data
+   */
+  [handleMeshMouseUpSymbol](event: Layer3DInternalApiEvent) {
+    const item = this.getItem3D(event.meshID);
+    if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("mouseup")) {
+      item.fire("mouseup", event);
+    }
+  }
+
+  /**
+   * Handle the double click event for a mesh.
+   * This is used to trigger the `dblclick` event for the item by WebGLRenderManager.
+   * @internal
+   * @private
+   * @see {WebGLRenderManager#handleMouseDoubleClick}
+   * @param event - The event data
+   */
+  [handleMeshDoubleClickMethodSymbol](event: Layer3DInternalApiEvent) {
+    const item = this.getItem3D(event.meshID);
+    // to make sure that the item has a listener and we don't just trigger the event anyway
+    if (item?.mesh === event.object && item[getItem3DEventTypesSymbol]().includes("dblclick")) {
+      const eventData = {
+        intersection: event.intersection,
+        lngLat: event.lngLat,
+        point: event.point,
+        meshID: event.meshID,
+        layerID: event.layerID,
+        item,
+      };
+      item.fire("dblclick", eventData);
+    }
+  }
+
+  /**
+   * Prepare the render of the layer. This is called externally by the `WebGLManagerLayer`.
+   * This is equivalent to the `render` method in a MapLibre GL JS layer.
+   * The difference being it merely prepares state for the render in `WebGLRenderManager`.
+   * @see {WebGLRenderManager}
+   * @param {CustomRenderMethodInput} options - The render options from the map.
+   * @internal
+   * @private
+   */
+  [prepareRenderMethodSymbol](options: CustomRenderMethodInput) {
     if (this.isInZoomRange() === false) {
+      console.log("isInZoomRange", this.isInZoomRange());
       return;
     }
 
@@ -389,7 +400,7 @@ export class Layer3D implements CustomLayerInterface {
 
         if (item.altitudeReference === AltitudeReference.GROUND) {
           if (this.isElevationNeedUpdate === true) {
-            item.elevation = this.map.queryTerrainElevation(item.lngLat) || 0;
+            item.setElevation(this.map.queryTerrainElevation(item.lngLat) || 0);
           }
 
           modelAltitude += item.elevation;
@@ -416,10 +427,21 @@ export class Layer3D implements CustomLayerInterface {
     const matrix = options.defaultProjectionData.mainMatrix;
     const m = new Matrix4().fromArray(matrix);
 
-    this.camera.projectionMatrix = m.multiply(sceneMatrix);
-    this.renderer.resetState();
+    const maplibreMatrix = m.multiply(sceneMatrix);
+    this.camera.projectionMatrix.copy(maplibreMatrix);
+  }
 
-    this.renderer.render(this.scene, this.camera);
+  /**
+   * Render the layer. Normally this method is called by the Map instance on every frame to calculate matrices
+   * and update the camera projection matrix.
+   * However, this would require a multiple instances of Three.js renderers, which is not optimal.
+   * So instead we use the `WebGLManagerLayer` to render the layer and return null.
+   * @see {Layer3D#[prepareRenderMethodSymbol]} where all the calculations for the layer are done.
+   * @see {WebGLManagerLayer}
+   * @returns {null}
+   */
+  render() {
+    return null;
   }
 
   /**
@@ -442,15 +464,14 @@ export class Layer3D implements CustomLayerInterface {
    * Add an existing mesh to the map
    * @param id - The ID of the mesh
    * @param options - The options to add the mesh with
-   * @returns {Layer3D} The layer
+   * @returns {Item3D} The item
    */
   public addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {}) {
-    this.addMeshInternal({
+    return this.addMeshInternal({
       ...options,
       id,
       mesh,
     });
-    return this;
   }
   /**
    * Add an existing mesh to the map, with options.
@@ -468,13 +489,18 @@ export class Layer3D implements CustomLayerInterface {
   }: MeshOptions & { id: string; mesh: Mesh | Group | Object3D; animations?: AnimationClip[] }) {
     this.throwUniqueID(id);
 
+    mesh.name = mesh.name ?? id;
+
+    mesh.userData.meshID = id;
+    mesh.userData.layerID = this.id;
+
     const sourceOrientation = options.sourceOrientation ?? SourceOrientation.Y_UP;
     const altitude = options.altitude ?? 0;
     const lngLat = options.lngLat ?? [0, 0];
     const heading = options.heading ?? 0;
     const visible = options.visible ?? true;
     const opacity = options.opacity ?? 1;
-    const scale = options.scale ?? 1;
+    const scale = options.scale ?? [1, 1, 1];
     const pointSize = options.pointSize ?? 1;
     const wireframe = options.wireframe ?? false;
 
@@ -490,7 +516,11 @@ export class Layer3D implements CustomLayerInterface {
       this.setMeshWireframe(mesh, wireframe);
     }
 
-    const additionalTransformationMatrix = getTransformationMatrix(scale, heading, sourceOrientation);
+    const additionalTransformationMatrix = getTransformationMatrix(
+      scale as [number, number, number],
+      heading,
+      sourceOrientation,
+    );
     const elevation = this.map.queryTerrainElevation(lngLat) || 0;
 
     const mixer = new AnimationMixer(mesh);
@@ -505,7 +535,7 @@ export class Layer3D implements CustomLayerInterface {
         )
       : {};
 
-    const item: Item3D = {
+    const item = new Item3D(this, {
       id,
       lngLat: LngLat.convert(lngLat),
       altitude,
@@ -520,10 +550,13 @@ export class Layer3D implements CustomLayerInterface {
       wireframe: wireframe,
       additionalTransformationMatrix,
       elevation,
-      animations: animationMap,
+      animationMap,
+      animationClips: animations,
       animationMixer: mixer,
       animationMode: options.animationMode ?? "continuous",
-    };
+      states: options.states ?? {},
+      userData: options.userData ?? {},
+    });
 
     this.items3D.set(id, item);
 
@@ -533,201 +566,11 @@ export class Layer3D implements CustomLayerInterface {
 
     this.map.triggerRepaint();
 
-    return this;
+    return item;
   }
 
-  /**
-   * Play an animation
-   * @param meshId - The ID of the mesh
-   * @param animationName - The name of the animation to play
-   * @param {AnimationLoopOptions} loop - The loop type of the animation, can either be "loop", "once" or "pingPong"
-   */
-  public playAnimation(meshId: string, animationName: string, loop?: AnimationLoopOptions) {
-    const item = this.items3D.get(meshId);
-    if (!item) return;
-    if (!item.mesh) return;
-
-    const animation = item.animations?.[animationName] ?? null;
-
-    if (!animation) return;
-
-    animation.play();
-    animation.paused = false;
-
-    if (loop) {
-      const loopType = AnimationLoopOptionsMap[loop];
-      animation.loop = loopType ?? null;
-    }
-
-    if (item.animationMode === "continuous") {
-      this.renderer.setAnimationLoop(() => this.animate());
-    }
-
-    return this;
-  }
-
-  /**
-   * Get an animation by name
-   * @param meshId - The ID of the mesh
-   * @param animationName - The name of the animation to get
-   * @returns {AnimationAction | null} The animation action or null if not found
-   */
-  public getAnimation(meshId: string, animationName: string): AnimationAction | null {
-    const item = this.items3D.get(meshId);
-    if (!item) return null;
-    if (!item.mesh) return null;
-    return item.animations?.[animationName] ?? null;
-  }
-
-  /**
-   * Pause an animation
-   * @param meshId - The ID of the mesh
-   * @param animationName - The name of the animation to pause
-   */
-  pauseAnimation(meshId: string, animationName: string) {
-    const item = this.items3D.get(meshId);
-    if (!item) return;
-    if (!item.mesh) return;
-
-    const animation = item.animations?.[animationName] ?? null;
-
-    if (!animation) return;
-
-    animation.paused = true;
-
-    return this;
-  }
-
-  /**
-   * Get the names of the animations of a mesh
-   * @param meshId - The ID of the mesh
-   * @returns {string[]} The names of all the animations of the mesh
-   */
-  public getAnimationNames(meshId: string): string[] {
-    const item = this.items3D.get(meshId);
-    if (!item) return [];
-    if (!item.mesh) return [];
-
-    return Object.keys(item.animations ?? {});
-  }
-
-  /**
-   * Update the animation of a mesh by a delta time
-   * @param meshId - The ID of the mesh
-   * @param delta - The delta time to update the animation by
-   */
-  public updateAnimation(meshId: string, delta = 0.02) {
-    const item = this.items3D.get(meshId);
-    if (!item) return;
-
-    if (!item.mesh) return;
-    if (!item.animationMixer) return;
-    const mixer = item.animationMixer;
-
-    if (!mixer) return;
-
-    mixer.update(delta);
-    this.map.triggerRepaint();
-  }
-
-  /**
-   * Set the time of an animation to a specific time
-   * @param meshId - The ID of the mesh
-   * @param time - The time to set the animation to
-   */
-  public setAnimationTime(meshId: string, time: number) {
-    const item = this.items3D.get(meshId);
-    if (!item) return;
-    if (!item.mesh) return;
-    if (!item.animationMixer) return;
-    const mixer = item.animationMixer;
-    if (!mixer) return;
-
-    mixer.setTime(time);
-    this.map.triggerRepaint();
-  }
-
-  /**
-   * The callback used to animate the scene
-   * @private
-   * @param manual - Whether the animation is being called manually or by the renderer
-   */
-  private animate(manual = false) {
-    const delta = manual ? 0.001 : this.clock.getDelta();
-    let someItemsHaveContinuousAnimation = false;
-    for (const [_, item] of this.items3D) {
-      if (item.animationMixer) {
-        item.animationMixer.update(delta);
-      }
-
-      if (item.animationMode === "continuous") {
-        someItemsHaveContinuousAnimation = true;
-      }
-    }
-    if (someItemsHaveContinuousAnimation) {
-      this.map.triggerRepaint();
-    }
-  }
-  /**
-   * Modify an existing mesh. The provided options will overwrite
-   * their current state, the omited ones will remain the same.
-   * @param id - The ID of the mesh
-   * @param options - The options to modify the mesh with
-   */
-  modifyMesh(id: string, options: Partial<MeshOptions> = {}) {
-    const item = this.items3D.get(id);
-    if (!item) return;
-    if (!item.mesh) return;
-
-    let isTransformNeedUpdate = false;
-
-    if (typeof options.visible === "boolean") {
-      item.mesh.visible = options.visible;
-    }
-
-    if ("lngLat" in options) {
-      item.lngLat = LngLat.convert(options.lngLat as LngLatLike);
-      item.elevation = this.map.queryTerrainElevation(item.lngLat) || 0;
-    }
-
-    if (typeof options.scale === "number") {
-      item.scale = options.scale;
-      isTransformNeedUpdate = true;
-    }
-
-    if (typeof options.altitude === "number") {
-      item.altitude = options.altitude;
-    }
-
-    if (typeof options.altitudeReference === "number") {
-      item.altitudeReference = options.altitudeReference;
-      item.elevation = this.map.queryTerrainElevation(item.lngLat) || 0;
-    }
-
-    if (typeof options.heading === "number") {
-      item.heading = options.heading;
-      isTransformNeedUpdate = true;
-    }
-
-    if (isTransformNeedUpdate === true) {
-      item.additionalTransformationMatrix = getTransformationMatrix(item.scale, item.heading, item.sourceOrientation);
-    }
-
-    if (typeof options.opacity === "number") {
-      this.setMeshOpacity(item.mesh, options.opacity, false);
-    }
-
-    if (typeof options.pointSize === "number") {
-      this.setMeshPointSize(item.mesh, options.pointSize);
-    }
-
-    if (typeof options.wireframe === "boolean") {
-      this.setMeshWireframe(item.mesh, options.wireframe);
-    }
-
-    this.map.triggerRepaint();
-
-    return this;
+  public getItem3D(id: string): Item3D | null {
+    return this.items3D.get(id) ?? null;
   }
 
   /**
@@ -737,7 +580,7 @@ export class Layer3D implements CustomLayerInterface {
    * @param id - The ID of the cloned mesh
    * @param options - The options to clone the mesh with
    */
-  cloneMesh(sourceId: string, id: string, options: Partial<MeshOptions> = {}) {
+  cloneMesh(sourceId: string, id: string, options: CloneMeshOptions = {}) {
     this.throwUniqueID(id);
     const sourceItem = this.items3D.get(sourceId);
     if (!sourceItem) return;
@@ -760,6 +603,18 @@ export class Layer3D implements CustomLayerInterface {
      */
     const clonedObject = sourceItem.mesh.clone(true);
 
+    const gltfContent = clonedObject.getObjectByName(`${sourceId}_gltfContent_scene`);
+    if (options.transform && gltfContent) {
+      gltfContent.name = `${id}_gltfContent_scene`;
+      const { rotation, offset } = options.transform;
+      if (rotation) {
+        gltfContent.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+      }
+      if (offset) {
+        gltfContent.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
+      }
+    }
+
     clonedObject.traverse((child) => {
       if (child instanceof Mesh) {
         if (Array.isArray(child.material)) {
@@ -774,6 +629,8 @@ export class Layer3D implements CustomLayerInterface {
       ...cloneOptions,
       id,
       mesh: clonedObject,
+      ...(sourceItem.animationClips && { animations: sourceItem.animationClips }),
+      animationMode: sourceItem.animationMode,
     });
   }
 
@@ -840,34 +697,38 @@ export class Layer3D implements CustomLayerInterface {
       throw new Error("Mesh files must be glTF/glb.");
     }
 
-    const loader = new GLTFLoader();
-    const gltfContent = await loader.loadAsync(url);
-    const mesh = options.transform ? new Object3D() : gltfContent.scene;
+    try {
+      const loader = new GLTFLoader();
+      const gltfContent = await loader.loadAsync(url);
+      const mesh = options.transform ? new Object3D() : gltfContent.scene;
 
-    if (options.transform) {
-      const { rotation, offset } = options.transform;
+      if (options.transform) {
+        const { rotation, offset } = options.transform;
+        gltfContent.scene.name = `${id}_gltfContent_scene`;
 
-      mesh.add(gltfContent.scene);
+        mesh.add(gltfContent.scene);
 
-      if (rotation) {
-        gltfContent.scene.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+        if (rotation) {
+          gltfContent.scene.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+        }
+        if (offset) {
+          gltfContent.scene.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
+        }
       }
-      if (offset) {
-        gltfContent.scene.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
-      }
+
+      mesh.userData._originalUrl = url;
+
+      return this.addMeshInternal({
+        animations: gltfContent.animations,
+        ...options,
+        id,
+        mesh,
+        animationMode: options.animationMode ?? "continuous",
+      });
+    } catch (error) {
+      console.error("Error adding mesh from URL", error);
+      throw error;
     }
-
-    mesh.userData._originalUrl = url;
-
-    this.addMeshInternal({
-      animations: gltfContent.animations,
-      ...options,
-      id,
-      mesh,
-      animationMode: options.animationMode ?? "continuous",
-    });
-
-    return this;
   }
 
   /**
