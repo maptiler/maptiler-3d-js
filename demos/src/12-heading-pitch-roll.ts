@@ -20,6 +20,7 @@ async function main() {
     terrain: true,
     maptilerLogo: true,
     projectionControl: true,
+    customAttribution: "<a href='https://sketchfab.com/3d-models/low-poly-biplane-299b3d1efd6b43539d22ccbb4e8680be' target='_blank'>Low Poly Biplane model</a> by <a href='https://sketchfab.com/ElectrikGoat0395' target='_blank'>ElectrikGoat0395</a>",
     zoom: 12.5,
     bearing: 0,
     pitch: 65,
