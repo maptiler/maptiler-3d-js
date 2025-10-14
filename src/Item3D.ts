@@ -44,9 +44,9 @@ export interface Item3DConstructorOptions {
   // the heading of the item
   heading: number;
   // the pitch of the item in degrees
-  pitch: number;
+  pitch?: number;
   // the roll of the item
-  roll: number;
+  roll?: number;
   // the source orientation of the item, can be "y-up" or "z-up"
   sourceOrientation: SourceOrientation;
   // the altitude reference of the item, can be "ground" or "sea"
