@@ -1,5 +1,9 @@
 # MapTiler 3D Models Changelog
-### NEXT (3.0.0)
+
+### NEXT (3.1.0)
+- Dolly system implemented in `Item3D`. 3D items can now have their pitch and roll modified via the `setPitch`, `setRoll`, `modify` methods and by setting UI States.
+
+### 3.0.0
 
 ## ✨ New Features
 - GLTF Models are now animateable 🎬 🚀

@@ -48,6 +48,7 @@ import {
   handleMeshMouseUpSymbol,
   handleMeshMouseDownSymbol,
   prepareRenderMethodSymbol,
+  getItem3DDollySymbol,
 } from "./symbols";
 /**
  * The Layer3D class is the main class for the 3D layer.
@@ -393,7 +394,7 @@ export class Layer3D implements Layer3DInternalAPIInterface {
     const sceneInverseMatrix = sceneMatrix.clone().invert();
 
     for (const [_, item] of this.items3D) {
-      const model = item.mesh;
+      const model = item[getItem3DDollySymbol]();
 
       if (model !== null) {
         let modelAltitude = item.altitude;
@@ -560,9 +561,16 @@ export class Layer3D implements Layer3DInternalAPIInterface {
 
     this.items3D.set(id, item);
 
-    mesh.matrixAutoUpdate = false;
+    const dolly = item[getItem3DDollySymbol]();
+
+    // mesh.matrixAutoUpdate = false;
     mesh.visible = visible;
-    this.scene.add(mesh);
+
+    if (dolly) {
+      dolly.matrixAutoUpdate = false;
+      dolly.visible = visible;
+      this.scene.add(dolly);
+    }
 
     this.map.triggerRepaint();
 
