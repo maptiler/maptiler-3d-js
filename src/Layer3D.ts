@@ -563,7 +563,6 @@ export class Layer3D implements Layer3DInternalAPIInterface {
 
     const dolly = item[getItem3DDollySymbol]();
 
-    // mesh.matrixAutoUpdate = false;
     mesh.visible = visible;
 
     if (dolly) {
