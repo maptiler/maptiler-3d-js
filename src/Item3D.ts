@@ -325,7 +325,7 @@ export class Item3D extends Evented {
 
     this.initDefaultState();
     this.applyTransformUpdate();
-    this.createDollyForMesh()
+    this.createDollyForMesh();
   }
 
   private createDollyForMesh() {
@@ -784,7 +784,7 @@ export class Item3D extends Evented {
    */
   public setPitch(pitchInDegrees: number, cueRepaint = true) {
     // return this;
-    const pitchInRadians = pitchInDegrees * Math.PI / 180;
+    const pitchInRadians = (pitchInDegrees * Math.PI) / 180;
     this.pitch = pitchInRadians;
     const pitchObject = this.dolly?.getObjectByName("pitch");
     // console.log(pitchObject);
@@ -804,7 +804,7 @@ export class Item3D extends Evented {
    */
   public setRoll(roll: number, cueRepaint = true) {
     // return this;
-    const rollInRadians = roll * Math.PI / 180;
+    const rollInRadians = (roll * Math.PI) / 180;
     this.roll = rollInRadians;
     const rollObject = this.dolly?.getObjectByName("roll");
     if (rollObject) {
