@@ -1,13 +1,5 @@
 # MapTiler 3D Models Changelog
 
-### NEXT (3.1.0)
-
-## ✨ New Features
-
-## 🐞 Bug Fixes
-
-## ⚙️ Other
-
 ### 3.0.0
 
 ## ✨ New Features
