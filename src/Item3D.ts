@@ -205,35 +205,16 @@ export class Item3D extends Evented {
   /**
    * The heading of the item, in degrees
    */
-  get heading(): number {
-    return this.heading ?? 0;
-  }
-
-  set heading(_) {
-    console.error("Please use the setHeading method to set the heading of the item");
-  }
-
+  public heading = 0;
   /**
    * The pitch of the item, in degrees
    */
-  get pitch(): number {
-    return this.pitch ?? 0;
-  }
-
-  set pitch(_) {
-    console.error("Please use the setPitch method to set the pitch of the item");
-  }
+  public pitch = 0;
 
   /**
    * The roll of the item, in degrees
    */
-  get roll(): number {
-    return this.roll ?? 0;
-  }
-
-  set roll(_) {
-    console.error("Please use the setRoll method to set the roll of the item");
-  }
+  public roll = 0;
   /**
    * The source orientation of the item, can be "y-up" or "z-up"
    */
