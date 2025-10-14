@@ -72,14 +72,14 @@ async function main() {
     const nextAltitude = 2000 * Math.sin(progress * 8 + 0.1) + PLANE_BASE_ALT;
 
     const pitchInRadians = getPitch(currentAltitude, nextAltitude, position.distanceTo(nextPosition));
-    const pitch = pitchInRadians * 180 / Math.PI;
+    const pitch = radiansToDegrees(pitchInRadians);
     biplaneOne.setPitch(pitch);
     biplaneOne.setAltitude(currentAltitude);
 
     biplaneOne.setLngLat(position);
 
-    biplaneOne.setHeading(getHeading(startLngLat, endLngLat) * 180 / Math.PI);
-    biplaneOne.setRoll(50 * progress * 180 / Math.PI);
+    biplaneOne.setHeading(radiansToDegrees(getHeading(startLngLat, endLngLat)));
+    biplaneOne.setRoll(radiansToDegrees(50 * progress));
   }
 
   function updateBiPlaneTwo() {
@@ -133,6 +133,10 @@ function getPitch(startAltitude: number, endAltitude: number, distance: number):
 
 function getHeading(startLngLat: LngLat, endLngLat: LngLat): number {
   return Math.atan2(endLngLat.lng - startLngLat.lng, endLngLat.lat - startLngLat.lat);
+}
+
+function radiansToDegrees(radians: number): number {
+  return radians * 180 / Math.PI;
 }
 
 

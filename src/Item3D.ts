@@ -25,7 +25,7 @@ import {
   SourceOrientation,
   item3DStatePropertiesNames,
 } from "./types";
-import { getTransformationMatrix } from "./utils";
+import { degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
 import { getItem3DEventTypesSymbol, getItem3DDollySymbol } from "./symbols";
 import { USE_DEBUG_LOGS } from "./config";
@@ -783,13 +783,10 @@ export class Item3D extends Evented {
    * @returns {Item3D} The item
    */
   public setPitch(pitchInDegrees: number, cueRepaint = true) {
-    // return this;
-    const pitchInRadians = (pitchInDegrees * Math.PI) / 180;
-    this.pitch = pitchInRadians;
+    this.pitch = pitchInDegrees;
     const pitchObject = this.dolly?.getObjectByName("pitch");
-    // console.log(pitchObject);
     if (pitchObject) {
-      pitchObject.rotation.x = pitchInRadians;
+      pitchObject.rotation.x = degreesToRadians(pitchInDegrees);
     }
 
     if (cueRepaint) this.cueUpdate();
@@ -802,13 +799,11 @@ export class Item3D extends Evented {
    * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
    * @returns {Item3D} The item
    */
-  public setRoll(roll: number, cueRepaint = true) {
-    // return this;
-    const rollInRadians = (roll * Math.PI) / 180;
-    this.roll = rollInRadians;
+  public setRoll(rollInDegrees: number, cueRepaint = true) {
+    this.roll = rollInDegrees;
     const rollObject = this.dolly?.getObjectByName("roll");
     if (rollObject) {
-      rollObject.rotation.z = rollInRadians;
+      rollObject.rotation.z = degreesToRadians(rollInDegrees);
     }
     if (cueRepaint) this.cueUpdate();
     return this;
