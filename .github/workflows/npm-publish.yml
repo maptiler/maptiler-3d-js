@@ -59,6 +59,5 @@ jobs:
           r2-access-key-id: ${{ secrets.CDN_MAPTILER_ACCESS_KEY_ID }}
           r2-secret-access-key: ${{ secrets.CDN_MAPTILER_SECRET_ACCESS_KEY }}
           r2-bucket: cdn-storage
-          source-dir: cdn-folder
-          destination-dir: build/
-          destination-file-name: /maptiler-3d-js/v${{ env.PACKAGE_VERSION }}/
+          source-dir: build
+          destination-dir: /maptiler-3d-js/v${{ env.PACKAGE_VERSION }}/
