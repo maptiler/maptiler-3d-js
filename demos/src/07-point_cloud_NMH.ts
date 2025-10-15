@@ -1,6 +1,6 @@
 import "@maptiler/sdk/style.css";
 import { Map, MapStyle, config } from "@maptiler/sdk";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Layer3D } from "../../src";
 import GUI from "lil-gui";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
 
@@ -49,7 +49,7 @@ const map = new Map({
   const meshId = "some-mesh";
   await layer3D.addMeshFromURL(
     meshId,
-    // https://sketchfab.com/3d-models/hintze-hall-nhm-london-point-cloud-be909aa8afa545118be6d36397529e2f
+     // https://sketchfab.com/3d-models/hintze-hall-nhm-london-point-cloud-be909aa8afa545118be6d36397529e2f
     "models/hintze_hall_nhm_london_point_cloud.glb",
     {
       lngLat: [-0.17642900347709656, 51.496198574865645],
@@ -67,11 +67,12 @@ const map = new Map({
     fov: map.transform.fov,
   };
 
+  const item = layer3D.getItem3D(meshId);
   gui.add(guiObj, "opacity", 0, 1).onChange((opacity) => {
-    layer3D.modifyMesh(meshId, { opacity });
+    item?.setOpacity(opacity);
   });
 
   gui.add(guiObj, "pointSize", 0, 20, 0.1).onChange((pointSize) => {
-    layer3D.modifyMesh(meshId, { pointSize });
+    item?.setPointSize(pointSize);
   });
 })();

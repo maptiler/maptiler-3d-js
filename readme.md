@@ -31,6 +31,12 @@ With this MapTiler SDK module, you can add 3D objects to your basemap with plent
 
 [![](images/nhm.jpeg)Display a point cloud 3D building model on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
 
+[![](images/flamingos.gif)Import and play GLTF animations from GLTF files](/demos/src/09-gltf-animations.ts)
+
+[![](images/ui-events.gif)Listen for mouse events on 3D objects](/demos//src/10-item3D-mouse-events.ts)
+
+[Apply declarative UI 'states' to 3D objects](/demos/src/11-item3D-UI-states.ts)
+
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
 ```shell
@@ -47,6 +53,11 @@ import * as maptiler3d from "@maptiler/3d";
 From CDN and using the UMD bundle, in the `<head></head>` section of your HTML file:
 ```html
 <script src="https://cdn.maptiler.com/maptiler-3d/v1.0.0/maptiler-3d.umd.js"></script>
+```
+
+To generate the typedoc documentation and serve them locally:
+```shell
+npm run doc && npx http-server docs
 ```
 
 With the UMD bundle (on CDN), the namespace for this project is `maptiler3d`. So the `layer3D` class is available at `maptiler3d.Layer3D`.
@@ -74,7 +85,7 @@ Once created and added, a mesh can be added. In this version any *glTF* and thei
 To add a mesh:
 ```ts
 // The call can be awaited for the whole download of the mesh to complete
-await layer3D.addMeshFromURL(
+const item3D = await layer3D.addMeshFromURL(
   // ID to give to this mesh, unique within this Layer3D instance
   "flatiron",
 
@@ -91,6 +102,8 @@ await layer3D.addMeshFromURL(
     altitudeReference: maptiler3d.AltitudeReference.GROUND,
   }
 );
+
+// do stuff with the item 3D...
 ```
 
 Here are all the options for meshes:
@@ -99,11 +112,14 @@ Here are all the options for meshes:
 - `altitudeReference` reference point of altitude (ground or mean sea level)
 - `visible` whether the mesh is visible
 - `sourceOrientation` applies a correction from the original orientation of the mesh
-- `scale` scaling factor applied to the mesh
+- `scale` scaling factor applied to the mesh. Can be a single number for uniform scaling, or an array of three numbers `[x, y, z]` for non-uniform scaling.
 - `heading` orientation in degrees (0-360), where 0 and 360 are true north and 90 is east
 - `opacity` opacity of the mesh. If the mesh is a group of meshes, this is applied to all the child nodes that can deal with transparency
 - `pointSize` applicable only to point clouds, set the size of the points
 - `wireframe` applicable only to non-point cloud, applies a wireframe rendering to all the child nodes of the mesh that are compatible with the option
+- `states` a set of properties that will be applied on different UI states (`hover`, `active`/`click`). For instance, a mesh could be scaled up on hover.
+- `userData` a place to store arbitrary data, that can be retrieved at a later stage.
+- `transform` (only for `addMeshFromURL` and `cloneMesh`) a set of props allowing for tweaking of the mesh before it's added to the map. This can be useful if a model internally points in the incorrect direction or if it needs a world space offset without having to tweak LngLat. `{ rotation: { x, y, z }, offset: { x, y, z } }`. These can also be applied when cloning a mesh. *Please Note*: The offset when cloning a mesh is _additive_ not absolute, it will be added to the world position of the _mesh you are cloning_.
 
 ### Reference documentation
 The constructor of the `Layer3D` class takes two arguments:
@@ -216,23 +232,23 @@ type GenericObject3DOptions = {
 
 - Options for adding meshes specifically:
 ```ts
-type MeshOptions = GenericObject3DOptions & {
+export type MeshOptions = GenericObject3DOptions & {
   /**
    * Rotation to apply to the model to add, as a Quaternion.
    * Default: a rotation of PI/2 around the x axis, to adjust from the default ThreeJS space (right-hand, Y up) to the Maplibre space (right-hand, Z up)
    */
-  sourceOrientation?: SourceOrientation,
+  sourceOrientation?: SourceOrientation;
 
   /**
-   * Scale the mesh by a factor.
+   * Scale the mesh by a factor. Can be a single number for uniform scaling, or an array of three numbers `[x, y, z]` for non-uniform scaling.
    * Default: no scaling added
    */
-  scale?: number,
+  scale?: number | [number, number, number];
 
   /**
    * Heading measured in degrees clockwise from true north.
    */
-  heading?: number,
+  heading?: number;
 
   /**
    * Opacity of the mesh
@@ -250,6 +266,78 @@ type MeshOptions = GenericObject3DOptions & {
    * Default: `false`
    */
   wireframe?: boolean;
+
+  /**
+   * Animation mode. How the animation should update.
+   * "manual" puts the responsibility on an external render loop to update.
+   * "continuous" automatically advances the animation with it's on internal animation loop.
+   * Default: `continuous`
+   */
+  animationMode?: AnimationMode;
+
+  /**
+   * A set of properties that will be applied on different UI states (`hover`, `active`/`click`). 
+   * For instance, a mesh could be scaled up on hover.
+   */
+  states?: Item3DMeshUIStates;
+
+  /**
+   * A place to store arbitrary data, that can be retrieved at a later stage.
+   */
+  userData?: Record<string, any>;
+};
+```
+
+- Options for the UI states of a mesh:
+```ts
+// The name of the state. `hover` is triggered on mouse enter/leave, `active` is triggered on mouse down/up.
+export type Item3DMeshUIStateName = "default" | "hover" | "active";
+
+// The properties that can be modified for a given state
+export type Item3DMeshUIStateProperties = {
+  opacity?: number;
+  scale?: number | [number, number, number]; // note: this is _relative scale_ not absolute scale. Eg the scale in comparison to the items current size.
+  transform?: Item3DTransform;
+  heading?: number;
+  altitude?: number;
+  lngLat?: LngLatLike;
+  wireframe?: boolean;
+  pointSize?: number;
+  elevation?: number;
+};
+
+// The object to provide to the `states` option
+export type Item3DMeshUIStates = {
+  [key in Item3DMeshUIStateName]?: Item3DMeshUIStateProperties;
+};
+
+// example
+const item = layer3D.addMesh('mesh-id', mesh, {
+  opacity: 0.5,
+  states: {
+    hover: { opacity: 1 },
+    active: { scale: [2,2,2] }
+  }
+})
+```
+
+- Additional options for tweaking models once they are loaded. ** only used in `addMeshFromURL` **
+```ts
+export type AddMeshFromURLOptions = MeshOptions & {
+  // wraps the object and transforms it accordingly.
+  // useful if your model does not point "north" or is not in the position you need it to be.
+  transform?: {
+    rotation?: {
+      x?: number;
+      y?: number;
+      z?: number;
+    };
+    offset?: {
+      x?: number;
+      y?: number;
+      z?: number;
+    };
+  };
 };
 ```
 
@@ -276,16 +364,16 @@ type PointLightOptions = GenericObject3DOptions & {
 };
 ```
 
-Here is the list of instance methods:
+Here is the list of instance methods of the `Layer3D` class:
 - **`.setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {})`**
 To adjust the settings of the ambient light. The type `ColorRepresentation` means the color can be a `number` (such as a hex notation `0xff0000`, for red), a hex string (such as `"#FF0000"`, for red), or a ThreeJS color ([read more about these here](https://threejs.org/docs/#api/en/math/Color)).
 ℹ️ By default, the ambiant light is white (`0xffffff`) with an intensity of `0.5`.
 
-- **`.addMeshFromURL(id: string, meshURL: string, options: MeshOptions = {})`** *async*
-Adds a mesh from a URL to a glTF of glb file, given a mesh ID (will throw if not unique) and a set of options.
+- **`.addMeshFromURL(id: string, url: string, options: AddMeshFromURLOptions = {})`** *async*
+Adds a mesh from a URL to a glTF of glb file, given a mesh ID (will throw if not unique) and a set of options. This method returns an `Item3D` object that can be modified later on.
 
 - **`.addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {})`**
-Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) and a set of options.
+Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) and a set of options. This method returns a `Promise<Item3D>` object that can be modified later on.
 ℹ️ By default, the mesh will have some settings (if not overwritten by the options):
   * sourceOrientation: `SourceOrientation.Y_UP`
   * altitude: `0`
@@ -293,11 +381,10 @@ Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) a
   * heading: `0`
   * visible: `true`
 
-- **`.modifyMesh(id: string, options: MeshOptions)`**
-Modify the settings of a mesh (scale, lntLat, etc.)
-ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
+- **`.getItem3D(id: string): Item3D | null`**
+Returns the `Item3D` instance for a given ID. This object can be used to modify the mesh's properties and control animations. See the section bellow for the methods of the `Item3D` object.
 
-- **`.cloneMesh(sourceId: string, id: string, options: MeshOptions)`**
+- **`.cloneMesh(sourceId: string, id: string, options: CloneMeshOptions)`**
 Clones a mesh that has a given ID (`sourceId`) and create another one with a new ID (`id`). The provided options will overwrite the settings of the source mesh.
 
 - **`.addPointLight(id: string, options: PointLightOptions = {})`**
@@ -319,6 +406,36 @@ Remove a mesh or point light from the scene and frees the GPU memory associated 
 
 - **`.clear()`**
 Removes all the meshes and point lights from the scene and frees the GPU memory associated with them
+
+### The `Item3D` object
+The `addMesh`, `addMeshFromURL` and `cloneMesh` methods return an `Item3D` object. You can also retrieve it later using `layer.getItem3D(id)`. This object has its own set of methods to modify its properties and control animations.
+
+Here is a list of the most common methods for the `Item3D` object:
+
+- **`.modify(options: Partial<MeshOptions>)`**
+Modify the settings of a mesh (scale, lntLat, etc.)
+ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
+
+- **`.getAnimationNames()`**
+Gets all the animations that were loaded with the model.
+
+- **`.getAnimation(animationName: string)`**
+Get the `AnimationAction` named `animationName`.
+
+- **`.playAnimation(animationName: string, loop: AnimationLoopOptions)`**
+Plays `animationName`. Loop defines how the animation will loop. "loop" loops the animation infinity times; "once" loops it once; "pingPong" plays the animation until the end and then plays it in reverse.
+
+- **`.pauseAnimation(animationName: string)`**
+Pauses `animationName`.
+
+- **`.stopAnimation(animationName: string)`**
+Stops `animationName`.
+
+- **`.updateAnimation(delta = 0.02)`**
+Updates the mesh animations by `delta` seconds. This is only useful when the `animationMode` is set to `manual`.
+
+- **`.setAnimationTime(time: number)`**
+sets the animation to `time` seconds.
 
 ## E2E Testing
 

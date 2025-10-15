@@ -1,7 +1,8 @@
 import "@maptiler/sdk/dist/maptiler-sdk.css";
 import { Map as MapTiler, MapStyle, coordinates, LngLat } from "@maptiler/sdk";
 import { BoxGeometry, Color, DoubleSide, Mesh, MeshBasicMaterial, MeshStandardMaterial } from "three";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { Layer3D } from "../../src/Layer3D";
+import { AltitudeReference } from "../../src/types";
 
 async function main() {
   const map = new MapTiler({
@@ -15,7 +16,6 @@ async function main() {
     pitch: 60,
   });
 
-  //@ts-expect-error
   window.__map = map;
 
   await map.onReadyAsync();
@@ -39,8 +39,7 @@ async function main() {
     scale: 100,
   });
 
-  //@ts-expect-error
-  window.__layer3d = layer3d;
+  window.__layer3D = layer3d;
 }
 
 main();

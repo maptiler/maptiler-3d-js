@@ -1,7 +1,7 @@
 import "@maptiler/sdk/style.css";
 import { Map, MapStyle, config } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Layer3D } from "../../src";
 import GUI from "lil-gui";
 
 setupMapTilerApiKey({ config });
@@ -74,7 +74,7 @@ const map = new Map({
   map.on("mousemove", (e) => {
     if (!planeCanMove) return;
 
-    layer3D.modifyMesh(originalPlaneID, { lngLat: e.lngLat });
+    layer3D.getItem3D(originalPlaneID)?.setLngLat(e.lngLat);
   });
 
   map.on("click", (e) => {
@@ -96,31 +96,31 @@ const map = new Map({
     }
   });
 
+  const planeMesh = layer3D.getItem3D(originalPlaneID);
+
   gui.add(guiObj, "heading", 0, 360, 0.1).onChange((heading) => {
-    layer3D.modifyMesh(originalPlaneID, { heading });
+    planeMesh?.setHeading(heading);
   });
 
   gui.add(guiObj, "scale", 0.01, 1000, 0.01).onChange((scale) => {
-    layer3D.modifyMesh(originalPlaneID, { scale });
+    planeMesh?.setScale(scale);
   });
 
   gui.add(guiObj, "altitude", 0, 10000, 1).onChange((altitude) => {
-    layer3D.modifyMesh(originalPlaneID, { altitude });
+    planeMesh?.setAltitude(altitude);
   });
 
   gui.add(guiObj, "opacity", 0, 1).onChange((opacity) => {
-    layer3D.modifyMesh(originalPlaneID, { opacity });
+    planeMesh?.setOpacity(opacity);
   });
 
   gui.add(guiObj, "altitudeReference", ["MEAN_SEA_LEVEL", "GROUND"]).onChange((altRef: keyof AltitudeReference) => {
     const altitudeReference = AltitudeReference[altRef];
-    layer3D.modifyMesh(originalPlaneID, {
-      altitudeReference,
-    });
+    planeMesh?.setAltitudeReference(altitudeReference);
   });
 
   gui.add(guiObj, "wireframe").onChange((wireframe) => {
-    layer3D.modifyMesh(originalPlaneID, { wireframe });
+    planeMesh?.setWireframe(wireframe);
   });
 
   gui.add(guiObj, "removePlane");

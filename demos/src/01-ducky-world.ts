@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { LngLat, Map, MapStyle, config } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Layer3D } from "../../src";
 import GUI from "lil-gui";
 import { SourceOrientation } from "../../src/types";
 
@@ -29,21 +29,21 @@ function createUI() {
   const actions = {
     addObject: () => {
       currentObjectID = `object-${Math.random()}`;
-      layer3D.cloneMesh(TEMPLATE_OBJECT_ID, currentObjectID, {});
+      layer3D.cloneMesh(TEMPLATE_OBJECT_ID, currentObjectID);
     },
   };
 
   gui
     .add(state, "heading", 0, 360, 0.1)
     .onChange((value) => {
-      layer3D.modifyMesh(TEMPLATE_OBJECT_ID, { heading: value });
+      layer3D.getItem3D(TEMPLATE_OBJECT_ID)?.setHeading(value);
     })
     .name("Heading");
 
   gui
     .add(state, "altitudeReference", { GROUND: 1, MEAN_SEA_LEVEL: 2 })
     .onChange((value) => {
-      layer3D.modifyMesh(TEMPLATE_OBJECT_ID, { altitudeReference: value });
+      layer3D.getItem3D(TEMPLATE_OBJECT_ID)?.setAltitudeReference(value);
 
       if (value === AltitudeReference.GROUND) {
         altitudeController.setValue(0);
@@ -59,14 +59,14 @@ function createUI() {
   const altitudeController = gui
     .add(state, "altitude", 0, 10000, 1)
     .onChange((value) => {
-      layer3D.modifyMesh(TEMPLATE_OBJECT_ID, { altitude: value });
+      layer3D.getItem3D(TEMPLATE_OBJECT_ID)?.setAltitude(value);
     })
     .name("Altitude");
 
   gui
     .add(state, "scale", 0, 500000, 1)
     .onChange((value) => {
-      layer3D.modifyMesh(TEMPLATE_OBJECT_ID, { scale: value });
+      layer3D.getItem3D(TEMPLATE_OBJECT_ID)?.setScale(value);
     })
     .name("Scale");
 
@@ -82,7 +82,7 @@ function createUI() {
 
             const lng = Math.random() * 360 - 180;
             const lat = Math.random() * 180 - 90;
-            layer3D.modifyMesh(currentObjectID, { lngLat: { lng, lat } });
+            layer3D.getItem3D(currentObjectID)?.setLngLat(new LngLat(lng, lat));
           }
         },
       },
@@ -143,7 +143,7 @@ const layer3D = new Layer3D("custom-3D-layer");
       return;
     }
 
-    layer3D.modifyMesh(currentObjectID, { lngLat: e.lngLat });
+    layer3D.getItem3D(currentObjectID)?.setLngLat(e.lngLat);
   });
 
   map.on("click", (e) => {
@@ -151,7 +151,7 @@ const layer3D = new Layer3D("custom-3D-layer");
       return;
     }
 
-    layer3D.modifyMesh(currentObjectID, { lngLat: e.lngLat });
+    layer3D.getItem3D(currentObjectID)?.setLngLat(e.lngLat);
     currentObjectID = undefined;
   });
 })();

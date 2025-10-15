@@ -1,6 +1,6 @@
 {
   "name": "@maptiler/3d",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "Add 3D things to your map, plugin for MapTiler SDK",
   "module": "dist/maptiler-3d.js",
   "types": "dist/maptiler-3d.d.ts",
@@ -20,8 +20,9 @@
     "glTF"
   ],
   "scripts": {
-    "biome": "biome check --max-diagnostics=1000",
+    "biome": "tsc --noEmit && biome check --max-diagnostics=1000",
     "biome:fix": "biome check --max-diagnostics=1000 --write",
+    "doc": "rm -rf docs/* && typedoc --entryPoints src/index.ts --out docs && cp -r images docs/",
     "make": "npm run biome:fix && npm run build",
     "build": "npm run build-es; npm run build-umd",
     "build-dev": "NODE_ENV=development npm run build-es; NODE_ENV=development npm run build-umd",
@@ -48,19 +49,20 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@playwright/test": "^1.51.0",
-    "@types/node": "^22.10.5",
+    "@types/node": "^22.18.1",
     "@types/three": "^0.171.0",
     "concurrently": "^9.1.2",
     "husky": "^9.1.7",
     "lil-gui": "^0.20.0",
     "lint-staged": "^15.4.3",
     "stats.js": "^0.17.0",
+    "typedoc": "^0.28.13",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
     "vite-plugin-dts": "^4.4.0"
   },
   "dependencies": {
-    "@maptiler/sdk": "~3.5.0",
+    "@maptiler/sdk": "^3.7.0",
     "lru-cache": "^11.0.2",
     "three": "~0.172.0"
   }

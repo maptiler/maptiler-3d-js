@@ -1,7 +1,7 @@
 import "@maptiler/sdk/style.css";
 import { Map, MapStyle, config } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Layer3D } from "../../src";
 import GUI from "lil-gui";
 
 setupMapTilerApiKey({ config });
@@ -92,14 +92,14 @@ const map = new Map({
 
   // We can change the heading of the latest mesh added
   gui.add(guiObj, "heading", 0, 360, 0.1).onChange((heading) => {
-    layer3D.modifyMesh(latestMeshID, { heading });
+    layer3D.getItem3D(latestMeshID)?.setHeading(heading);
   });
 
   gui.add(guiObj, "scale", 0.01, 10, 0.01).onChange((scale) => {
-    layer3D.modifyMesh(latestMeshID, { scale });
+    layer3D.getItem3D(latestMeshID)?.setScale(scale);
   });
 
   gui.add(guiObj, "altitude", -100, 1000, 1).onChange((altitude) => {
-    layer3D.modifyMesh(latestMeshID, { altitude });
+    layer3D.getItem3D(latestMeshID)?.setAltitude(altitude);
   });
 })();

@@ -72,7 +72,7 @@ export default defineConfig({
        * Changing logged URLs to include the path to the demo directory.
        */
       configureServer: (server) => {
-        const port = server.config.server.port
+        const port = server.config.server?.port
         const urls = Object.values(entrypoints).map((entry) => {
           return `http://localhost:${port}/${entry}`
         })

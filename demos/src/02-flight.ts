@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { type LngLatLike, Map, MapStyle, config, math } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src/Layer3D";
+import { AltitudeReference, Layer3D } from "../../src";
 import GUI from "lil-gui";
 
 // const newYorkCity: [number, number] = [-73.98918779556983, 40.74072950731568];
@@ -104,7 +104,7 @@ const map = new Map({
 
     const roughHeading = calculateHeading(position[1], position[0], nextPosition[1], nextPosition[0]);
 
-    layer3D.modifyMesh(originalPlaneID, { lngLat: position, heading: roughHeading });
+    layer3D.getItem3D(originalPlaneID)?.modify({ lngLat: position, heading: roughHeading });
 
     if (guiObj.tackFlight) {
       map.setCenter(position);
