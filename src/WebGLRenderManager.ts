@@ -13,7 +13,7 @@ import type {
   Point2D,
   PointLike,
 } from "@maptiler/sdk";
-import type { Camera, Intersection, Scene } from "three";
+import type { Camera, Intersection, Object3D, Scene } from "three";
 import { Matrix4, Raycaster, Vector2, Vector3, WebGLRenderer } from "three";
 import type { Layer3D } from "./Layer3D";
 import {
@@ -243,13 +243,17 @@ export class WebGLRenderManager {
 
       if (!intersections[0] && !this.currentRaycastIntersection) return;
 
-      if (this.currentRaycastIntersection?.object === intersections[0]?.object) return;
+      const group = getTopMostAncestorMesh(intersections[0]?.object);
 
-      const { object, ...intersection } = this.currentRaycastIntersection ?? intersections[0];
+      if (this.currentRaycastIntersection?.object === group) return;
+
+      const { object, ...intersection } = this.currentRaycastIntersection ?? { ...intersections[0], object: group };
 
       const methodSymbol = this.currentRaycastIntersection
         ? handleMeshMouseLeaveMethodSymbol
         : handleMeshMouseEnterMethodSymbol;
+
+      if (!object) return;
 
       const mouse = {
         x: this.pointer.x,
@@ -265,7 +269,7 @@ export class WebGLRenderManager {
         point: mouse,
       });
 
-      this.currentRaycastIntersection = intersections[0] || null;
+      this.currentRaycastIntersection = intersections[0] ? { ...intersections[0], object } : null;
     }
   }
 
@@ -363,7 +367,7 @@ export class WebGLRenderManager {
 
     this.raycaster.set(cameraPosition, viewDirection);
 
-    return this.raycaster.intersectObjects(scene.children, true);
+    return this.raycaster.intersectObjects(scene.children);
   }
 
   /**
@@ -492,4 +496,15 @@ export class WebGLManagerLayer implements CustomLayerInterface {
   render(_gl: WebGLRenderingContext | WebGL2RenderingContext, options: CustomRenderMethodInput) {
     this.webGLRenderManager.render(options);
   }
+}
+
+function getTopMostAncestorMesh(object?: Object3D) {
+  if (!object) return null;
+  let objectToActOn = object;
+  object.traverseAncestors((a) => {
+    if (a.userData.meshID) {
+      objectToActOn = a;
+    }
+  });
+  return objectToActOn;
 }
