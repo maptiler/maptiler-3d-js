@@ -23,38 +23,28 @@ async function main() {
   const layer3D = new Layer3D("custom-3D-layer");
   map.addLayer(layer3D);
 
-
   layer3D.setAmbientLight({ intensity: 2 });
   map.on("moveend", (e) => console.log(e.target.getCenter()));
-
 
   layer3D.addPointLight("point-light", { intensity: 30 });
 
   const duck = "duck";
 
-  const itemOne = await layer3D.addMeshFromURL(
-    `${duck}-1`,
-    "models/Duck.glb",
-    {
-      lngLat: LngLat.convert([-0.001, 0]),
-      scale: 20,
-      pitch: 20,
-      altitude: 10,
-      altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
-    },
-  );
+  const itemOne = await layer3D.addMeshFromURL(`${duck}-1`, "models/Duck.glb", {
+    lngLat: LngLat.convert([-0.001, 0]),
+    scale: 20,
+    pitch: 20,
+    altitude: 10,
+    altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
+  });
 
-  const itemTwo = await layer3D.addMeshFromURL(
-    `${duck}-2`,
-    "models/Duck.glb",
-    {
-      lngLat: LngLat.convert([0.001, 0]),
-      scale: 20,
-      pitch: 20,
-      altitude: 10,
-      altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
-    },
-  );
+  const itemTwo = await layer3D.addMeshFromURL(`${duck}-2`, "models/Duck.glb", {
+    lngLat: LngLat.convert([0.001, 0]),
+    scale: 20,
+    pitch: 20,
+    altitude: 10,
+    altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
+  });
 
   function advanceAnimation() {
     itemOne.setPitch(itemOne.pitch + 1);
