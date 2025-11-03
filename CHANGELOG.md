@@ -1,7 +1,16 @@
 # MapTiler 3D Models Changelog
-### NEXT (3.0.0)
+### NEXT (3.1.0)
+
 
 ### 3.0.0
+## ✨ New Features
+- 3D models can now have their pitch and roll changed via convenience methods.
+
+## 🐞 Bug Fixes
+- None
+
+## ⚙️ Other
+
 
 ## ✨ New Features
 - GLTF Models are now animateable 🎬 🚀
