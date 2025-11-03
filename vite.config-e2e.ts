@@ -9,6 +9,7 @@ export default defineConfig({
         basic: 'public/basic.html',
         withModel: 'public/withModel.html',
         withAnimatedModel: 'public/withAnimatedModel.html',
+        withPitchAndRoll: 'public/withPitchAndRoll.html',
       },
     },
   },

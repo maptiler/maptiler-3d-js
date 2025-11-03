@@ -7,3 +7,4 @@ export const prepareRenderMethodSymbol = Symbol("Layer3D::prepareRender");
 export const handleMeshDoubleClickMethodSymbol = Symbol("Layer3D::handleMeshDoubleClick");
 
 export const getItem3DEventTypesSymbol = Symbol("Item3D::getItem3DEventTypes");
+export const getItem3DDollySymbol = Symbol("Item3D::getItem3DDolly");

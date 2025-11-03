@@ -1,13 +1,15 @@
 # MapTiler 3D Models Changelog
+
 ### NEXT (3.1.0)
 
 ## ✨ New Features
-- 3D models can now have their pitch and roll changed via convenience methods.
-
-## 🐞 Bug Fixes
-- None
+- Dolly system implemented in `Item3D`. 3D items can now have their pitch and roll modified via the `setPitch`, `setRoll`, `modify` methods and by setting UI States.
 
 ## ⚙️ Other
+None
+
+## 🐞 Bug Fixes
+None
 
 ### 3.0.0
 

@@ -93,6 +93,16 @@ export type MeshOptions = GenericObject3DOptions & {
   heading?: number;
 
   /**
+   * Pitch measured in degrees.
+   */
+  pitch?: number;
+
+  /**
+   * Roll measured in degrees.
+   */
+  roll?: number;
+
+  /**
    * Opacity of the mesh
    */
   opacity?: number;
@@ -155,6 +165,8 @@ export type Item3DMeshUIStateProperties = {
   scale?: number | [number, number, number];
   transform?: Item3DTransform;
   heading?: number;
+  pitch?: number;
+  roll?: number;
   altitude?: number;
   lngLat?: LngLatLike;
   wireframe?: boolean;
@@ -170,6 +182,8 @@ export const item3DStatePropertiesNames = [
   "scale",
   "transform",
   "heading",
+  "pitch",
+  "roll",
   "altitude",
   "lngLat",
   "wireframe",
