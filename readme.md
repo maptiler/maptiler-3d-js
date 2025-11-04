@@ -37,6 +37,8 @@ With this MapTiler SDK module, you can add 3D objects to your basemap with plent
 
 [Apply declarative UI 'states' to 3D objects](/demos/src/11-item3D-UI-states.ts)
 
+[![](images/biplanes.gif)Change the pitch and roll of 3d items](/demos/src/12-heading-pitch-roll.ts)
+
 ### Installation
 From NPM and using the ES module, in a terminal, in your project:
 ```shell
