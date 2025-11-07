@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import packagejson from './package.json';
 
 export default defineConfig({
   build: {
@@ -12,5 +13,5 @@ export default defineConfig({
       },
     },
   },
-    root: './e2e',
+  root: './e2e',
 });
