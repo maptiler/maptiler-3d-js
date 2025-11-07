@@ -1,5 +1,5 @@
 import type { Map } from "@maptiler/sdk";
-import { JSHandle, Page, expect } from "@playwright/test";
+import { type JSHandle, type Page, expect } from "@playwright/test";
 import path from "path";
 
 interface IloadFixtureAndGetMapHandle {
