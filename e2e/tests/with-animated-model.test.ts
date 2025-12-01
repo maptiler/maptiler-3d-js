@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 import loadFixtureAndGetMapHandle from "./helpers/loadFixtureAndGetMapHandle";
 
+// snapshots take slightly longer on CI so we need to increase the timeout
+test.setTimeout(60000);
+
 test("Loads the page without errors", async ({ page }, testInfo) => {
   const { mapHandle } = await loadFixtureAndGetMapHandle({
     fixture: "withAnimatedModel",
