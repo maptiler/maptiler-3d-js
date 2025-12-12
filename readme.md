@@ -1,45 +1,41 @@
+<img src="images/maptiler-3d-logo.svg" alt="Company Logo" height="32"/>
+
+# 3D objects on MapTiler maps
+
+With this [MapTiler SDK](https://docs.maptiler.com/sdk-js) module, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
+
+![](https://img.shields.io/badge/npm-v3.8.0-f2f6ff?style=for-the-badge&labelColor=D3DBEC&logo=npm&logoColor=333359) ![](https://img.shields.io/badge/-white?style=for-the-badge&logo=javascript)![](https://img.shields.io/badge/-white?style=for-the-badge&logo=typescript) 
+
+---
+
+📖 [Documentation](https://docs.maptiler.com/sdk-js/modules/3d/)  &nbsp;  📦 [NPM Package](https://www.npmjs.com/package/@maptiler/3d)  &nbsp;  🌐 [Website](https://www.maptiler.com/)  &nbsp; 🔑 [Get API Key](https://cloud.maptiler.com/account/keys/)
+
+---
+
+<br>
+
+<details> <summary><b>Table of Contents</b></summary>
+<ul>
+<li><a href="#-installation">Installation</a></li>
+<li><a href="#-basic-usage">Basic Usage</a></li>
+<li><a href="#-related-examples">Examples</a></li>
+<li><a href="#-api-reference">API Reference</a></li>
+<li><a href="#-support">Support</a></li>
+<li><a href="#-contributing">Contributing</a></li>
+<li><a href="#-license">License</a></li>
+<li><a href="#-acknowledgements">Acknowledgements</a></li>
+</ul>
+</details>
+
 <p align="center">
-<a href="https://docs.maptiler.com/sdk-js/modules/3d/">official page →</a><br>
-  <img src="images/maptiler-3d-logo.svg" width="400px">
+<img src="images/plane.jpeg" alt="Demo Screenshot" width="80%"/>
+<br />
+<a href="https://docs.maptiler.com/sdk-js/examples/3d-js-plane/">See live interactive demo</a> 
 </p>
+<br>
 
-<p align="center" style="color: #AAA">
-  Add 3D objects and lighting to your <a href="https://docs.maptiler.com/sdk-js">MapTiler SDK JS</a> maps
-</p>
+## 📦 Installation
 
-<p align="center">
-  <img src="https://cdn.maptiler.com/assets/images/JS-logo.svg" width="20px">
-  <img src="https://cdn.maptiler.com/assets/images/TS-logo.svg" width="20px">
-  <img src="https://img.shields.io/npm/v/@maptiler/3d"></img>
-  <img src="https://img.shields.io/twitter/follow/maptiler?style=social"></img>
-</p>
-
-## 3D objects on MapTiler maps
-With this MapTiler SDK module, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
-
-**Here are some examples:**  
-
-[![](images/plane.jpeg)Add an airplane 3D model to your map using the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-plane/)
-
-[![](images/ducks-and-posts.jpeg)Add multiple 3D models to the map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-multi/)
-
-[![](images/cad.jpeg)Display a building model based on point cloud data on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/) 
-
-[![](images/dundee.jpeg)Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
-
-[![](images/dundee2.jpeg)Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
-
-[![](images/nhm.jpeg)Display a point cloud 3D building model on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
-
-[![](images/flamingos.gif)Import and play GLTF animations from GLTF files](/demos/src/09-gltf-animations.ts)
-
-[![](images/ui-events.gif)Listen for mouse events on 3D objects](/demos//src/10-item3D-mouse-events.ts)
-
-[Apply declarative UI 'states' to 3D objects](/demos/src/11-item3D-UI-states.ts)
-
-[![](images/biplanes.gif)Change the pitch and roll of 3d items](/demos/src/12-heading-pitch-roll.ts)
-
-### Installation
 From NPM and using the ES module, in a terminal, in your project:
 ```shell
 npm install @maptiler/3d
@@ -54,17 +50,15 @@ import * as maptiler3d from "@maptiler/3d";
 
 From CDN and using the UMD bundle, in the `<head></head>` section of your HTML file:
 ```html
-<script src="https://cdn.maptiler.com/maptiler-3d/v1.0.0/maptiler-3d.umd.js"></script>
-```
-
-To generate the typedoc documentation and serve them locally:
-```shell
-npm run doc && npx http-server docs
+<script src="https://cdn.maptiler.com/maptiler-3d/<VERSION>/maptiler-3d.umd.js"></script>
 ```
 
 With the UMD bundle (on CDN), the namespace for this project is `maptiler3d`. So the `layer3D` class is available at `maptiler3d.Layer3D`.
 
-### Basic usage
+<br>
+
+## 🚀 Basic Usage 
+
 An instance of `Layer3D` is a custom type of layer that contain a 3D scene, where multiple 3D meshes and lights can be added. Like any other layer in MapTiler SDK/Maplibre GL JS, it must have an ID and then be added to a `Map` instance:
 
 ```js
@@ -107,6 +101,34 @@ const item3D = await layer3D.addMeshFromURL(
 
 // do stuff with the item 3D...
 ```
+
+## 💡 Related Examples
+
+[![](images/ducks-and-posts.jpeg)Add multiple 3D models to the map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-multi/)
+
+[![](images/cad.jpeg)Display a building model based on point cloud data on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/) 
+
+[![](images/dundee.jpeg)Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
+
+[![](images/dundee2.jpeg)Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
+
+[![](images/nhm.jpeg)Display a point cloud 3D building model on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-nmh/)
+
+[![](images/flamingos.gif)Import and play GLTF animations from GLTF files](/demos/src/09-gltf-animations.ts)
+
+[![](images/ui-events.gif)Listen for mouse events on 3D objects](/demos//src/10-item3D-mouse-events.ts)
+
+[Apply declarative UI 'states' to 3D objects](/demos/src/11-item3D-UI-states.ts)
+
+[![](images/biplanes.gif)Change the pitch and roll of 3d items](/demos/src/12-heading-pitch-roll.ts)
+
+<br>
+
+## 📘 API Reference
+
+For detailed guides, API reference, and advanced examples, visit our comprehensive documentation:
+
+[API documentation](https://docs.maptiler.com/sdk-js/modules/3d/api/)
 
 Here are all the options for meshes:
 - `lngLat` location of the center of the 3D object, as longitude and latitude
@@ -439,13 +461,37 @@ Updates the mesh animations by `delta` seconds. This is only useful when the `an
 - **`.setAnimationTime(time: number)`**
 sets the animation to `time` seconds.
 
-## E2E Testing
+<br>
+
+## 💬 Support
+
+- 📚 [Documentation](https://docs.maptiler.com) - Comprehensive guides and API reference
+- ✉️ [Contact us](https://maptiler.com/contact) - Get in touch or submit a request
+- 🐦 [Twitter/X](https://twitter.com/maptiler) - Follow us for updates
+
+<br>
+
+---
+
+<br>
+
+## 🤝 Contributing
+
+We love contributions from the community! Whether it's bug reports, feature requests, or pull requests, all contributions are welcome:
+
+- Fork the repository and create your branch from `main`
+- If you've added code, add tests that cover your changes
+- Ensure your code follows our style guidelines
+- Give your pull request a clear, descriptive summary
+- Open a Pull Request with a comprehensive description
+
+### E2E Testing
 
 This project uses a combination of [Vite](https://vitejs.dev/) for building and serving fixtures and [Playwright](https://playwright.dev) for browser automation to perform end-to-end testing.
 
 Currently we are unable to use Vitest as a test runner at present due to [this issue](https://github.com/microsoft/playwright/issues/15800) with Playwright.
 
-### Test Structure
+#### Test Structure
 
 The testing setup consists of:
 - Configuration files:
@@ -459,11 +505,11 @@ The testing setup consists of:
   - `snapshots/`: image snapshots for comparison
   - A dedicated `tsconfig.json` that extends the base project config
 
-### Adding New Tests
+#### Adding New Tests
 
 To add new test fixtures, add entry points to the rollup options in `vite-config-e2e.ts`.
 
-### Running Tests
+#### Running Tests
 
 Two npm scripts are available for testing; they must be run simultaneously:
 
@@ -483,14 +529,37 @@ npm run e2e:local -- --ui
 
 > **Note:** GitHub Actions integration for automated testing will be implemented in upcoming versions.
 
-## License
-MapTiler JS Module
+#### Typedoc
 
-Copyright © 2024 MapTiler AG. All rights reserved.
+To generate the typedoc documentation and serve them locally:
+```shell
+npm run doc && npx http-server docs
+```
 
-The software and files (collectively “Software”) in this repository are licensed for use only with MapTiler service(s).
+<br>
 
-For the license terms, please reference  [MapTiler JavaScript Module Terms and Conditions](https://www.maptiler.com/terms/jsmodule/).
+## 📄 License
 
-This license allows users with an active MapTiler account to modify and integrate authorized portions of the Software for use with the relevant MapTiler service(s) in accordance with the MapTiler Terms. This license terminates automatically if a user no longer maintains a MapTiler account or their usage breaches MapTiler Terms.
+This project is licensed under the MapTiler JS Module – see the [LICENSE](./LICENSE.md) file for details.
 
+<br>
+
+## 🙏 Acknowledgements
+
+This project is built on the shoulders of giants:
+
+- [MapTiler SDK JS](https://docs.maptiler.com/sdk-js/) – The open-source mapping library
+- [Three.js](https://threejs.org/) – JavaScript 3D Library
+
+<br>
+
+<p align="center" style="margin-top:20px;margin-bottom:20px;"> <a href="https://cloud.maptiler.com/account/keys/" style="display:inline-block;padding:12px 32px;background:#F2F6FF;color:#000;font-weight:bold;border-radius:6px;text-decoration:none;"> Get Your API Key <sup style="background-color:#0000ff;color:#fff;padding:2px 6px;font-size:12px;border-radius:3px;">FREE</sup><br /> <span style="font-size:90%;font-weight:400;">Start building with 100,000 free map loads per month ・ No credit card required.</span> </a> </p>
+
+<br>
+
+<p align="center"> 💜 Made with love by the <a href="#">MapTiler</a> team <br />
+<p align="center">
+  <a href="https://www.maptiler.com/">Website</a> •
+  <a href="https://docs.maptiler.com/sdk-js/modules/3d/">Documentation</a> •
+  <a href="https://github.com/maptiler/maptiler-3d-js">GitHub</a>
+</p>
