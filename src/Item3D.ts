@@ -868,7 +868,6 @@ export class Item3D extends Evented {
   private applyTransformUpdate() {
     const scale = this.relativeScale.map((s, i) => s * this.scale[i]) as [number, number, number];
     this.additionalTransformationMatrix = getTransformationMatrix(scale, this.heading, this.sourceOrientation);
-    // console.log("applyTransformUpdate", this.additionalTransformationMatrix.elements.join(", "));
   }
 
   /**
