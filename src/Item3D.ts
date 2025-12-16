@@ -1,13 +1,13 @@
-import type {
-  AnimationAction,
-  AnimationClip,
-  AnimationMixer,
-  Group,
-  Matrix4,
-  Mesh,
+import {
+  type AnimationAction,
+  type AnimationClip,
+  type AnimationMixer,
+  type Group,
+  type Matrix4,
+  type Mesh,
   Object3D,
-  Points,
-  PointsMaterial,
+  type Points,
+  type PointsMaterial,
 } from "three";
 import type { Layer3D } from "./Layer3D";
 import { Evented, LngLat, type LngLatLike, type Map as MapSDK } from "@maptiler/sdk";
@@ -25,9 +25,9 @@ import {
   SourceOrientation,
   item3DStatePropertiesNames,
 } from "./types";
-import { getTransformationMatrix } from "./utils";
+import { degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
-import { getItem3DEventTypesSymbol } from "./symbols";
+import { getItem3DEventTypesSymbol, getItem3DDollySymbol } from "./symbols";
 import { USE_DEBUG_LOGS } from "./config";
 
 export interface Item3DConstructorOptions {
@@ -43,6 +43,10 @@ export interface Item3DConstructorOptions {
   scale: number | [number, number, number];
   // the heading of the item
   heading: number;
+  // the pitch of the item in degrees
+  pitch?: number;
+  // the roll of the item
+  roll?: number;
   // the source orientation of the item, can be "y-up" or "z-up"
   sourceOrientation: SourceOrientation;
   // the altitude reference of the item, can be "ground" or "sea"
@@ -107,6 +111,8 @@ const item3DSetStatePropertyToMethodMap = new Map<keyof Item3DMeshUIStatePropert
   ["opacity", "setOpacity"],
   ["scale", "setRelativeScale"],
   ["heading", "setHeading"],
+  ["pitch", "setPitch"],
+  ["roll", "setRoll"],
   ["altitude", "setAltitude"],
   ["lngLat", "setLngLat"],
   ["wireframe", "setWireframe"],
@@ -132,6 +138,8 @@ export const item3DDefaultValuesMap = new Map<keyof Item3DMeshUIStateProperties 
   ["scale", [1, 1, 1]],
   ["relativeScale", [1, 1, 1]],
   ["heading", 0],
+  ["pitch", 0],
+  ["roll", 0],
   ["altitude", 0],
   ["lngLat", new LngLat(0, 0)],
   ["wireframe", false],
@@ -156,6 +164,21 @@ export class Item3D extends Evented {
    * @see {Object3D} https://threejs.org/docs/#api/en/core/Object3D
    */
   public readonly mesh: Mesh | Group | Object3D | null = null;
+
+  /**
+   * The dolly of the item, this is used to apply pitch, heading and roll.
+   * @see {Object3D} https://threejs.org/docs/#api/en/core/Object3D
+   */
+  private dolly: Object3D | null = null;
+
+  /**
+   * Get the dolly of the item
+   * @returns {Object3D | null} The dolly
+   */
+  [getItem3DDollySymbol](): Object3D | null {
+    return this.dolly;
+  }
+
   /**
    * The lngLat of the item
    * @see {LngLat} https://docs.maptiler.com/sdk-js/api/geography/#lnglat
@@ -183,6 +206,15 @@ export class Item3D extends Evented {
    * The heading of the item, in degrees
    */
   public heading = 0;
+  /**
+   * The pitch of the item, in degrees
+   */
+  public pitch = 0;
+
+  /**
+   * The roll of the item, in degrees
+   */
+  public roll = 0;
   /**
    * The source orientation of the item, can be "y-up" or "z-up"
    */
@@ -293,6 +325,34 @@ export class Item3D extends Evented {
 
     this.initDefaultState();
     this.applyTransformUpdate();
+    this.createDollyForMesh();
+  }
+
+  private createDollyForMesh() {
+    if (!this.mesh) return;
+
+    const dolly = new Object3D();
+    dolly.name = "dolly";
+
+    const pitch = new Object3D();
+    pitch.name = "pitch";
+
+    const roll = new Object3D();
+    roll.name = "roll";
+
+    if (typeof this.roll === "number") {
+      this.setRoll(this.roll, false);
+    }
+
+    if (typeof this.pitch === "number") {
+      this.setPitch(this.pitch, false);
+    }
+
+    dolly.add(pitch);
+    pitch.add(roll);
+    roll.add(this.mesh);
+
+    this.dolly = dolly;
   }
 
   /**
@@ -600,6 +660,14 @@ export class Item3D extends Evented {
       isTransformNeedUpdate = true;
     }
 
+    if (typeof options.pitch === "number") {
+      this.setPitch(options.pitch, false);
+    }
+
+    if (typeof options.roll === "number") {
+      this.setRoll(options.roll, false);
+    }
+
     if (isTransformNeedUpdate === true) {
       this.applyTransformUpdate();
     }
@@ -704,6 +772,39 @@ export class Item3D extends Evented {
   public setHeading(heading: number, cueRepaint = true) {
     this.heading = heading;
     this.applyTransformUpdate();
+    if (cueRepaint) this.cueUpdate();
+    return this;
+  }
+
+  /**
+   * Set the pitch of the item
+   * @param pitch - The pitch to set, in degrees
+   * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
+   * @returns {Item3D} The item
+   */
+  public setPitch(pitchInDegrees: number, cueRepaint = true) {
+    this.pitch = pitchInDegrees;
+    const pitchObject = this.dolly?.getObjectByName("pitch");
+    if (pitchObject) {
+      pitchObject.rotation.x = degreesToRadians(pitchInDegrees);
+    }
+
+    if (cueRepaint) this.cueUpdate();
+    return this;
+  }
+
+  /**
+   * Set the roll of the item
+   * @param roll - The roll to set, in degrees
+   * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
+   * @returns {Item3D} The item
+   */
+  public setRoll(rollInDegrees: number, cueRepaint = true) {
+    this.roll = rollInDegrees;
+    const rollObject = this.dolly?.getObjectByName("roll");
+    if (rollObject) {
+      rollObject.rotation.z = degreesToRadians(rollInDegrees);
+    }
     if (cueRepaint) this.cueUpdate();
     return this;
   }

@@ -49,7 +49,6 @@ jobs:
           npm publish --tag next
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-
       - name: Get Package version
         id: version
         run: echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV

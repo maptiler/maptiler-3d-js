@@ -1,6 +1,10 @@
 import { Quaternion, Vector3, Matrix4, type Object3D, type PointLight, MathUtils } from "three";
 import { SourceOrientation } from "./types";
 
+export function degreesToRadians(degrees: number): number {
+  return (degrees * Math.PI) / 180;
+}
+
 const isPointLight = (object3D: Object3D): object3D is PointLight => {
   return "isPointLight" in object3D && object3D.isPointLight === true;
 };
