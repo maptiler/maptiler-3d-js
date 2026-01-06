@@ -1,29 +1,124 @@
+<img src="images/maptiler-3d-logo.svg" alt="Company Logo" height="32"/>
+
+# 3D objects on MapTiler maps
+
+With this [MapTiler SDK](https://docs.maptiler.com/sdk-js) module, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
+
+![](https://img.shields.io/badge/npm-v3.8.0-f2f6ff?style=for-the-badge&labelColor=D3DBEC&logo=npm&logoColor=333359) ![](https://img.shields.io/badge/-white?style=for-the-badge&logo=javascript)![](https://img.shields.io/badge/-white?style=for-the-badge&logo=typescript)
+
+---
+
+📖 [Documentation](https://docs.maptiler.com/sdk-js/modules/3d/) &nbsp; 📦 [NPM Package](https://www.npmjs.com/package/@maptiler/3d) &nbsp; 🌐 [Website](https://www.maptiler.com/) &nbsp; 🔑 [Get API Key](https://cloud.maptiler.com/account/keys/)
+
+---
+
+<br>
+
+<details> <summary><b>Table of Contents</b></summary>
+<ul>
+<li><a href="#-installation">Installation</a></li>
+<li><a href="#-basic-usage">Basic Usage</a></li>
+<li><a href="#-related-examples">Examples</a></li>
+<li><a href="#-api-reference">API Reference</a></li>
+<li><a href="#-support">Support</a></li>
+<li><a href="#-contributing">Contributing</a></li>
+<li><a href="#-license">License</a></li>
+<li><a href="#-acknowledgements">Acknowledgements</a></li>
+</ul>
+</details>
+
 <p align="center">
-<a href="https://docs.maptiler.com/sdk-js/modules/3d/">official page →</a><br>
-  <img src="images/maptiler-3d-logo.svg" width="400px">
+<img src="images/plane.jpeg" alt="Demo Screenshot" width="80%"/>
+<br />
+<a href="https://docs.maptiler.com/sdk-js/examples/3d-js-plane/">See live interactive demo</a> 
 </p>
+<br>
 
-<p align="center" style="color: #AAA">
-  Add 3D objects and lighting to your <a href="https://docs.maptiler.com/sdk-js">MapTiler SDK JS</a> maps
-</p>
+## 📦 Installation
 
-<p align="center">
-  <img src="https://cdn.maptiler.com/assets/images/JS-logo.svg" width="20px">
-  <img src="https://cdn.maptiler.com/assets/images/TS-logo.svg" width="20px">
-  <img src="https://img.shields.io/npm/v/@maptiler/3d"></img>
-  <img src="https://img.shields.io/twitter/follow/maptiler?style=social"></img>
-</p>
+From NPM and using the ES module, in a terminal, in your project:
 
-## 3D objects on MapTiler maps
-With this MapTiler SDK module, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
+```shell
+npm install @maptiler/3d
+```
 
-**Here are some examples:**  
+Then to import:
+
+```ts
+import { Layer3D } from "@maptiler/3d";
+// or
+import * as maptiler3d from "@maptiler/3d";
+```
+
+From CDN and using the UMD bundle, in the `<head></head>` section of your HTML file:
+
+```html
+<script src="https://cdn.maptiler.com/maptiler-3d/<VERSION>/maptiler-3d.umd.js"></script>
+```
+
+To generate the typedoc documentation and serve them locally:
+
+```shell
+npm run doc && npx http-server docs
+```
+
+With the UMD bundle (on CDN), the namespace for this project is `maptiler3d`. So the `layer3D` class is available at `maptiler3d.Layer3D`.
+
+<br>
+
+## 🚀 Basic Usage
+
+An instance of `Layer3D` is a custom type of layer that contain a 3D scene, where multiple 3D meshes and lights can be added. Like any other layer in MapTiler SDK/Maplibre GL JS, it must have an ID and then be added to a `Map` instance:
+
+```js
+// Create a map;
+const map = new Map({
+  container: "map",
+  // ...
+});
+
+// Waiting that the map is ready. You can also wait for the "load" event.
+map.on("ready", () => {
+  // Create a Layer3D and add it
+  const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
+  map.addLayer(layer3D);
+});
+```
+
+Once created and added, a mesh can be added. In this version any _glTF_ and their binary counterpart _glb_ files can be added.
+
+To add a mesh:
+
+```ts
+// The call can be awaited for the whole download of the mesh to complete
+const item3D = await layer3D.addMeshFromURL(
+  // ID to give to this mesh, unique within this Layer3D instance
+  "flatiron",
+
+  // The URL of the mesh
+  "https://example.com/meshes/flatiron_building.glb",
+
+  // A set of options, these can be modified later
+  {
+    lngLat: { lat: 40.74072950731568, lng: -73.98918779556983 }, // can also be an array [lng, lat]
+    heading: 91.1,
+    scale: 39.5,
+    visible: true,
+    altitude: 74.38,
+    altitudeReference: maptiler3d.AltitudeReference.GROUND,
+  }
+);
+
+// do stuff with the item 3D...
+```
+
+## 💡 Related Examples
 
 [![](images/plane.jpeg)Add an airplane 3D model to your map using the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-plane/)
 
 [![](images/ducks-and-posts.jpeg)Add multiple 3D models to the map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-multi/)
 
-[![](images/cad.jpeg)Display a building model based on point cloud data on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/) 
+[![](images/cad.jpeg)Display a building model based on point cloud data on a map with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cad/)
 
 [![](images/dundee.jpeg)Display a 3D building model generated with photogrammetry software with the MapTiler 3D JS Module](https://docs.maptiler.com/sdk-js/examples/3d-js-point-cloud-dundee/)
 
@@ -39,76 +134,16 @@ With this MapTiler SDK module, you can add 3D objects to your basemap with plent
 
 [![](images/biplanes.gif)Change the pitch and roll of 3d items](/demos/src/12-heading-pitch-roll.ts)
 
-### Installation
-From NPM and using the ES module, in a terminal, in your project:
-```shell
-npm install @maptiler/3d
-```
+<br>
 
-Then to import:
-```ts
-import { Layer3D } from "@maptiler/3d";
-// or
-import * as maptiler3d from "@maptiler/3d";
-```
+## 📘 API Reference
 
-From CDN and using the UMD bundle, in the `<head></head>` section of your HTML file:
-```html
-<script src="https://cdn.maptiler.com/maptiler-3d/v1.0.0/maptiler-3d.umd.js"></script>
-```
+For detailed guides, API reference, and advanced examples, visit our comprehensive documentation:
 
-To generate the typedoc documentation and serve them locally:
-```shell
-npm run doc && npx http-server docs
-```
-
-With the UMD bundle (on CDN), the namespace for this project is `maptiler3d`. So the `layer3D` class is available at `maptiler3d.Layer3D`.
-
-### Basic usage
-An instance of `Layer3D` is a custom type of layer that contain a 3D scene, where multiple 3D meshes and lights can be added. Like any other layer in MapTiler SDK/Maplibre GL JS, it must have an ID and then be added to a `Map` instance:
-
-```js
-// Create a map;
-const map = new Map({
-  container: "map",
-  // ...
-});
-
-// Waiting that the map is ready. You can also wait for the "load" event.
-map.on("ready", () => {
-  // Create a Layer3D and add it
-  const layer3D = new maptiler3d.Layer3D("custom-3D-layer");
-  map.addLayer(layer3D);
-})
-```
-
-Once created and added, a mesh can be added. In this version any *glTF* and their binary counterpart *glb* files can be added.
-
-To add a mesh:
-```ts
-// The call can be awaited for the whole download of the mesh to complete
-const item3D = await layer3D.addMeshFromURL(
-  // ID to give to this mesh, unique within this Layer3D instance
-  "flatiron",
-
-  // The URL of the mesh
-  "https://example.com/meshes/flatiron_building.glb",
-
-  // A set of options, these can be modified later
-  {
-    lngLat: {lat: 40.74072950731568, lng: -73.98918779556983}, // can also be an array [lng, lat]
-    heading: 91.1,
-    scale: 39.5,
-    visible: true,
-    altitude: 74.38,
-    altitudeReference: maptiler3d.AltitudeReference.GROUND,
-  }
-);
-
-// do stuff with the item 3D...
-```
+[API documentation](https://docs.maptiler.com/sdk-js/modules/3d/api/)
 
 Here are all the options for meshes:
+
 - `lngLat` location of the center of the 3D object, as longitude and latitude
 - `altitude` the altitude in meters above the reference point (to the origin of the mesh, that is not always the bottom)
 - `altitudeReference` reference point of altitude (ground or mean sea level)
@@ -121,14 +156,17 @@ Here are all the options for meshes:
 - `wireframe` applicable only to non-point cloud, applies a wireframe rendering to all the child nodes of the mesh that are compatible with the option
 - `states` a set of properties that will be applied on different UI states (`hover`, `active`/`click`). For instance, a mesh could be scaled up on hover.
 - `userData` a place to store arbitrary data, that can be retrieved at a later stage.
-- `transform` (only for `addMeshFromURL` and `cloneMesh`) a set of props allowing for tweaking of the mesh before it's added to the map. This can be useful if a model internally points in the incorrect direction or if it needs a world space offset without having to tweak LngLat. `{ rotation: { x, y, z }, offset: { x, y, z } }`. These can also be applied when cloning a mesh. *Please Note*: The offset when cloning a mesh is _additive_ not absolute, it will be added to the world position of the _mesh you are cloning_.
+- `transform` (only for `addMeshFromURL` and `cloneMesh`) a set of props allowing for tweaking of the mesh before it's added to the map. This can be useful if a model internally points in the incorrect direction or if it needs a world space offset without having to tweak LngLat. `{ rotation: { x, y, z }, offset: { x, y, z } }`. These can also be applied when cloning a mesh. _Please Note_: The offset when cloning a mesh is _additive_ not absolute, it will be added to the world position of the _mesh you are cloning_.
 
 ### Reference documentation
+
 The constructor of the `Layer3D` class takes two arguments:
+
 - a layer ID (as in the example above)
 - an option object, with TypeScript, this object is of type `Layer3DOptions`
 
 Here are more details about the `Layer3DOptions` type:
+
 ```ts
 type Layer3DOptions = {
   /**
@@ -152,19 +190,20 @@ type Layer3DOptions = {
    * Ambient light color.
    * Default: `0xffffff` (white)
    */
-  ambientLightColor?: ColorRepresentation,
+  ambientLightColor?: ColorRepresentation;
 
   /**
    * Ambient light intensity.
    * Default: `1`
    */
-  ambientLightIntensity?: number,
+  ambientLightIntensity?: number;
 };
 ```
 
 Other important types that are exported:
 
 - About the reference for altitude:
+
 ```ts
 enum AltitudeReference {
   /**
@@ -175,14 +214,15 @@ enum AltitudeReference {
   /**
    * Uses mean sea level as a reference point to compute the altitude
    */
-  MEAN_SEA_LEVEL = 2
-};
+  MEAN_SEA_LEVEL = 2,
+}
 ```
 
 **Example:** A mesh that is add with the option `altitudeReference` being `AltitudeReference.GROUND` and an altitude of `10` will always "fly" 10 meters above the ground, regardless the terrain or the terrain exaggeration. If the provided altitude were to be a negative number, then it would always be beneath the ground surface by this amount (in meters). This mode is convenient for any item that needs to be positions relatively to the ground: cars, buildings, lap post, etc.
 On the other hand, mesh that is add with the option `altitudeReference` being `AltitudeReference.MEAN_SEA_LEVEL` and the altitude of `1000` means the item will be at an absolute altitude of 1000 meters (3280 feet) above the mean sea level. If located in a place where the terrain shows mountains higher than 1000 meters, then the mesh will be underneath the ground surface and as such not visible. This mode is more convenient for flying objects such as planes, paraglydings, etc. as those thend to measure altitude with an absolute reference.
 
 - Going from the original 3D space the mesh was created in, to the map 3D space:
+
 ```ts
 enum SourceOrientation {
   /**
@@ -199,30 +239,32 @@ enum SourceOrientation {
    * The mesh was originaly created in a 3D space that uses the Z axis as the up direction
    */
   Z_UP = 3,
-};
+}
 ```
+
 Note that regardless of the original up axis, this module as well as MapTiler SDK/Maplibre GL JS only deal with 3D spaces that follow the [right-hand rule](https://en.wikipedia.org/wiki/Right-hand_rule).
 
 - Generic options that apply to both point lights and meshes:
+
 ```ts
 type GenericObject3DOptions = {
   /**
    * Position.
    * Default: `[0, 0]` (Null Island)
    */
-  lngLat?: LngLatLike,
+  lngLat?: LngLatLike;
 
   /**
    * Altitude above the reference (in meters).
    * Default: `0` for meshes, or `2000000` for point lights.
    */
-  altitude?: number,
+  altitude?: number;
 
   /**
    * Reference to compute and adjust the altitude.
    * Default: `AltitudeReference.GROUND` for meshes and `AltitudeReference.MEAN_SEA_LEVEL` for point lights.
    */
-  altitudeReference?: AltitudeReference,
+  altitudeReference?: AltitudeReference;
 
   /**
    * Make the object visible or not.
@@ -233,6 +275,7 @@ type GenericObject3DOptions = {
 ```
 
 - Options for adding meshes specifically:
+
 ```ts
 export type MeshOptions = GenericObject3DOptions & {
   /**
@@ -278,7 +321,7 @@ export type MeshOptions = GenericObject3DOptions & {
   animationMode?: AnimationMode;
 
   /**
-   * A set of properties that will be applied on different UI states (`hover`, `active`/`click`). 
+   * A set of properties that will be applied on different UI states (`hover`, `active`/`click`).
    * For instance, a mesh could be scaled up on hover.
    */
   states?: Item3DMeshUIStates;
@@ -291,6 +334,7 @@ export type MeshOptions = GenericObject3DOptions & {
 ```
 
 - Options for the UI states of a mesh:
+
 ```ts
 // The name of the state. `hover` is triggered on mouse enter/leave, `active` is triggered on mouse down/up.
 export type Item3DMeshUIStateName = "default" | "hover" | "active";
@@ -314,16 +358,17 @@ export type Item3DMeshUIStates = {
 };
 
 // example
-const item = layer3D.addMesh('mesh-id', mesh, {
+const item = layer3D.addMesh("mesh-id", mesh, {
   opacity: 0.5,
   states: {
     hover: { opacity: 1 },
-    active: { scale: [2,2,2] }
-  }
-})
+    active: { scale: [2, 2, 2] },
+  },
+});
 ```
 
 - Additional options for tweaking models once they are loaded. ** only used in `addMeshFromURL` **
+
 ```ts
 export type AddMeshFromURLOptions = MeshOptions & {
   // wraps the object and transforms it accordingly.
@@ -344,111 +389,142 @@ export type AddMeshFromURLOptions = MeshOptions & {
 ```
 
 - Options for adding a point light specifically:
+
 ```ts
 type PointLightOptions = GenericObject3DOptions & {
   /**
    * Light color.
    * Default: `0xffffff` (white)
    */
-  color?: ColorRepresentation,
+  color?: ColorRepresentation;
 
   /**
    * Intensity of the light.
    * Default: `75`
    */
-  intensity?: number,
+  intensity?: number;
 
   /**
    * Decay of the light relative to the distance to the subject.
    * Default: `0.5`
    */
-  decay?: number,
+  decay?: number;
 };
 ```
 
 Here is the list of instance methods of the `Layer3D` class:
-- **`.setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {})`**
-To adjust the settings of the ambient light. The type `ColorRepresentation` means the color can be a `number` (such as a hex notation `0xff0000`, for red), a hex string (such as `"#FF0000"`, for red), or a ThreeJS color ([read more about these here](https://threejs.org/docs/#api/en/math/Color)).
-ℹ️ By default, the ambiant light is white (`0xffffff`) with an intensity of `0.5`.
 
-- **`.addMeshFromURL(id: string, url: string, options: AddMeshFromURLOptions = {})`** *async*
-Adds a mesh from a URL to a glTF of glb file, given a mesh ID (will throw if not unique) and a set of options. This method returns an `Item3D` object that can be modified later on.
+- **`.setAmbientLight(options: {color?: ColorRepresentation, intensity?: number} = {})`**
+  To adjust the settings of the ambient light. The type `ColorRepresentation` means the color can be a `number` (such as a hex notation `0xff0000`, for red), a hex string (such as `"#FF0000"`, for red), or a ThreeJS color ([read more about these here](https://threejs.org/docs/#api/en/math/Color)).
+  ℹ️ By default, the ambiant light is white (`0xffffff`) with an intensity of `0.5`.
+
+- **`.addMeshFromURL(id: string, url: string, options: AddMeshFromURLOptions = {})`** _async_
+  Adds a mesh from a URL to a glTF of glb file, given a mesh ID (will throw if not unique) and a set of options. This method returns an `Item3D` object that can be modified later on.
 
 - **`.addMesh(id: string, mesh: Mesh | Group | Object3D, options: MeshOptions = {})`**
-Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) and a set of options. This method returns a `Promise<Item3D>` object that can be modified later on.
-ℹ️ By default, the mesh will have some settings (if not overwritten by the options):
-  * sourceOrientation: `SourceOrientation.Y_UP`
-  * altitude: `0`
-  * lngLat: `[0, 0]`
-  * heading: `0`
-  * visible: `true`
+  Adds a ThreeJS mesh/Group/Object3D, given a mesh ID (will throw if not unique) and a set of options. This method returns a `Promise<Item3D>` object that can be modified later on.
+  ℹ️ By default, the mesh will have some settings (if not overwritten by the options):
+
+  - sourceOrientation: `SourceOrientation.Y_UP`
+  - altitude: `0`
+  - lngLat: `[0, 0]`
+  - heading: `0`
+  - visible: `true`
 
 - **`.getItem3D(id: string): Item3D | null`**
-Returns the `Item3D` instance for a given ID. This object can be used to modify the mesh's properties and control animations. See the section bellow for the methods of the `Item3D` object.
+  Returns the `Item3D` instance for a given ID. This object can be used to modify the mesh's properties and control animations. See the section bellow for the methods of the `Item3D` object.
 
 - **`.cloneMesh(sourceId: string, id: string, options: CloneMeshOptions)`**
-Clones a mesh that has a given ID (`sourceId`) and create another one with a new ID (`id`). The provided options will overwrite the settings of the source mesh.
+  Clones a mesh that has a given ID (`sourceId`) and create another one with a new ID (`id`). The provided options will overwrite the settings of the source mesh.
 
 - **`.addPointLight(id: string, options: PointLightOptions = {})`**
-Adds a point light with a unique ID (will throw if not unique) and some options.
-ℹ️ By default, the light will have some settings (if not overwritten by the options):
-  * lngLat: `[0, 0]` (null island)
-  * altitude: `2_000_000` meters
-  * altitudeReference: `AltitudeReference.MEAN_SEA_LEVEL`
-  * color: `0xffffff` (white)
-  * intensity: `75`
-  * decay: `0.2`
+  Adds a point light with a unique ID (will throw if not unique) and some options.
+  ℹ️ By default, the light will have some settings (if not overwritten by the options):
+
+  - lngLat: `[0, 0]` (null island)
+  - altitude: `2_000_000` meters
+  - altitudeReference: `AltitudeReference.MEAN_SEA_LEVEL`
+  - color: `0xffffff` (white)
+  - intensity: `75`
+  - decay: `0.2`
 
 - **`.modifyPointLight(id: string, options: PointLightOptions)`**
-Modify a point light given its ID.
-ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
+  Modify a point light given its ID.
+  ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
 
 - **`.removeMesh(id: string)`**
-Remove a mesh or point light from the scene and frees the GPU memory associated to it
+  Remove a mesh or point light from the scene and frees the GPU memory associated to it
 
 - **`.clear()`**
-Removes all the meshes and point lights from the scene and frees the GPU memory associated with them
+  Removes all the meshes and point lights from the scene and frees the GPU memory associated with them
 
 ### The `Item3D` object
+
 The `addMesh`, `addMeshFromURL` and `cloneMesh` methods return an `Item3D` object. You can also retrieve it later using `layer.getItem3D(id)`. This object has its own set of methods to modify its properties and control animations.
 
 Here is a list of the most common methods for the `Item3D` object:
 
 - **`.modify(options: Partial<MeshOptions>)`**
-Modify the settings of a mesh (scale, lntLat, etc.)
-ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
+  Modify the settings of a mesh (scale, lntLat, etc.)
+  ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
 
 - **`.getAnimationNames()`**
-Gets all the animations that were loaded with the model.
+  Gets all the animations that were loaded with the model.
 
 - **`.getAnimation(animationName: string)`**
-Get the `AnimationAction` named `animationName`.
+  Get the `AnimationAction` named `animationName`.
 
 - **`.playAnimation(animationName: string, loop: AnimationLoopOptions)`**
-Plays `animationName`. Loop defines how the animation will loop. "loop" loops the animation infinity times; "once" loops it once; "pingPong" plays the animation until the end and then plays it in reverse.
+  Plays `animationName`. Loop defines how the animation will loop. "loop" loops the animation infinity times; "once" loops it once; "pingPong" plays the animation until the end and then plays it in reverse.
 
 - **`.pauseAnimation(animationName: string)`**
-Pauses `animationName`.
+  Pauses `animationName`.
 
 - **`.stopAnimation(animationName: string)`**
-Stops `animationName`.
+  Stops `animationName`.
 
 - **`.updateAnimation(delta = 0.02)`**
-Updates the mesh animations by `delta` seconds. This is only useful when the `animationMode` is set to `manual`.
+  Updates the mesh animations by `delta` seconds. This is only useful when the `animationMode` is set to `manual`.
 
 - **`.setAnimationTime(time: number)`**
-sets the animation to `time` seconds.
+  sets the animation to `time` seconds.
 
-## E2E Testing
+<br>
+
+## 💬 Support
+
+- 📚 [Documentation](https://docs.maptiler.com/sdk-js/modules/3d/) - Comprehensive guides and API reference
+- ✉️ [Contact us](https://maptiler.com/contact) - Get in touch or submit a request
+- 🐦 [Twitter/X](https://twitter.com/maptiler) - Follow us for updates
+
+<br>
+
+---
+
+<br>
+
+## 🤝 Contributing
+
+We love contributions from the community! Whether it's bug reports, feature requests, or pull requests, all contributions are welcome:
+
+- Fork the repository and create your branch from `main`
+- If you've added code, add tests that cover your changes
+- Ensure your code follows our style guidelines
+- Give your pull request a clear, descriptive summary
+- Open a Pull Request with a comprehensive description
+
+### E2E Testing
 
 This project uses a combination of [Vite](https://vitejs.dev/) for building and serving fixtures and [Playwright](https://playwright.dev) for browser automation to perform end-to-end testing.
 
 Currently we are unable to use Vitest as a test runner at present due to [this issue](https://github.com/microsoft/playwright/issues/15800) with Playwright.
 
-### Test Structure
+#### Test Structure
 
 The testing setup consists of:
+
 - Configuration files:
+
   - `vite.config-e2e.ts`: Vite configuration for e2e testing
   - `playwright.config.ts`: Playwright browser configuration
 
@@ -459,11 +535,11 @@ The testing setup consists of:
   - `snapshots/`: image snapshots for comparison
   - A dedicated `tsconfig.json` that extends the base project config
 
-### Adding New Tests
+#### Adding New Tests
 
 To add new test fixtures, add entry points to the rollup options in `vite-config-e2e.ts`.
 
-### Running Tests
+#### Running Tests
 
 Two npm scripts are available for testing; they must be run simultaneously:
 
@@ -483,14 +559,38 @@ npm run e2e:local -- --ui
 
 > **Note:** GitHub Actions integration for automated testing will be implemented in upcoming versions.
 
-## License
-MapTiler JS Module
+#### Typedoc
 
-Copyright © 2024 MapTiler AG. All rights reserved.
+To generate the typedoc documentation and serve them locally:
 
-The software and files (collectively “Software”) in this repository are licensed for use only with MapTiler service(s).
+```shell
+npm run doc && npx http-server docs
+```
 
-For the license terms, please reference  [MapTiler JavaScript Module Terms and Conditions](https://www.maptiler.com/terms/jsmodule/).
+<br>
 
-This license allows users with an active MapTiler account to modify and integrate authorized portions of the Software for use with the relevant MapTiler service(s) in accordance with the MapTiler Terms. This license terminates automatically if a user no longer maintains a MapTiler account or their usage breaches MapTiler Terms.
+## 📄 License
 
+This project is licensed under the MapTiler JS Module – see the [LICENSE](./LICENSE.md) file for details.
+
+<br>
+
+## 🙏 Acknowledgements
+
+This project is built on the shoulders of giants:
+
+- [MapTiler SDK JS](https://docs.maptiler.com/sdk-js/) – The open-source mapping library
+- [Three.js](https://threejs.org/) – JavaScript 3D Library
+
+<br>
+
+<p align="center" style="margin-top:20px;margin-bottom:20px;"> <a href="https://cloud.maptiler.com/account/keys/" style="display:inline-block;padding:12px 32px;background:#F2F6FF;color:#000;font-weight:bold;border-radius:6px;text-decoration:none;"> Get Your API Key <sup style="background-color:#0000ff;color:#fff;padding:2px 6px;font-size:12px;border-radius:3px;">FREE</sup><br /> <span style="font-size:90%;font-weight:400;">Start building with 100,000 free map loads per month ・ No credit card required.</span> </a> </p>
+
+<br>
+
+<p align="center"> 💜 Made with love by the <a href="https://www.maptiler.com/">MapTiler</a> team <br />
+<p align="center">
+  <a href="https://www.maptiler.com/">Website</a> •
+  <a href="https://docs.maptiler.com/sdk-js/modules/3d/">Documentation</a> •
+  <a href="https://github.com/maptiler/maptiler-3d-js">GitHub</a>
+</p>
