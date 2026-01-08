@@ -4,7 +4,7 @@
 
 With this [MapTiler SDK](https://docs.maptiler.com/sdk-js) module, you can add 3D objects to your basemap with plenty of customizations from glTF/glb files! Those can be meshes, groups of meshes, point clouds and a mix of all these.
 
-![](https://img.shields.io/badge/npm-v3.8.0-f2f6ff?style=for-the-badge&labelColor=D3DBEC&logo=npm&logoColor=333359) ![](https://img.shields.io/badge/-white?style=for-the-badge&logo=javascript)![](https://img.shields.io/badge/-white?style=for-the-badge&logo=typescript)
+[![npm](https://img.shields.io/npm/v/@maptiler/3d?style=for-the-badge&labelColor=D3DBEC&color=f2f6ff&logo=npm&logoColor=333359)](https://www.npmjs.com/package/@maptiler/3d) ![](https://img.shields.io/badge/-white?style=for-the-badge&logo=javascript)![](https://img.shields.io/badge/-white?style=for-the-badge&logo=typescript)
 
 ---
 
