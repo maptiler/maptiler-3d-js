@@ -2,18 +2,22 @@ import {
   type AnimationAction,
   type AnimationClip,
   type AnimationMixer,
+  Box3,
   type Group,
   type Matrix4,
-  type Mesh,
+  Mesh,
   Object3D,
   type Points,
   type PointsMaterial,
+  Sphere,
+  Vector3,
 } from "three";
 import type { Layer3D } from "./Layer3D";
 import { Evented, LngLat, type LngLatLike, type Map as MapSDK } from "@maptiler/sdk";
 import {
   type AnimationLoopOptions,
   type AnimationMode,
+  type CloneMeshOptions,
   type Item3DMeshUIStates,
   type MeshOptions,
   type Item3DMeshUIStateName,
@@ -326,6 +330,7 @@ export class Item3D extends Evented {
     this.initDefaultState();
     this.applyTransformUpdate();
     this.createDollyForMesh();
+    this.updateGroupBounds();
   }
 
   private createDollyForMesh() {
@@ -399,6 +404,67 @@ export class Item3D extends Evented {
   public override off(event: Item3DEventTypes, callback: (event: any) => void) {
     this.registeredEventTypes = this.registeredEventTypes.filter((type) => type !== event);
     return super.off(event, callback);
+  }
+
+  /**
+   * Clone this item and add it to the layer. The cloned item shares the same mesh geometry and animations but has its own materials and transform.
+   * @param newId - The ID for the cloned item. If omitted, defaults to `${this.id}-clone`.
+   * @param options - Options to override properties on the clone (e.g. lngLat, altitude, transform).
+   * @returns The new Item3D instance.
+   */
+  public clone(newId?: string, options: CloneMeshOptions = {}): Item3D {
+    const id = newId ?? `${this.id}-clone`;
+
+    if (!this.mesh) {
+      throw new Error(`Item with ID ${this.id} does not have a mesh.`);
+    }
+
+    const cloneOptions: Partial<MeshOptions> = {
+      lngLat: new LngLat(this.lngLat.lng, this.lngLat.lat),
+      altitude: this.altitude,
+      altitudeReference: this.altitudeReference,
+      visible: this.mesh.visible,
+      sourceOrientation: this.sourceOrientation,
+      scale: this.scale,
+      heading: this.heading,
+      ...options,
+    };
+
+    const clonedObject = this.mesh.clone(true);
+
+    const gltfContent = clonedObject.getObjectByName(`${this.id}_gltfContent_scene`);
+    if (options.transform && gltfContent) {
+      gltfContent.name = `${id}_gltfContent_scene`;
+      const { rotation, offset } = options.transform;
+      if (rotation) {
+        gltfContent.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+      }
+      if (offset) {
+        gltfContent.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
+      }
+    }
+
+    clonedObject.traverse((child) => {
+      if (child instanceof Mesh) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => mat.clone());
+        } else {
+          child.material = child.material.clone();
+        }
+      }
+    });
+
+    return this.parentLayer.addClonedMesh({
+      ...cloneOptions,
+      id,
+      mesh: clonedObject,
+      ...(this.animationClips && { animations: [...this.animationClips].map((clip) => clip.clone()) }),
+      animationMode: this.animationMode,
+      states: Array.from(this.currentStates.entries()).reduce((acc, [name, { props }]) => {
+        acc[name as Item3DMeshUIStateName] = props;
+        return acc;
+      }, {} as Item3DMeshUIStates),
+    });
   }
 
   /**
@@ -607,6 +673,7 @@ export class Item3D extends Evented {
   public setTransform(transform?: Partial<Item3DTransform>) {
     if (!transform) {
       this.transform = createDefaultTransform();
+      this.needsUpdateBounds = true;
       return this;
     }
 
@@ -614,6 +681,8 @@ export class Item3D extends Evented {
       ...this.transform,
       ...transform,
     };
+
+    this.needsUpdateBounds = true;
 
     return this;
   }
@@ -634,6 +703,7 @@ export class Item3D extends Evented {
     if ("lngLat" in options) {
       this.lngLat = LngLat.convert(options.lngLat as LngLatLike);
       this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.scale === "number") {
@@ -648,11 +718,13 @@ export class Item3D extends Evented {
 
     if (typeof options.altitude === "number") {
       this.altitude = options.altitude;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.altitudeReference === "number") {
       this.altitudeReference = options.altitudeReference;
       this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.heading === "number") {
@@ -662,14 +734,17 @@ export class Item3D extends Evented {
 
     if (typeof options.pitch === "number") {
       this.setPitch(options.pitch, false);
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.roll === "number") {
       this.setRoll(options.roll, false);
+      this.needsUpdateBounds = true;
     }
 
     if (isTransformNeedUpdate === true) {
       this.applyTransformUpdate();
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.opacity === "number") {
@@ -683,6 +758,7 @@ export class Item3D extends Evented {
     if (typeof options.wireframe === "boolean") {
       this.setWireframe(options.wireframe, false);
     }
+    
 
     this.map.triggerRepaint();
 
@@ -697,6 +773,8 @@ export class Item3D extends Evented {
    */
   public setLngLat(lngLat: LngLat, cueRepaint = true) {
     this.lngLat = lngLat;
+
+    this.needsUpdateBounds = true;
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -709,6 +787,9 @@ export class Item3D extends Evented {
    */
   public setAltitude(altitude: number, cueRepaint = true) {
     this.altitude = altitude;
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -723,6 +804,9 @@ export class Item3D extends Evented {
     // elevation is the height of the model at ground level,
     // eg the height of the ground below the model
     this.elevation = elevation;
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -741,6 +825,7 @@ export class Item3D extends Evented {
 
     this.relativeScale = (Array.isArray(scale) ? scale : [scale, scale, scale]) as [number, number, number];
     this.applyTransformUpdate();
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -759,6 +844,9 @@ export class Item3D extends Evented {
     this.scale = Array.isArray(scale) ? scale : [scale, scale, scale];
 
     this.applyTransformUpdate();
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -772,6 +860,9 @@ export class Item3D extends Evented {
   public setHeading(heading: number, cueRepaint = true) {
     this.heading = heading;
     this.applyTransformUpdate();
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -789,6 +880,8 @@ export class Item3D extends Evented {
       pitchObject.rotation.x = degreesToRadians(pitchInDegrees);
     }
 
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -805,6 +898,9 @@ export class Item3D extends Evented {
     if (rollObject) {
       rollObject.rotation.z = degreesToRadians(rollInDegrees);
     }
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -817,6 +913,8 @@ export class Item3D extends Evented {
    */
   public setSourceOrientation(sourceOrientation: SourceOrientation, cueRepaint = true) {
     this.sourceOrientation = sourceOrientation;
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -829,6 +927,8 @@ export class Item3D extends Evented {
    */
   public setAltitudeReference(altitudeReference: AltitudeReference, cueRepaint = true) {
     this.altitudeReference = altitudeReference;
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -868,6 +968,7 @@ export class Item3D extends Evented {
   private applyTransformUpdate() {
     const scale = this.relativeScale.map((s, i) => s * this.scale[i]) as [number, number, number];
     this.additionalTransformationMatrix = getTransformationMatrix(scale, this.heading, this.sourceOrientation);
+    this.needsUpdateBounds = true;
   }
 
   /**
@@ -1055,7 +1156,70 @@ export class Item3D extends Evented {
       this.nextUpdateTick = null;
     });
   }
+
+  private needsUpdateBounds = false;
+
+  public bounds = {
+    box: new Box3(),
+    sphere: new Sphere(),
+  }
+
+  intersects(item3D: Item3D, detectionStrategy: "broad" | "narrow" = "broad") {
+    if (!this.mesh || !item3D.mesh) return false;
+
+    this.updateGroupBounds(true);
+    item3D.updateGroupBounds(true);
+
+    if (!this.bounds.sphere.intersectsSphere(item3D.bounds.sphere)) return false;
+
+    if (detectionStrategy === "broad") {
+      return this.bounds.box.intersectsBox(item3D.bounds.box);
+    }
+
+    return this.checkRecursiveCollision(this.mesh, item3D.mesh);
+  }
+
+  private getMeshes(obj: Object3D): Mesh[] {
+    const meshes: Mesh[] = [];
+    obj.traverse((node) => {
+      if (node instanceof Mesh) {
+        meshes.push(node);
+      }
+    });
+    return meshes;
+  }
+
+  private checkRecursiveCollision(objA: Object3D, objB: Object3D): boolean {
+    // We only care about actual Meshes for the final check
+    const meshesA = this.getMeshes(objA);
+    const meshesB = this.getMeshes(objB);
+  
+    for (const meshA of meshesA) {
+      const boxA = new Box3().setFromObject(meshA);
+      
+      for (const meshB of meshesB) {
+        const boxB = new Box3().setFromObject(meshB);
+        
+        if (boxA.intersectsBox(boxB)) {
+          return true; // Found an intersection!
+        }
+      }
+    }
+    return false;
+  }
+
+  updateGroupBounds(force = false) {
+    if (!force && this.needsUpdateBounds === false) return;
+    if (!this.mesh) return;
+
+    this.bounds.box.setFromObject(this.mesh);
+
+    this.bounds.box.getBoundingSphere(this.bounds.sphere);
+
+    this.needsUpdateBounds = false;
+  }
 }
+
 
 function createDefaultTransform(): Item3DTransform {
   return {
