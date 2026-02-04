@@ -33,7 +33,7 @@ import { degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
 import { getItem3DEventTypesSymbol, getItem3DDollySymbol } from "./symbols";
 import { USE_DEBUG_LOGS } from "./config";
-
+import { OBB } from "three/examples/jsm/math/OBB";
 export interface Item3DConstructorOptions {
   // the id of the item
   id: string;
@@ -327,10 +327,15 @@ export class Item3D extends Evented {
 
     Object.assign(this, options as Item3DConstructorOptions);
 
+    this.initLocalOBB();
+
     this.initDefaultState();
+
     this.applyTransformUpdate();
     this.createDollyForMesh();
-    this.updateGroupBounds();
+
+
+    this.updateGroupBoundsIfNeeded();
   }
 
   private createDollyForMesh() {
@@ -347,10 +352,12 @@ export class Item3D extends Evented {
 
     if (typeof this.roll === "number") {
       this.setRoll(this.roll, false);
+      this.needsUpdateBounds = true;
     }
 
     if (typeof this.pitch === "number") {
       this.setPitch(this.pitch, false);
+      this.needsUpdateBounds = true;
     }
 
     dolly.add(pitch);
@@ -358,6 +365,20 @@ export class Item3D extends Evented {
     roll.add(this.mesh);
 
     this.dolly = dolly;
+  }
+
+  /** OBBs in each mesh's local space, paired with the mesh for correct world transform. */
+  private localOBBs: { mesh: Mesh; obb: OBB }[] = [];
+
+  private initLocalOBB() {
+    if (!this.mesh) return;
+
+    this.mesh.traverse((node) => {
+      if (node instanceof Mesh) {
+        const localAABB = new Box3().setFromObject(node);
+        this.localOBBs.push({ mesh: node, obb: new OBB().fromBox3(localAABB) });
+      }
+    });
   }
 
   /**
@@ -1159,60 +1180,59 @@ export class Item3D extends Evented {
 
   private needsUpdateBounds = false;
 
-  public bounds = {
+  protected bounds = {
     box: new Box3(),
     sphere: new Sphere(),
   }
 
-  intersects(item3D: Item3D, detectionStrategy: "broad" | "narrow" = "broad") {
+  /**
+   * Check if the item intersects with another item
+   * @param item3D - The item to check intersection with
+   * @param precision - The precision of the intersection check, can be "low" or "medium". "high" is not supported currently.
+   * "low" is the fastest and least accurate check, it only checks the bounding sphere and AABB of the entire group.
+   * "medium" is the default check, it does a broad pass first, then checks the OBB of the individual meshes within the group. This is less and less performant as the number of meshes in the group increases.
+   * @returns {boolean} True if the items intersect, false otherwise
+   */
+  public intersects(item3D: Item3D, precision: "low" | "medium" = "medium") {
+    if (!["low", "medium"].includes(precision)) {
+      throw new Error(`Invalid precision: "${precision}", must be "low" or "medium"`);
+    }
+
     if (!this.mesh || !item3D.mesh) return false;
 
-    this.updateGroupBounds(true);
-    item3D.updateGroupBounds(true);
+    // we need to make sure hte matrices are up to date
+    // for the OBB, AABB or sphere calcs.
+    this.parentLayer.updateItemMatrices();
 
+    // update the bounds for this and the intersected item
+    this.updateGroupBoundsIfNeeded(true);
+    item3D.updateGroupBoundsIfNeeded(true);
+
+    // check broad intersections
     if (!this.bounds.sphere.intersectsSphere(item3D.bounds.sphere)) return false;
+    if (!this.bounds.box.intersectsBox(item3D.bounds.box)) return false;
 
-    if (detectionStrategy === "broad") {
-      return this.bounds.box.intersectsBox(item3D.bounds.box);
-    }
+    // if we have reached here, we have a broad intersection
+    // so we can return true if we are using the broad strategy
+    if (precision === "low") return true;
 
-    return this.checkRecursiveCollision(this.mesh, item3D.mesh);
-  }
-
-  private getMeshes(obj: Object3D): Mesh[] {
-    const meshes: Mesh[] = [];
-    obj.traverse((node) => {
-      if (node instanceof Mesh) {
-        meshes.push(node);
-      }
-    });
-    return meshes;
-  }
-
-  private checkRecursiveCollision(objA: Object3D, objB: Object3D): boolean {
-    // We only care about actual Meshes for the final check
-    const meshesA = this.getMeshes(objA);
-    const meshesB = this.getMeshes(objB);
-  
-    for (const meshA of meshesA) {
-      const boxA = new Box3().setFromObject(meshA);
-      
-      for (const meshB of meshesB) {
-        const boxB = new Box3().setFromObject(meshB);
-        
-        if (boxA.intersectsBox(boxB)) {
-          return true; // Found an intersection!
-        }
+    // if not then we need to check the narrower
+    for (const { mesh: meshA, obb: localOBBA } of this.localOBBs) {
+      const worldOBBA = localOBBA.clone().applyMatrix4(meshA.matrixWorld);
+      for (const { mesh: meshB, obb: localOBBB } of item3D.localOBBs) {
+        const worldOBBB = localOBBB.clone().applyMatrix4(meshB.matrixWorld);
+        if (worldOBBA.intersectsOBB(worldOBBB)) return true;
       }
     }
+
     return false;
   }
 
-  updateGroupBounds(force = false) {
+  protected updateGroupBoundsIfNeeded(force = false) {
     if (!force && this.needsUpdateBounds === false) return;
     if (!this.mesh) return;
-
-    this.bounds.box.setFromObject(this.mesh);
+    
+    this.bounds.box.setFromObject(this.dolly ?? this.mesh);
 
     this.bounds.box.getBoundingSphere(this.bounds.sphere);
 

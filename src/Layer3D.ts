@@ -418,6 +418,7 @@ export class Layer3D implements Layer3DInternalAPIInterface {
           .premultiply(sceneInverseMatrix);
 
         model.matrix = modelMatrix;
+        model.updateMatrixWorld(true);
       }
     }
 
@@ -430,6 +431,45 @@ export class Layer3D implements Layer3DInternalAPIInterface {
 
     const maplibreMatrix = m.multiply(sceneMatrix);
     this.camera.projectionMatrix.copy(maplibreMatrix);
+  }
+
+  /**
+   * Updates the world matrices of all Item3D dollies. Call this before intersection tests
+   * when they run outside the render cycle (e.g. in requestAnimationFrame) to ensure bounds
+   * are computed with current positions.
+   * @internal
+   */
+  updateItemMatrices() {
+    if (this.items3D.size === 0) return;
+
+    const mapCenter = this.map.getCenter();
+    const sceneOrigin = new LngLat(mapCenter.lng + EPSILON, mapCenter.lat + EPSILON);
+    const sceneElevation = this.map.queryTerrainElevation(sceneOrigin) || 0;
+    const sceneMatrixData = this.map.transform.getMatrixForModel(sceneOrigin, sceneElevation);
+    const sceneMatrix = new Matrix4().fromArray(sceneMatrixData);
+    const sceneInverseMatrix = sceneMatrix.clone().invert();
+
+    for (const [_, item] of this.items3D) {
+      const model = item[getItem3DDollySymbol]();
+      if (model === null) continue;
+
+      let modelAltitude = item.altitude;
+      if (item.altitudeReference === AltitudeReference.GROUND) {
+        if (this.isElevationNeedUpdate === true) {
+          item.setElevation(this.map.queryTerrainElevation(item.lngLat) || 0);
+        }
+        modelAltitude += item.elevation;
+      }
+
+      const modelMatrixData = this.map.transform.getMatrixForModel(item.lngLat, modelAltitude);
+      const modelMatrix = new Matrix4()
+        .fromArray(modelMatrixData)
+        .multiply(item.additionalTransformationMatrix)
+        .premultiply(sceneInverseMatrix);
+
+      model.matrix = modelMatrix;
+      model.updateMatrixWorld(true);
+    }
   }
 
   /**

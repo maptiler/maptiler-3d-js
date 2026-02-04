@@ -36,17 +36,19 @@ async function main() {
       center[0],
       center[1],
     ],
-    intensity: 300,
+    intensity: 10,
     decay: 0.1,
     color: "#ffffff",
-    altitude: 3000,
+    altitude: 6000,
   });
 
   map.on("click", (e) => {
     console.log(e.lngLat);
   });
 
-  const mesh1 = layer3D.addMesh("mesh1", new Mesh(new BoxGeometry(400, 400, 400), new MeshStandardMaterial({ color: "green", metalness: 0.25, roughness: 0.5 })), {
+  const leftCubeMesh = new Mesh(new BoxGeometry(400, 400, 400), new MeshStandardMaterial({ color: "green", metalness: 0.25, roughness: 0.5 }));
+  leftCubeMesh.name = "static-cube-1";
+  const leftCubeItem3D = layer3D.addMesh("mesh1", leftCubeMesh, {
     altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
     lngLat: [
       center[0] - 0.02,
@@ -54,85 +56,57 @@ async function main() {
     ],
   });
 
-  mesh1.modify({
+  leftCubeItem3D.modify({
     heading: 45,
     altitude: 1000,
   });
 
-  const mesh2Group = new Group();
+  const movingGroup = new Group();
   const cube = new Mesh(new BoxGeometry(10, 100, 10), new MeshStandardMaterial({ color: "red", roughness: 0.5 }));
-  mesh2Group.add(cube);
+  cube.name = "moving-cube-1";
+  movingGroup.add(cube);
   
   const cube2 = new Mesh(new BoxGeometry(100, 10, 10), new MeshStandardMaterial({ color: "red", roughness: 0.5 }));
-  cube2.position.y = 50;
-  mesh2Group.add(cube2);
+  cube2.position.y = 0;
+  cube2.name = "moving-cube-2";
+  movingGroup.add(cube2);
 
-  const mesh2Spehere = new Mesh(new SphereGeometry(10, 32, 32), new MeshStandardMaterial({ color: "red", roughness: 0.5 }));
-  mesh2Spehere.position.y = 50;
-  mesh2Group.add(mesh2Spehere);
-
-  const mesh2 = layer3D.addMesh("mesh2", mesh2Group);
-
-  mesh2.modify({
-    lngLat: [
-      center[0],
-      center[1],
-    ],
-    scale: 30,
+  const movingItem3D = await layer3D.addMeshFromURL("biplaneOne", "models/biplane/scene.gltf", {
+    lngLat: center,
+    heading: 0,
+    scale: 180,
+    altitude: 950,
+    altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
+    transform: {
+      rotation: {
+        y: Math.PI / 2,
+      },
+    }
   });
 
-  const mesh3 = layer3D.addMesh("sphere", new Mesh(new SphereGeometry(250, 32, 32), new MeshStandardMaterial({ color: "blue", roughness: 0.5 })), {
-    altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
+  const sphereRightMesh = new Mesh(new SphereGeometry(250, 32, 32), new MeshStandardMaterial({ color: "blue", roughness: 0.5 }));
+  sphereRightMesh.name = "static-sphere";
+  const sphereRightItem3D = layer3D.addMesh("sphere", sphereRightMesh, {
     lngLat: [
       center[0] + 0.02,
       center[1],
     ],
-  });
-
-  mesh3.modify({
-    // lngLat: center,
     altitude: 1000,
+    altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
   });
 
+  
+  const itemLngLat = movingItem3D.lngLat;
   let progress = 0;
-
-  const itemLngLat = mesh2.lngLat;
-
-
-  // Create an external variable 'run' and inject a button for controlling it
-  let run = true;
-
-  // Create a button element
-  const stopButton = document.createElement('button');
-  stopButton.textContent = 'Stop';
-  stopButton.style.position = 'absolute';
-  stopButton.style.top = '10px';
-  stopButton.style.left = '10px';
-  stopButton.style.zIndex = '10000';
-  stopButton.style.padding = '8px 16px';
-  stopButton.style.background = '#222';
-  stopButton.style.color = '#fff';
-  stopButton.style.border = 'none';
-  stopButton.style.borderRadius = '4px';
-  stopButton.style.cursor = 'pointer';
-
-  // Append the button to the body
-  document.body.appendChild(stopButton);
-
-  // Add a click listener that sets 'run' to false
-  stopButton.addEventListener('click', () => {
-    run = !run;
-  });
 
   function loop() {
     requestAnimationFrame(loop);
-    if (!run) return;
     progress += 0.001;
-    if (progress > 1) {
+    if (progress > Math.PI * 2) {
       progress = 0;
     }
 
-    mesh2.modify({
+    movingItem3D.modify({
       lngLat: [
         itemLngLat.lng + Math.sin(progress * Math.PI * 2) * 0.02,
         itemLngLat.lat,
@@ -140,17 +114,18 @@ async function main() {
       roll: progress * Math.PI * 100,
     });
 
-    const mesh2IntersectsMesh1 = mesh2.intersects(mesh1, "narrow");
-    const mesh2IntersectsMesh3 = mesh2.intersects(mesh3, "narrow");
+    const mesh2IntersectsMesh1 = movingItem3D.intersects(leftCubeItem3D, "medium");
+    const mesh2IntersectsMesh3 = movingItem3D.intersects(sphereRightItem3D, "medium");
 
-    if (!mesh2.mesh) return;
+    if (!movingItem3D.mesh) return;
   
     if (mesh2IntersectsMesh1) {
-      recursivelySetMaterialColor(mesh2.mesh, "green");
+      recursivelySetMaterialColor(leftCubeMesh, "green");
     } else if (mesh2IntersectsMesh3) {
-      recursivelySetMaterialColor(mesh2.mesh, "blue");
+      recursivelySetMaterialColor(sphereRightMesh, "blue");
     } else {
-      recursivelySetMaterialColor(mesh2.mesh, "red");
+      recursivelySetMaterialColor(leftCubeMesh, "red");
+      recursivelySetMaterialColor(sphereRightMesh, "red");
     }
   }
 
