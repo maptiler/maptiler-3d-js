@@ -334,7 +334,6 @@ export class Item3D extends Evented {
     this.applyTransformUpdate();
     this.createDollyForMesh();
 
-
     this.updateGroupBoundsIfNeeded();
   }
 
@@ -779,7 +778,6 @@ export class Item3D extends Evented {
     if (typeof options.wireframe === "boolean") {
       this.setWireframe(options.wireframe, false);
     }
-    
 
     this.map.triggerRepaint();
 
@@ -1183,7 +1181,7 @@ export class Item3D extends Evented {
   protected bounds = {
     box: new Box3(),
     sphere: new Sphere(),
-  }
+  };
 
   /**
    * Check if the item intersects with another item
@@ -1231,7 +1229,7 @@ export class Item3D extends Evented {
   protected updateGroupBoundsIfNeeded(force = false) {
     if (!force && this.needsUpdateBounds === false) return;
     if (!this.mesh) return;
-    
+
     this.bounds.box.setFromObject(this.dolly ?? this.mesh);
 
     this.bounds.box.getBoundingSphere(this.bounds.sphere);
@@ -1239,7 +1237,6 @@ export class Item3D extends Evented {
     this.needsUpdateBounds = false;
   }
 }
-
 
 function createDefaultTransform(): Item3DTransform {
   return {
