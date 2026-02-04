@@ -434,9 +434,8 @@ export class Layer3D implements Layer3DInternalAPIInterface {
   }
 
   /**
-   * Updates the world matrices of all Item3D dollies. Call this before intersection tests
-   * when they run outside the render cycle (e.g. in requestAnimationFrame) to ensure bounds
-   * are computed with current positions.
+   * Updates the world matrices of all Item3D dollies. Must be called before any intersection checks
+   * to ensure bounds are computed with current positions.
    * @internal
    */
   updateItemMatrices() {
