@@ -11,7 +11,7 @@ import {
   type AnimationClip,
   Camera,
   Matrix4,
-  Mesh,
+  type Mesh,
   Scene,
   PointLight,
   AmbientLight,
@@ -418,6 +418,7 @@ export class Layer3D implements Layer3DInternalAPIInterface {
           .premultiply(sceneInverseMatrix);
 
         model.matrix = modelMatrix;
+        model.updateMatrixWorld(true);
       }
     }
 
@@ -430,6 +431,44 @@ export class Layer3D implements Layer3DInternalAPIInterface {
 
     const maplibreMatrix = m.multiply(sceneMatrix);
     this.camera.projectionMatrix.copy(maplibreMatrix);
+  }
+
+  /**
+   * Updates the world matrices of all Item3D dollies. Must be called before any intersection checks
+   * to ensure bounds are computed with current positions.
+   * @internal
+   */
+  updateItemMatrices() {
+    if (this.items3D.size === 0) return;
+
+    const mapCenter = this.map.getCenter();
+    const sceneOrigin = new LngLat(mapCenter.lng + EPSILON, mapCenter.lat + EPSILON);
+    const sceneElevation = this.map.queryTerrainElevation(sceneOrigin) || 0;
+    const sceneMatrixData = this.map.transform.getMatrixForModel(sceneOrigin, sceneElevation);
+    const sceneMatrix = new Matrix4().fromArray(sceneMatrixData);
+    const sceneInverseMatrix = sceneMatrix.clone().invert();
+
+    for (const [_, item] of this.items3D) {
+      const model = item[getItem3DDollySymbol]();
+      if (model === null) continue;
+
+      let modelAltitude = item.altitude;
+      if (item.altitudeReference === AltitudeReference.GROUND) {
+        if (this.isElevationNeedUpdate === true) {
+          item.setElevation(this.map.queryTerrainElevation(item.lngLat) || 0);
+        }
+        modelAltitude += item.elevation;
+      }
+
+      const modelMatrixData = this.map.transform.getMatrixForModel(item.lngLat, modelAltitude);
+      const modelMatrix = new Matrix4()
+        .fromArray(modelMatrixData)
+        .multiply(item.additionalTransformationMatrix)
+        .premultiply(sceneInverseMatrix);
+
+      model.matrix = modelMatrix;
+      model.updateMatrixWorld(true);
+    }
   }
 
   /**
@@ -576,69 +615,35 @@ export class Layer3D implements Layer3DInternalAPIInterface {
     return item;
   }
 
+  /**
+   * Used by Item3D.clone() to add a cloned mesh to the layer.
+   * @internal
+   */
+  public addClonedMesh(
+    params: MeshOptions & { id: string; mesh: Mesh | Group | Object3D; animations?: AnimationClip[] },
+  ): Item3D {
+    return this.addMeshInternal(params);
+  }
+
   public getItem3D(id: string): Item3D | null {
     return this.items3D.get(id) ?? null;
   }
 
   /**
-   *
-   * Clone an existing mesh. Extra options can be provided to overwrite the clone configuration
+   * Clone an existing mesh. Extra options can be provided to overwrite the clone configuration.
+   * Delegates to the source item's clone() method.
    * @param sourceId - The ID of the mesh to clone
    * @param id - The ID of the cloned mesh
    * @param options - The options to clone the mesh with
    */
   cloneMesh(sourceId: string, id: string, options: CloneMeshOptions = {}) {
-    this.throwUniqueID(id);
-    const sourceItem = this.items3D.get(sourceId);
-    if (!sourceItem) return;
-    if (!sourceItem.mesh) return;
+    const sourceItem = this.getItem3D(sourceId);
 
-    // Cloning the source item options and overwriting some with the provided options
-    const cloneOptions: Partial<MeshOptions> = {
-      lngLat: new LngLat(sourceItem.lngLat.lng, sourceItem.lngLat.lat),
-      altitude: sourceItem.altitude,
-      altitudeReference: sourceItem.altitudeReference,
-      visible: sourceItem.mesh.visible,
-      sourceOrientation: sourceItem.sourceOrientation,
-      scale: sourceItem.scale,
-      heading: sourceItem.heading,
-      ...options,
-    };
-
-    /**
-     * Deep cloning the mesh and its materials (otherwise wireframe and opacity would be shared)
-     */
-    const clonedObject = sourceItem.mesh.clone(true);
-
-    const gltfContent = clonedObject.getObjectByName(`${sourceId}_gltfContent_scene`);
-    if (options.transform && gltfContent) {
-      gltfContent.name = `${id}_gltfContent_scene`;
-      const { rotation, offset } = options.transform;
-      if (rotation) {
-        gltfContent.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
-      }
-      if (offset) {
-        gltfContent.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
-      }
+    if (!sourceItem) {
+      throw new Error(`Mesh with ID ${sourceId} does not exist.`);
     }
 
-    clonedObject.traverse((child) => {
-      if (child instanceof Mesh) {
-        if (Array.isArray(child.material)) {
-          child.material = child.material.map((mat) => mat.clone());
-        } else {
-          child.material = child.material.clone();
-        }
-      }
-    });
-
-    this.addMeshInternal({
-      ...cloneOptions,
-      id,
-      mesh: clonedObject,
-      ...(sourceItem.animationClips && { animations: sourceItem.animationClips }),
-      animationMode: sourceItem.animationMode,
-    });
+    return sourceItem.clone(id, options);
   }
 
   /**

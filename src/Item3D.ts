@@ -2,18 +2,22 @@ import {
   type AnimationAction,
   type AnimationClip,
   type AnimationMixer,
+  Box3,
   type Group,
   type Matrix4,
-  type Mesh,
+  Mesh,
   Object3D,
   type Points,
   type PointsMaterial,
+  Sphere,
+  Vector3,
 } from "three";
 import type { Layer3D } from "./Layer3D";
 import { Evented, LngLat, type LngLatLike, type Map as MapSDK } from "@maptiler/sdk";
 import {
   type AnimationLoopOptions,
   type AnimationMode,
+  type CloneMeshOptions,
   type Item3DMeshUIStates,
   type MeshOptions,
   type Item3DMeshUIStateName,
@@ -29,7 +33,7 @@ import { degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
 import { getItem3DEventTypesSymbol, getItem3DDollySymbol } from "./symbols";
 import { USE_DEBUG_LOGS } from "./config";
-
+import { OBB } from "three/examples/jsm/math/OBB";
 export interface Item3DConstructorOptions {
   // the id of the item
   id: string;
@@ -323,9 +327,14 @@ export class Item3D extends Evented {
 
     Object.assign(this, options as Item3DConstructorOptions);
 
+    this.initLocalOBB();
+
     this.initDefaultState();
+
     this.applyTransformUpdate();
     this.createDollyForMesh();
+
+    this.updateGroupBoundsIfNeeded();
   }
 
   private createDollyForMesh() {
@@ -342,10 +351,12 @@ export class Item3D extends Evented {
 
     if (typeof this.roll === "number") {
       this.setRoll(this.roll, false);
+      this.needsUpdateBounds = true;
     }
 
     if (typeof this.pitch === "number") {
       this.setPitch(this.pitch, false);
+      this.needsUpdateBounds = true;
     }
 
     dolly.add(pitch);
@@ -353,6 +364,20 @@ export class Item3D extends Evented {
     roll.add(this.mesh);
 
     this.dolly = dolly;
+  }
+
+  /** OBBs in each mesh's local space, paired with the mesh for correct world transform. */
+  private localOBBs: { mesh: Mesh; obb: OBB }[] = [];
+
+  private initLocalOBB() {
+    if (!this.mesh) return;
+
+    this.mesh.traverse((node) => {
+      if (node instanceof Mesh) {
+        const localAABB = new Box3().setFromObject(node);
+        this.localOBBs.push({ mesh: node, obb: new OBB().fromBox3(localAABB) });
+      }
+    });
   }
 
   /**
@@ -399,6 +424,67 @@ export class Item3D extends Evented {
   public override off(event: Item3DEventTypes, callback: (event: any) => void) {
     this.registeredEventTypes = this.registeredEventTypes.filter((type) => type !== event);
     return super.off(event, callback);
+  }
+
+  /**
+   * Clone this item and add it to the layer. The cloned item shares the same mesh geometry and animations but has its own materials and transform.
+   * @param newId - The ID for the cloned item. If omitted, defaults to `${this.id}-clone`.
+   * @param options - Options to override properties on the clone (e.g. lngLat, altitude, transform).
+   * @returns The new Item3D instance.
+   */
+  public clone(newId?: string, options: CloneMeshOptions = {}): Item3D {
+    const id = newId ?? `${this.id}-clone`;
+
+    if (!this.mesh) {
+      throw new Error(`Item with ID ${this.id} does not have a mesh.`);
+    }
+
+    const cloneOptions: Partial<MeshOptions> = {
+      lngLat: new LngLat(this.lngLat.lng, this.lngLat.lat),
+      altitude: this.altitude,
+      altitudeReference: this.altitudeReference,
+      visible: this.mesh.visible,
+      sourceOrientation: this.sourceOrientation,
+      scale: this.scale,
+      heading: this.heading,
+      ...options,
+    };
+
+    const clonedObject = this.mesh.clone(true);
+
+    const gltfContent = clonedObject.getObjectByName(`${this.id}_gltfContent_scene`);
+    if (options.transform && gltfContent) {
+      gltfContent.name = `${id}_gltfContent_scene`;
+      const { rotation, offset } = options.transform;
+      if (rotation) {
+        gltfContent.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+      }
+      if (offset) {
+        gltfContent.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
+      }
+    }
+
+    clonedObject.traverse((child) => {
+      if (child instanceof Mesh) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => mat.clone());
+        } else {
+          child.material = child.material.clone();
+        }
+      }
+    });
+
+    return this.parentLayer.addClonedMesh({
+      ...cloneOptions,
+      id,
+      mesh: clonedObject,
+      ...(this.animationClips && { animations: [...this.animationClips].map((clip) => clip.clone()) }),
+      animationMode: this.animationMode,
+      states: Array.from(this.currentStates.entries()).reduce((acc, [name, { props }]) => {
+        acc[name as Item3DMeshUIStateName] = props;
+        return acc;
+      }, {} as Item3DMeshUIStates),
+    });
   }
 
   /**
@@ -607,6 +693,7 @@ export class Item3D extends Evented {
   public setTransform(transform?: Partial<Item3DTransform>) {
     if (!transform) {
       this.transform = createDefaultTransform();
+      this.needsUpdateBounds = true;
       return this;
     }
 
@@ -614,6 +701,8 @@ export class Item3D extends Evented {
       ...this.transform,
       ...transform,
     };
+
+    this.needsUpdateBounds = true;
 
     return this;
   }
@@ -634,6 +723,7 @@ export class Item3D extends Evented {
     if ("lngLat" in options) {
       this.lngLat = LngLat.convert(options.lngLat as LngLatLike);
       this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.scale === "number") {
@@ -648,11 +738,13 @@ export class Item3D extends Evented {
 
     if (typeof options.altitude === "number") {
       this.altitude = options.altitude;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.altitudeReference === "number") {
       this.altitudeReference = options.altitudeReference;
       this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.heading === "number") {
@@ -662,14 +754,17 @@ export class Item3D extends Evented {
 
     if (typeof options.pitch === "number") {
       this.setPitch(options.pitch, false);
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.roll === "number") {
       this.setRoll(options.roll, false);
+      this.needsUpdateBounds = true;
     }
 
     if (isTransformNeedUpdate === true) {
       this.applyTransformUpdate();
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.opacity === "number") {
@@ -697,6 +792,8 @@ export class Item3D extends Evented {
    */
   public setLngLat(lngLat: LngLat, cueRepaint = true) {
     this.lngLat = lngLat;
+
+    this.needsUpdateBounds = true;
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -709,6 +806,9 @@ export class Item3D extends Evented {
    */
   public setAltitude(altitude: number, cueRepaint = true) {
     this.altitude = altitude;
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -723,6 +823,9 @@ export class Item3D extends Evented {
     // elevation is the height of the model at ground level,
     // eg the height of the ground below the model
     this.elevation = elevation;
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -741,6 +844,7 @@ export class Item3D extends Evented {
 
     this.relativeScale = (Array.isArray(scale) ? scale : [scale, scale, scale]) as [number, number, number];
     this.applyTransformUpdate();
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -759,6 +863,9 @@ export class Item3D extends Evented {
     this.scale = Array.isArray(scale) ? scale : [scale, scale, scale];
 
     this.applyTransformUpdate();
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -772,6 +879,9 @@ export class Item3D extends Evented {
   public setHeading(heading: number, cueRepaint = true) {
     this.heading = heading;
     this.applyTransformUpdate();
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -789,6 +899,8 @@ export class Item3D extends Evented {
       pitchObject.rotation.x = degreesToRadians(pitchInDegrees);
     }
 
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -805,6 +917,9 @@ export class Item3D extends Evented {
     if (rollObject) {
       rollObject.rotation.z = degreesToRadians(rollInDegrees);
     }
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -817,6 +932,8 @@ export class Item3D extends Evented {
    */
   public setSourceOrientation(sourceOrientation: SourceOrientation, cueRepaint = true) {
     this.sourceOrientation = sourceOrientation;
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -829,6 +946,8 @@ export class Item3D extends Evented {
    */
   public setAltitudeReference(altitudeReference: AltitudeReference, cueRepaint = true) {
     this.altitudeReference = altitudeReference;
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -868,6 +987,7 @@ export class Item3D extends Evented {
   private applyTransformUpdate() {
     const scale = this.relativeScale.map((s, i) => s * this.scale[i]) as [number, number, number];
     this.additionalTransformationMatrix = getTransformationMatrix(scale, this.heading, this.sourceOrientation);
+    this.needsUpdateBounds = true;
   }
 
   /**
@@ -1054,6 +1174,67 @@ export class Item3D extends Evented {
       this.map.triggerRepaint();
       this.nextUpdateTick = null;
     });
+  }
+
+  private needsUpdateBounds = false;
+
+  protected bounds = {
+    box: new Box3(),
+    sphere: new Sphere(),
+  };
+
+  /**
+   * Check if the item intersects with another item
+   * @param item3D - The item to check intersection with
+   * @param precision - The precision of the intersection check, can be "low" or "medium". "high" is not supported currently.
+   * "low" is the fastest and least accurate check, it only checks the bounding sphere and AABB of the entire group.
+   * "medium" is the default check, it does a broad pass first, then checks the OBB of the individual meshes within the group. This is less and less performant as the number of meshes in the group increases.
+   * @returns {boolean} True if the items intersect, false otherwise
+   */
+  public intersects(item3D: Item3D, precision: "low" | "medium" = "medium") {
+    if (!["low", "medium"].includes(precision)) {
+      throw new Error(`Invalid precision: "${precision}", must be "low" or "medium"`);
+    }
+
+    if (!this.mesh || !item3D.mesh) return false;
+
+    // we need to make sure hte matrices are up to date
+    // for the OBB, AABB or sphere calcs.
+    this.parentLayer.updateItemMatrices();
+
+    // update the bounds for this and the intersected item
+    this.updateGroupBoundsIfNeeded(true);
+    item3D.updateGroupBoundsIfNeeded(true);
+
+    // check broad intersections
+    if (!this.bounds.sphere.intersectsSphere(item3D.bounds.sphere)) return false;
+    if (!this.bounds.box.intersectsBox(item3D.bounds.box)) return false;
+
+    // if we have reached here, we have a broad intersection
+    // so we can return true if we are using the broad strategy
+    if (precision === "low") return true;
+
+    // if not then we need to check the narrower
+    for (const { mesh: meshA, obb: localOBBA } of this.localOBBs) {
+      const worldOBBA = localOBBA.clone().applyMatrix4(meshA.matrixWorld);
+      for (const { mesh: meshB, obb: localOBBB } of item3D.localOBBs) {
+        const worldOBBB = localOBBB.clone().applyMatrix4(meshB.matrixWorld);
+        if (worldOBBA.intersectsOBB(worldOBBB)) return true;
+      }
+    }
+
+    return false;
+  }
+
+  protected updateGroupBoundsIfNeeded(force = false) {
+    if (!force && this.needsUpdateBounds === false) return;
+    if (!this.mesh) return;
+
+    this.bounds.box.setFromObject(this.dolly ?? this.mesh);
+
+    this.bounds.box.getBoundingSphere(this.bounds.sphere);
+
+    this.needsUpdateBounds = false;
   }
 }
 
