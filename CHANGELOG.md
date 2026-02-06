@@ -7,7 +7,7 @@
 - Adds `remove()` method to `Item3D`
 
 ## ⚙️ Other
-None
+- Addes e2e tests for intersections
 
 ## 🐞 Bug Fixes
 - Fixes `Layer3D.removeMesh` logic
