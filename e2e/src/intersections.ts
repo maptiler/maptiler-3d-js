@@ -58,12 +58,6 @@ async function main() {
     heading: 90,
     altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
   });
-  // const itemTwo = layer3D.addMesh("item-2", new Mesh(boxGeometry, materialOne), {
-  //   lngLat: LngLat.convert([+0.001, 0]), // Slightly west of center
-  //   scale: 1,
-  //   altitude: 10,
-  //   altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
-  // });
 
   itemOne.debug = true;
   itemTwo.debug = true;
@@ -72,7 +66,6 @@ async function main() {
 
   window.__pageObjects = {
     itemIDs: ["item-1", "item-2"],
-    map,
     itemOne,
     itemTwo,
     recursivelySetMaterialColor,

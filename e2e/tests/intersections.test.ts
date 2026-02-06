@@ -43,7 +43,8 @@ test("reports intersection when items overlap and changes mesh colour", async ({
   );
 
   const calls = await page.evaluate(async () => {
-    const { itemOne, itemTwo, recursivelySetMaterialColor, map } = window.__pageObjects
+    const map = window.__map;
+    const { itemOne, itemTwo, recursivelySetMaterialColor } = window.__pageObjects
 
     const calls = {
       frame0: false,
@@ -97,7 +98,7 @@ test("reports intersection when items overlap and changes mesh colour", async ({
     await (window as Window & { notifyScreenshotStateReady?: (d: unknown) => Promise<void> })
       .notifyScreenshotStateReady?.({ frame: frame++ });
 
-    // Move itemTwo to the same position as itemOne so they overlap
+    // Move itemTwo to so both items overlap
     itemTwo.modify({
       lngLat: [itemOne.lngLat.lng + 0.0001, itemOne.lngLat.lat],
     });
@@ -120,7 +121,6 @@ test("reports intersection when items overlap and changes mesh colour", async ({
       .notifyScreenshotStateReady?.({ frame: frame++ });
 
     return calls;
-
   });
 
   expect(calls).toEqual({ frame0: false, frame1: false, frame2: true });
