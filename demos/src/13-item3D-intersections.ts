@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { LngLat, Map, MapStyle, config } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src";
+import { AltitudeReference, Item3D, Layer3D } from "../../src";
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, SphereGeometry } from "three";
 
 setupMapTilerApiKey({ config });
@@ -61,30 +61,15 @@ async function main() {
     altitude: 1000,
   });
 
-  const movingGroup = new Group();
-  const cube = new Mesh(new BoxGeometry(10, 100, 10), new MeshStandardMaterial({ color: "red", roughness: 0.5 }));
-  cube.name = "moving-cube-1";
-  movingGroup.add(cube);
-  
-  const cube2 = new Mesh(new BoxGeometry(100, 10, 10), new MeshStandardMaterial({ color: "red", roughness: 0.5 }));
-  cube2.position.y = 0;
-  cube2.name = "moving-cube-2";
-  movingGroup.add(cube2);
-
-  const movingItem3D = await layer3D.addMeshFromURL("biplaneOne", "models/biplane/scene.gltf", {
+  const movingItem3D = await layer3D.addMeshFromURL("biplaneOne", "models/Duck.glb", {
     lngLat: center,
     heading: 0,
     scale: 180,
     altitude: 950,
     altitudeReference: AltitudeReference.MEAN_SEA_LEVEL,
-    transform: {
-      rotation: {
-        y: Math.PI / 2,
-      },
-    }
   });
 
-  const sphereRightMesh = new Mesh(new SphereGeometry(250, 32, 32), new MeshStandardMaterial({ color: "blue", roughness: 0.5 }));
+  const sphereRightMesh = new Mesh(new SphereGeometry(250, 32, 32), new MeshStandardMaterial({ color: "red", roughness: 0.5 }));
   sphereRightMesh.name = "static-sphere";
   const sphereRightItem3D = layer3D.addMesh("sphere", sphereRightMesh, {
     lngLat: [
@@ -99,33 +84,42 @@ async function main() {
   const itemLngLat = movingItem3D.lngLat;
   let progress = 0;
 
+  addDebugCheckBox([leftCubeItem3D, movingItem3D, sphereRightItem3D]);
+
   function loop() {
     requestAnimationFrame(loop);
-    progress += 0.001;
+    progress += 0.0005;
     if (progress > Math.PI * 2) {
       progress = 0;
     }
+
+    leftCubeItem3D.modify({
+      heading: 45,
+      altitude: 1000,
+    });
 
     movingItem3D.modify({
       lngLat: [
         itemLngLat.lng + Math.sin(progress * Math.PI * 2) * 0.02,
         itemLngLat.lat,
       ],
-      roll: progress * Math.PI * 100,
+      heading: progress * Math.PI * 100,
     });
+
 
     const mesh2IntersectsMesh1 = movingItem3D.intersects(leftCubeItem3D, "medium");
     const mesh2IntersectsMesh3 = movingItem3D.intersects(sphereRightItem3D, "medium");
-
-    if (!movingItem3D.mesh) return;
   
     if (mesh2IntersectsMesh1) {
       recursivelySetMaterialColor(leftCubeMesh, "green");
+      console.log("mesh2IntersectsMesh1");
     } else if (mesh2IntersectsMesh3) {
       recursivelySetMaterialColor(sphereRightMesh, "blue");
+      console.log("mesh2IntersectsMesh3");
     } else {
       recursivelySetMaterialColor(leftCubeMesh, "red");
       recursivelySetMaterialColor(sphereRightMesh, "red");
+      console.log("no intersection");
     }
   }
 
@@ -136,12 +130,39 @@ main();
 
 function recursivelySetMaterialColor(mesh: Mesh | Group | Object3D, color: string) {
   if (mesh instanceof Mesh) {
+    mesh.material.userData.oldMap = mesh.material.map;
+    mesh.material.map = null;
     mesh.material.color.set(color);
   } else if (mesh instanceof Group) {
     mesh.traverse((node) => {
       if (node instanceof Mesh) {
+        console.log(node);
+        node.material.userData.oldMap = node.material.map;
+        node.material.map = null;
         node.material.color.set(color);
       }
     });
   }
+}
+
+function addDebugCheckBox(objects: Item3D[]) {
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  const label = document.createElement("label");
+  label.style.position = "absolute";
+  label.style.top = "10px";
+  label.style.left = "10px";
+  label.style.zIndex = "1000";
+  label.style.background = "rgba(255,255,255,0.7)";
+  label.style.padding = "4px 8px";
+  label.style.borderRadius = "3px";
+  label.style.fontSize = "14px";
+  label.appendChild(checkbox);
+  label.appendChild(document.createTextNode(" Show debug bounds"));
+  checkbox.addEventListener("change", () => {
+    objects.forEach((object) => {
+      object.debug = checkbox.checked;
+    });
+  });
+  document.body.appendChild(label);
 }

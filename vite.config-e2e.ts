@@ -11,6 +11,7 @@ export default defineConfig({
         withModel: 'public/withModel.html',
         withAnimatedModel: 'public/withAnimatedModel.html',
         withPitchAndRoll: 'public/withPitchAndRoll.html',
+        intersections: 'public/intersections.html',
       },
     },
   },
