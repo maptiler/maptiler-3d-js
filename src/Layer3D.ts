@@ -737,27 +737,7 @@ export class Layer3D implements Layer3DInternalAPIInterface {
       throw new Error(`Mesh with ID ${id} does not exist.`);
     }
 
-    const mesh = item?.mesh;
-
-    if (mesh) {
-      // Removing the mesh from the scene
-      this.scene.remove(mesh);
-
-      // Traversing the tree of this Object3D/Group/Mesh
-      // and find all the sub nodes that are THREE.Mesh
-      // so that we can dispose (aka. free GPU memory) of their material and geometries
-      mesh.traverse((node) => {
-        if ("isMesh" in node && node.isMesh === true) {
-          const mesh = node as Mesh;
-          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          for (const mat of materials) {
-            mat.dispose();
-          }
-
-          mesh.geometry.dispose();
-        }
-      });
-    }
+    item.remove();
 
     // Removing the item from the index.
     this.items3D.delete(id);

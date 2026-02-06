@@ -850,6 +850,29 @@ export class Item3D extends Evented {
     return this;
   }
 
+  public remove() {
+    const scene = this.dolly?.parent;
+    if (this.dolly && scene) {
+      // Removing the mesh from the scene
+      // Traversing the tree of this Object3D/Group/Mesh
+      // and find all the sub nodes that are THREE.Mesh
+      // so that we can dispose (aka. free GPU memory) of their material and geometries
+      this.dolly.traverse((node) => {
+        if ("isMesh" in node && node.isMesh === true) {
+          const mesh = node as Mesh;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const mat of materials) {
+            mat.dispose();
+          }
+
+          mesh.geometry.dispose();
+        }
+      });
+
+      scene.remove(this.dolly);
+    }
+  }
+
   /**
    * Set the lngLat of the item
    * @param lngLat - The lngLat to set

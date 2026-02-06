@@ -10,6 +10,8 @@ addPerformanceStats();
 
 const center: [number, number] = [-11.400203704833984, 21.124376760369245];
 
+
+
 async function main() {
   const map = new Map({
     container: document.getElementById("map") as HTMLElement,
@@ -61,7 +63,7 @@ async function main() {
     altitude: 1000,
   });
 
-  const movingItem3D = await layer3D.addMeshFromURL("biplaneOne", "models/Duck.glb", {
+  const movingItem3D = await layer3D.addMeshFromURL("duck", "models/Duck.glb", {
     lngLat: center,
     heading: 0,
     scale: 180,
@@ -89,9 +91,6 @@ async function main() {
   function loop() {
     requestAnimationFrame(loop);
     progress += 0.0005;
-    if (progress > Math.PI * 2) {
-      progress = 0;
-    }
 
     leftCubeItem3D.modify({
       heading: 45,
@@ -112,14 +111,11 @@ async function main() {
   
     if (mesh2IntersectsMesh1) {
       recursivelySetMaterialColor(leftCubeMesh, "green");
-      console.log("mesh2IntersectsMesh1");
     } else if (mesh2IntersectsMesh3) {
       recursivelySetMaterialColor(sphereRightMesh, "blue");
-      console.log("mesh2IntersectsMesh3");
     } else {
       recursivelySetMaterialColor(leftCubeMesh, "red");
       recursivelySetMaterialColor(sphereRightMesh, "red");
-      console.log("no intersection");
     }
   }
 
