@@ -398,9 +398,7 @@ export class Item3D extends Evented {
     this.mesh.traverse((node) => {
       if (node instanceof Mesh && node.geometry?.attributes?.position) {
         // AABB in mesh local space (from geometry), so applyMatrix4(mesh.matrixWorld) later gives correct world OBB
-        const localAABB = new Box3().setFromBufferAttribute(
-          node.geometry.attributes.position as BufferAttribute,
-        );
+        const localAABB = new Box3().setFromBufferAttribute(node.geometry.attributes.position as BufferAttribute);
         this.localOBBs.push({ mesh: node, obb: new OBB().fromBox3(localAABB) });
       }
     });
