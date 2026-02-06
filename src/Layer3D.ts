@@ -49,6 +49,7 @@ import {
   handleMeshMouseDownSymbol,
   prepareRenderMethodSymbol,
   getItem3DDollySymbol,
+  removeItem3DFromIndexSymbol,
 } from "./symbols";
 /**
  * The Layer3D class is the main class for the 3D layer.
@@ -738,12 +739,14 @@ export class Layer3D implements Layer3DInternalAPIInterface {
     }
 
     item.remove();
-
     // Removing the item from the index.
-    this.items3D.delete(id);
     this.map.triggerRepaint();
 
     return this;
+  }
+
+  [removeItem3DFromIndexSymbol](id: string) {
+    this.items3D.delete(id);
   }
 
   /**

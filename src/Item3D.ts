@@ -35,7 +35,7 @@ import {
 } from "./types";
 import { degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
-import { getItem3DEventTypesSymbol, getItem3DDollySymbol } from "./symbols";
+import { getItem3DEventTypesSymbol, getItem3DDollySymbol, removeItem3DFromIndexSymbol } from "./symbols";
 import { USE_DEBUG_LOGS } from "./config";
 import { OBB } from "three/examples/jsm/math/OBB";
 export interface Item3DConstructorOptions {
@@ -870,6 +870,10 @@ export class Item3D extends Evented {
       });
 
       scene.remove(this.dolly);
+    }
+
+    if (this.parentLayer.getItem3D(this.id)) {
+      this.parentLayer[removeItem3DFromIndexSymbol](this.id);
     }
   }
 
