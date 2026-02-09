@@ -59,7 +59,7 @@ export function filterKeysFromObject<T extends Record<string, any>>(
   );
 }
 
-export function convertUnitsToMeters(value: number, units: "meters" | "feet" | "km" | "miles" = "meters"): number {
+export function convertUnitsToMeters(value: number, units: "meters" | "feet" | "km" | "miles"): number {
   switch (units) {
     case "meters":
       return value;

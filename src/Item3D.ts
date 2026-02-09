@@ -935,7 +935,7 @@ export class Item3D extends Evented {
    * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
    * @returns {Item3D} The current instance of Item3D
    */
-  public moveBy(offset: { x: number, y: number, z: number }, units: "meters" | "feet" | "km" | "miles", cueRepaint = true) {
+  public moveBy(offset: { x: number, y: number, z: number }, units: "meters" | "feet" | "km" | "miles" = "meters", cueRepaint = true) {
     const xOffsetInMeters = convertUnitsToMeters(offset.x, units);
     const zOffsetInMeters = convertUnitsToMeters(offset.z, units);
     const altitudeOffsetInMeters = convertUnitsToMeters(offset.y, units);
@@ -945,7 +945,7 @@ export class Item3D extends Evented {
     const newLng = this.lngLat.lng + (xOffsetInMeters / (EARTH_RADIUS * Math.cos(this.lngLat.lat * Math.PI / 180))) * (180 / Math.PI);
 
     this.lngLat = new LngLat(newLng, newLat);
-    this.elevation = this.elevation + altitudeOffsetInMeters;
+    this.altitude = this.altitude + altitudeOffsetInMeters;
     if (cueRepaint) this.cueUpdate();
     return this;
   }
