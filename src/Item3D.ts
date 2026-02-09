@@ -926,7 +926,7 @@ export class Item3D extends Evented {
     cueRepaint = true,
   ) {
     // To avoid flickering / jitter, `cueUpdate` is `false` for both `setLngLat` and `setAltitude` calls
-    // We want to avoid a repaint until the final calc is done (is needed)
+    // We want to avoid a repaint until the final calc is done (if needed)
     const newLngLat = item instanceof Item3D ? item.lngLat : new LngLat(item.lon, item.lat);
     this.setLngLat(new LngLat(newLngLat.lng, newLngLat.lat), false);
     this.setAltitude(item.altitude, false);
