@@ -1291,10 +1291,6 @@ export class Item3D extends Evented {
 
     if (!this.mesh || !item3D.mesh) return false;
 
-    // we need to make sure hte matrices are up to date
-    // for the OBB, AABB or sphere calcs.
-    // this.parentLayer.updateItemMatrices();
-
     // update the bounds for this and the intersected item
     this.updateGroupBoundsIfNeeded(true);
     item3D.updateGroupBoundsIfNeeded(true);
