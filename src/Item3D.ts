@@ -3,13 +3,17 @@ import {
   type AnimationClip,
   type AnimationMixer,
   Box3,
+  Box3Helper,
+  type BufferAttribute,
   type Group,
   type Matrix4,
   Mesh,
+  MeshBasicMaterial,
   Object3D,
   type Points,
   type PointsMaterial,
   Sphere,
+  SphereGeometry,
   Vector3,
 } from "three";
 import type { Layer3D } from "./Layer3D";
@@ -31,7 +35,7 @@ import {
 } from "./types";
 import { degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
-import { getItem3DEventTypesSymbol, getItem3DDollySymbol } from "./symbols";
+import { getItem3DEventTypesSymbol, getItem3DDollySymbol, removeItem3DFromIndexSymbol } from "./symbols";
 import { USE_DEBUG_LOGS } from "./config";
 import { OBB } from "three/examples/jsm/math/OBB";
 export interface Item3DConstructorOptions {
@@ -270,6 +274,23 @@ export class Item3D extends Evented {
    * if "manual", the animation needs to be manually updated by calling the `updateAnimation` method
    */
   public animationMode: AnimationMode = "continuous";
+
+  /**
+   * When true, renders bounding boxes and bounding spheres for each internal mesh (for debugging).
+   */
+  public get debug(): boolean {
+    return this._debug;
+  }
+  public set debug(value: boolean) {
+    if (this._debug === value) return;
+    this._debug = value;
+    this.updateDebugHelpers();
+  }
+  private _debug = false;
+
+  /** Debug helpers (box/sphere) added as children of meshes when debug is true. */
+  private debugHelpers: Object3D[] = [];
+
   /**
    * The renderer of the item the singleton instance of WebGLRenderManager
    */
@@ -335,6 +356,8 @@ export class Item3D extends Evented {
     this.createDollyForMesh();
 
     this.updateGroupBoundsIfNeeded();
+
+    if (this.debug) this.updateDebugHelpers();
   }
 
   private createDollyForMesh() {
@@ -373,11 +396,54 @@ export class Item3D extends Evented {
     if (!this.mesh) return;
 
     this.mesh.traverse((node) => {
-      if (node instanceof Mesh) {
-        const localAABB = new Box3().setFromObject(node);
+      if (node instanceof Mesh && node.geometry?.attributes?.position) {
+        // AABB in mesh local space (from geometry), so applyMatrix4(mesh.matrixWorld) later gives correct world OBB
+        const localAABB = new Box3().setFromBufferAttribute(node.geometry.attributes.position as BufferAttribute);
         this.localOBBs.push({ mesh: node, obb: new OBB().fromBox3(localAABB) });
       }
     });
+  }
+
+  private updateDebugHelpers() {
+    // Remove existing helpers
+    for (const helper of this.debugHelpers) {
+      helper.parent?.remove(helper);
+      const withResources = helper as Object3D & {
+        geometry?: { dispose: () => void };
+        material?: { dispose: () => void } | { dispose: () => void }[];
+      };
+      if (withResources.geometry?.dispose) withResources.geometry.dispose();
+      if (withResources.material) {
+        const mat = Array.isArray(withResources.material) ? withResources.material : [withResources.material];
+        for (const m of mat) m.dispose();
+      }
+    }
+    this.debugHelpers.length = 0;
+
+    if (!this._debug || !this.mesh) return;
+
+    const localBox = new Box3();
+    const localSphere = new Sphere();
+
+    for (const { mesh } of this.localOBBs) {
+      const posAttr = mesh.geometry?.attributes?.position;
+      if (!posAttr) continue;
+
+      localBox.setFromBufferAttribute(posAttr as BufferAttribute);
+      localBox.getBoundingSphere(localSphere);
+
+      const boxHelper = new Box3Helper(localBox.clone(), 0x00ff00);
+      mesh.add(boxHelper);
+      this.debugHelpers.push(boxHelper);
+
+      const sphereMesh = new Mesh(
+        new SphereGeometry(localSphere.radius, 16, 12),
+        new MeshBasicMaterial({ wireframe: true, color: 0xff8800 }),
+      );
+      sphereMesh.position.copy(localSphere.center);
+      mesh.add(sphereMesh);
+      this.debugHelpers.push(sphereMesh);
+    }
   }
 
   /**
@@ -782,6 +848,33 @@ export class Item3D extends Evented {
     this.map.triggerRepaint();
 
     return this;
+  }
+
+  public remove() {
+    const scene = this.dolly?.parent;
+    if (this.dolly && scene) {
+      // Removing the mesh from the scene
+      // Traversing the tree of this Object3D/Group/Mesh
+      // and find all the sub nodes that are THREE.Mesh
+      // so that we can dispose (aka. free GPU memory) of their material and geometries
+      this.dolly.traverse((node) => {
+        if ("isMesh" in node && node.isMesh === true) {
+          const mesh = node as Mesh;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const mat of materials) {
+            mat.dispose();
+          }
+
+          mesh.geometry.dispose();
+        }
+      });
+
+      scene.remove(this.dolly);
+    }
+
+    if (this.parentLayer.getItem3D(this.id)) {
+      this.parentLayer[removeItem3DFromIndexSymbol](this.id);
+    }
   }
 
   /**
@@ -1198,10 +1291,6 @@ export class Item3D extends Evented {
 
     if (!this.mesh || !item3D.mesh) return false;
 
-    // we need to make sure hte matrices are up to date
-    // for the OBB, AABB or sphere calcs.
-    this.parentLayer.updateItemMatrices();
-
     // update the bounds for this and the intersected item
     this.updateGroupBoundsIfNeeded(true);
     item3D.updateGroupBoundsIfNeeded(true);
@@ -1230,7 +1319,7 @@ export class Item3D extends Evented {
     if (!force && this.needsUpdateBounds === false) return;
     if (!this.mesh) return;
 
-    this.bounds.box.setFromObject(this.dolly ?? this.mesh);
+    this.bounds.box.setFromObject(this.mesh);
 
     this.bounds.box.getBoundingSphere(this.bounds.sphere);
 
