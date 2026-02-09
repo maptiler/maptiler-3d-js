@@ -18,6 +18,7 @@ import {
 } from "three";
 import type { Layer3D } from "./Layer3D";
 import { Evented, LngLat, type LngLatLike, type Map as MapSDK } from "@maptiler/sdk";
+import { math } from "@maptiler/client";
 import {
   type AnimationLoopOptions,
   type AnimationMode,
@@ -28,16 +29,20 @@ import {
   type Item3DMeshUIStateProperties,
   type Item3DEventTypes,
   type Item3DTransform,
+  type Position3D,
   AltitudeReference,
   AnimationLoopOptionsMap,
   SourceOrientation,
   item3DStatePropertiesNames,
 } from "./types";
-import { degreesToRadians, getTransformationMatrix } from "./utils";
+import { convertUnitsToMeters, degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
 import { getItem3DEventTypesSymbol, getItem3DDollySymbol, removeItem3DFromIndexSymbol } from "./symbols";
 import { USE_DEBUG_LOGS } from "./config";
 import { OBB } from "three/examples/jsm/math/OBB";
+
+const { EARTH_RADIUS } = math;
+
 export interface Item3DConstructorOptions {
   // the id of the item
   id: string;
@@ -902,6 +907,45 @@ export class Item3D extends Evented {
 
     this.needsUpdateBounds = true;
 
+    if (cueRepaint) this.cueUpdate();
+    return this;
+  }
+
+  /**
+   * Set the position of the item relative to another Item3D
+   * @param item {Item3D | Position3D} - The item to set the position relative to can either be another Item3D or an object representing a 3D position.
+   * @param offset - The offset to set the position relative to, can be "x", "y" or "z". where "y" is the altitude offset, "x" is the longitude offset and "z" is the latitude offset
+   * @param units - The units of the offset, can be "meters", "feet", "km" or "miles", defaults to "meters"
+   * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
+   * @returns {Item3D} The item
+   */
+  public setPositionRelativeTo(item: Item3D | Position3D, offset: { x: number, y: number, z: number }, units: "meters" | "feet" | "km" | "miles", cueRepaint = true) {
+     // To avoid flickering / jitter, `cueUpdate` is `false` for both `setLngLat` and `setAltitude` calls
+     // We want to avoid a repaint until the final calc is done (is needed)
+    const newLngLat = item instanceof Item3D ? item.lngLat : new LngLat(item.lon, item.lat);
+    this.setLngLat(new LngLat(newLngLat.lng, newLngLat.lat), false);
+    this.setAltitude(item.altitude, false);
+    return this.moveBy(offset, units, cueRepaint);
+  }
+
+  /**
+   * Move the item by a given offset
+   * @param offset - The offset to move the item by, can be "x", "y" or "z". where "y" is the altitude offset, "x" is the longitude offset and "z" is the latitude offset
+   * @param units - The units of the offset, can be "meters", "feet", "km" or "miles", defaults to "meters"
+   * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
+   * @returns {Item3D} The current instance of Item3D
+   */
+  public moveBy(offset: { x: number, y: number, z: number }, units: "meters" | "feet" | "km" | "miles", cueRepaint = true) {
+    const xOffsetInMeters = convertUnitsToMeters(offset.x, units);
+    const zOffsetInMeters = convertUnitsToMeters(offset.z, units);
+    const altitudeOffsetInMeters = convertUnitsToMeters(offset.y, units);
+
+    const newLat = this.lngLat.lat + (zOffsetInMeters / EARTH_RADIUS) * (180 / Math.PI);
+
+    const newLng = this.lngLat.lng + (xOffsetInMeters / (EARTH_RADIUS * Math.cos(this.lngLat.lat * Math.PI / 180))) * (180 / Math.PI);
+
+    this.lngLat = new LngLat(newLng, newLat);
+    this.elevation = this.elevation + altitudeOffsetInMeters;
     if (cueRepaint) this.cueUpdate();
     return this;
   }

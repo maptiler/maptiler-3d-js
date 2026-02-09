@@ -59,4 +59,19 @@ export function filterKeysFromObject<T extends Record<string, any>>(
   );
 }
 
+export function convertUnitsToMeters(value: number, units: "meters" | "feet" | "km" | "miles" = "meters"): number {
+  switch (units) {
+    case "meters":
+      return value;
+    case "feet":
+      return value * 0.3048;
+    case "km":
+      return value * 1000;
+    case "miles":
+      return value * 1609.34;
+    default:
+      throw new Error(`Invalid unit: "${units}"`);
+  }
+}
+
 export { isPointLight, getTransformationMatrix };
