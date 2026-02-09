@@ -919,9 +919,14 @@ export class Item3D extends Evented {
    * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
    * @returns {Item3D} The item
    */
-  public setPositionRelativeTo(item: Item3D | Position3D, offset: { x: number, y: number, z: number }, units: "meters" | "feet" | "km" | "miles", cueRepaint = true) {
-     // To avoid flickering / jitter, `cueUpdate` is `false` for both `setLngLat` and `setAltitude` calls
-     // We want to avoid a repaint until the final calc is done (is needed)
+  public setPositionRelativeTo(
+    item: Item3D | Position3D,
+    offset: { x: number; y: number; z: number },
+    units: "meters" | "feet" | "km" | "miles",
+    cueRepaint = true,
+  ) {
+    // To avoid flickering / jitter, `cueUpdate` is `false` for both `setLngLat` and `setAltitude` calls
+    // We want to avoid a repaint until the final calc is done (is needed)
     const newLngLat = item instanceof Item3D ? item.lngLat : new LngLat(item.lon, item.lat);
     this.setLngLat(new LngLat(newLngLat.lng, newLngLat.lat), false);
     this.setAltitude(item.altitude, false);
@@ -935,14 +940,20 @@ export class Item3D extends Evented {
    * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
    * @returns {Item3D} The current instance of Item3D
    */
-  public moveBy(offset: { x: number, y: number, z: number }, units: "meters" | "feet" | "km" | "miles" = "meters", cueRepaint = true) {
+  public moveBy(
+    offset: { x: number; y: number; z: number },
+    units: "meters" | "feet" | "km" | "miles" = "meters",
+    cueRepaint = true,
+  ) {
     const xOffsetInMeters = convertUnitsToMeters(offset.x, units);
     const zOffsetInMeters = convertUnitsToMeters(offset.z, units);
     const altitudeOffsetInMeters = convertUnitsToMeters(offset.y, units);
 
     const newLat = this.lngLat.lat + (zOffsetInMeters / EARTH_RADIUS) * (180 / Math.PI);
 
-    const newLng = this.lngLat.lng + (xOffsetInMeters / (EARTH_RADIUS * Math.cos(this.lngLat.lat * Math.PI / 180))) * (180 / Math.PI);
+    const newLng =
+      this.lngLat.lng +
+      (xOffsetInMeters / (EARTH_RADIUS * Math.cos((this.lngLat.lat * Math.PI) / 180))) * (180 / Math.PI);
 
     this.lngLat = new LngLat(newLng, newLat);
     this.altitude = this.altitude + altitudeOffsetInMeters;

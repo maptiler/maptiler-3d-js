@@ -352,8 +352,8 @@ export interface Layer3DInternalAPIInterface extends CustomLayerInterface {
   [prepareRenderMethodSymbol]: (options: CustomRenderMethodInput) => void;
 }
 
-export type Position3D ={
+export type Position3D = {
   lon: number;
   lat: number;
   altitude: number;
-}
+};
