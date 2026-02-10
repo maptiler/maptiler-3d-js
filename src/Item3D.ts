@@ -922,7 +922,7 @@ export class Item3D extends Evented {
   public setPositionRelativeTo(
     item: Item3D | Position3D,
     offset: { x: number; y: number; z: number },
-    units: "meters" | "feet" | "km" | "miles",
+    units: "meters" | "feet" | "km" | "miles" = "meters",
     cueRepaint = true,
   ) {
     // To avoid flickering / jitter, `cueUpdate` is `false` for both `setLngLat` and `setAltitude` calls
