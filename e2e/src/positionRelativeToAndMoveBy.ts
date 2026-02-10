@@ -42,7 +42,7 @@ async function main() {
 
   const itemTwo = itemOne.clone();
 
-  itemTwo.setPositionRelativeTo(itemOne, { x: 40, y: 0, z: 0 })
+  itemTwo.setPositionRelativeTo(itemOne, { x: 40, y: 0, z: 0 });
 
   window.__layer3D = layer3D;
 
