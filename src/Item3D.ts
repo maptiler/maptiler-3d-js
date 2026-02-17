@@ -1358,7 +1358,7 @@ export class Item3D extends Evented {
     // so we can return true if we are using the broad strategy
     if (precision === "low") return true;
 
-    // if not then we need to check the narrower
+    // if not then we need to check narrower intersections
     for (const { mesh: meshA, obb: localOBBA } of this.localOBBs) {
       const worldOBBA = localOBBA.clone().applyMatrix4(meshA.matrixWorld);
       for (const { mesh: meshB, obb: localOBBB } of item3D.localOBBs) {
@@ -1370,6 +1370,11 @@ export class Item3D extends Evented {
     return false;
   }
 
+  /**
+   * Update the intersection bounds of the group if needed
+   * @param force - Whether to force the update
+   * @private
+   */
   protected updateGroupBoundsIfNeeded(force = false) {
     if (!force && this.needsUpdateBounds === false) return;
     if (!this.mesh) return;
