@@ -262,7 +262,7 @@ export class WebGLRenderManager {
       // if we have transition from over one object to
       // over another object, we need to fire the leave event on the previous object
       // the new object will be set in the next loop
-      if (object && group && (object !== group)) {
+      if (object && group && object !== group) {
         const { ...oldIntersection } = this.currentRaycastIntersection;
         layer[handleMeshMouseLeaveMethodSymbol]({
           intersection: oldIntersection,
