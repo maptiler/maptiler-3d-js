@@ -1,5 +1,16 @@
 # MapTiler 3D Models Changelog
 
+### NEXT
+
+## ✨ New Features
+- None
+
+## ⚙️ Other
+None
+
+## 🐞 Bug Fixes
+- Fixes a bug where mouseenter and mouseleave events were not fired when moving mouse from one mesh directly to another.
+
 ### 3.1.0
 
 ## ✨ New Features
