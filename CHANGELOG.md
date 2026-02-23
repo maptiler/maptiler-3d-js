@@ -1,6 +1,7 @@
 # MapTiler 3D Models Changelog
 
 ### NEXT
+
 ## ✨ New Features
 - Adds `Item3D.intersects(item: Item3D, precision: "low" | "medium")` to test for intersections of Item3D objects and their associated meshes.
 - Moves cloning logic to `Item3D`, adding `Item3D.clone()` method for easier cloning of 3D items.
@@ -12,6 +13,8 @@
 
 ## 🐞 Bug Fixes
 - Fixes `Layer3D.removeMesh` logic
+- Fixes a bug where mouseenter and mouseleave events were not fired when moving mouse from one mesh directly to another.
+- Fixes a bug where animations were not cloned.
 
 ### 3.1.0
 

@@ -370,7 +370,6 @@ export class Layer3D implements Layer3DInternalAPIInterface {
    */
   [prepareRenderMethodSymbol](options: CustomRenderMethodInput) {
     if (this.isInZoomRange() === false) {
-      console.log("isInZoomRange", this.isInZoomRange());
       return;
     }
 
