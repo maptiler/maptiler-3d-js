@@ -351,3 +351,9 @@ export interface Layer3DInternalAPIInterface extends CustomLayerInterface {
   [handleMeshMouseLeaveMethodSymbol]: (event: Layer3DInternalApiEvent) => void;
   [prepareRenderMethodSymbol]: (options: CustomRenderMethodInput) => void;
 }
+
+export type Position3D = {
+  lon: number;
+  lat: number;
+  altitude: number;
+};

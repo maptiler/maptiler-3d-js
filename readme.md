@@ -462,34 +462,130 @@ Here is the list of instance methods of the `Layer3D` class:
 
 The `addMesh`, `addMeshFromURL` and `cloneMesh` methods return an `Item3D` object. You can also retrieve it later using `layer.getItem3D(id)`. This object has its own set of methods to modify its properties and control animations.
 
-Here is a list of the most common methods for the `Item3D` object:
+All methods that update visual state accept an optional `cueRepaint` (default `true`). When `true`, a repaint is requested; when `false`, the map will repaint on its next update.
+
+#### Lifecycle
+
+- **`.clone(newId?: string, options?: CloneMeshOptions)`**
+  Clone this item and add it to the layer. The clone shares geometry and animations but has its own materials and transform. Returns the new `Item3D`. If `newId` is omitted, defaults to `${this.id}-clone`.
+
+- **`.remove()`**
+  Remove the item from the scene and free GPU memory (materials, geometries). Also removes it from the layer index.
+
+#### Events
+
+- **`.on(event: Item3DEventTypes, callback: (event: any) => void)`**
+  Register an event listener. Event types: `"click"`, `"mouseenter"`, `"mouseleave"`, `"mousedown"`, `"mouseup"`, `"dblclick"`.
+
+- **`.off(event: Item3DEventTypes, callback: (event: any) => void)`**
+  Unregister an event listener.
+
+#### Batch update and transform
 
 - **`.modify(options: Partial<MeshOptions>)`**
-  Modify the settings of a mesh (scale, lntLat, etc.)
-  ℹ️ Only the settings provided in the option object will be updated, the others will be left as they already are.
+  Update multiple settings at once (e.g. `scale`, `lngLat`, `altitude`, `heading`, `opacity`, `visible`). Only the options provided are updated; others are left unchanged.
+
+- **`.setTransform(transform?: Partial<Item3DTransform>)`**
+  Set the item’s transform (rotation, translate). Pass nothing to reset to the default transform.
+
+#### UI states
+
+- **`.setStates(stateUpdate: Item3DMeshUIStates | (currentState) => Item3DMeshUIStates)`**
+  Set the UI state config (e.g. hover, active, selected). Can be an object or a function that receives current state and returns the new state.
+
+- **`.addState(name: Item3DMeshUIStateName, state: Item3DMeshUIStateProperties)`**
+  Add a named state (e.g. `"hover"`, `"active"`, `"selected"`) with the given properties.
+
+- **`.removeState(name: Item3DMeshUIStateName)`**
+  Remove a state and run its cleanup.
+
+#### Position and movement
+
+- **`.setLngLat(lngLat: LngLat, cueRepaint?)`**
+  Set the item’s longitude/latitude.
+
+- **`.setAltitude(altitude: number, cueRepaint?)`**
+  Set the item’s altitude (height above ground or sea, depending on `altitudeReference`).
+
+- **`.setPositionRelativeTo(item: Item3D | Position3D, offset: { x, y, z }, units?, cueRepaint?)`**
+  Set position relative to another item or a 3D position, then apply offset. `offset.x` = longitude direction, `offset.y` = altitude, `offset.z` = latitude. `units`: `"meters"` (default), `"feet"`, `"km"`, `"miles"`.
+
+- **`.moveBy(offset: { x, y, z }, units?, cueRepaint?)`**
+  Move the item by the given offset. Same axis and units as `setPositionRelativeTo`.
+
+- **`.setElevation(elevation: number, cueRepaint?)`**
+  Set the ground elevation at the item’s location (used for transform/altitude calculation).
+
+#### Scale and orientation
+
+- **`.setScale(scale: number | [number, number, number], cueRepaint?)`**
+  Set the absolute scale of the item (relative to the map).
+
+- **`.setRelativeScale(scale: number | [number, number, number], cueRepaint?)`**
+  Set scale relative to the item’s base scale (e.g. for states; 1.5 = 150%).
+
+- **`.setHeading(heading: number, cueRepaint?)`**
+  Set heading in degrees.
+
+- **`.setPitch(pitchInDegrees: number, cueRepaint?)`**
+  Set pitch in degrees.
+
+- **`.setRoll(rollInDegrees: number, cueRepaint?)`**
+  Set roll in degrees.
+
+- **`.setSourceOrientation(sourceOrientation: SourceOrientation, cueRepaint?)`**
+  Set source orientation (`"y-up"` or `"z-up"`).
+
+- **`.setAltitudeReference(altitudeReference: AltitudeReference, cueRepaint?)`**
+  Set whether altitude is relative to ground or sea level.
+
+#### Appearance
+
+- **`.setOpacity(opacity: number, cueRepaint?)`**
+  Set opacity (0–1). Materials are set transparent as needed.
+
+- **`.setWireframe(wireframe?: boolean, cueRepaint?)`**
+  Toggle wireframe rendering for meshes.
+
+- **`.setPointSize(size: number, cueRepaint?)`**
+  Set point size for point clouds.
+
+#### Animation
 
 - **`.getAnimationNames()`**
-  Gets all the animations that were loaded with the model.
+  Returns the names of all animations loaded with the model.
 
 - **`.getAnimation(animationName: string)`**
-  Get the `AnimationAction` named `animationName`.
+  Returns the Three.js `AnimationAction` for `animationName`, or `null`.
 
-- **`.playAnimation(animationName: string, loop: AnimationLoopOptions)`**
-  Plays `animationName`. Loop defines how the animation will loop. "loop" loops the animation infinity times; "once" loops it once; "pingPong" plays the animation until the end and then plays it in reverse.
+- **`.playAnimation(animationName: string, loop?: AnimationLoopOptions)`**
+  Start playing `animationName`. `loop`: `"loop"` (infinite), `"once"`, or `"pingPong"` (forward then reverse).
 
 - **`.pauseAnimation(animationName: string)`**
-  Pauses `animationName`.
+  Pause the given animation.
 
 - **`.stopAnimation(animationName: string)`**
-  Stops `animationName`.
+  Stop the animation and remove it from the renderer’s animation loop.
 
 - **`.updateAnimation(delta = 0.02)`**
-  Updates the mesh animations by `delta` seconds. This is only useful when the `animationMode` is set to `manual`.
+  Advance animations by `delta` seconds. Only needed when `animationMode` is `"manual"`.
 
 - **`.setAnimationTime(time: number)`**
-  sets the animation to `time` seconds.
+  Set the mixer time to `time` seconds (affects all animations on this item).
 
-<br>
+#### Collision
+
+- **`.intersects(item3D: Item3D, precision?: "low" | "medium")`**
+  Test whether this item intersects another. `precision`: `"low"` (bounding sphere/AABB, fast) or `"medium"` (default; broad pass then per-mesh OBB). Returns `true` if they intersect.
+  
+  **NOTE:** The intersections are not exact at present and only use bounding boxes, hence `"low"` and `"medium"` are the only options available at present.
+
+#### Debug
+
+- **`.debug`** (property)
+  When `true`, renders bounding boxes and bounding spheres for each internal mesh. Set `item.debug = true` to enable.
+
+  <br>
 
 ## 💬 Support
 

@@ -2,33 +2,46 @@ import {
   type AnimationAction,
   type AnimationClip,
   type AnimationMixer,
+  Box3,
+  Box3Helper,
+  type BufferAttribute,
   type Group,
   type Matrix4,
-  type Mesh,
+  Mesh,
+  MeshBasicMaterial,
   Object3D,
   type Points,
   type PointsMaterial,
+  Sphere,
+  SphereGeometry,
+  Vector3,
 } from "three";
 import type { Layer3D } from "./Layer3D";
 import { Evented, LngLat, type LngLatLike, type Map as MapSDK } from "@maptiler/sdk";
+import { math } from "@maptiler/client";
 import {
   type AnimationLoopOptions,
   type AnimationMode,
+  type CloneMeshOptions,
   type Item3DMeshUIStates,
   type MeshOptions,
   type Item3DMeshUIStateName,
   type Item3DMeshUIStateProperties,
   type Item3DEventTypes,
   type Item3DTransform,
+  type Position3D,
   AltitudeReference,
   AnimationLoopOptionsMap,
   SourceOrientation,
   item3DStatePropertiesNames,
 } from "./types";
-import { degreesToRadians, getTransformationMatrix } from "./utils";
+import { convertUnitsToMeters, degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
-import { getItem3DEventTypesSymbol, getItem3DDollySymbol } from "./symbols";
+import { getItem3DEventTypesSymbol, getItem3DDollySymbol, removeItem3DFromIndexSymbol } from "./symbols";
 import { USE_DEBUG_LOGS } from "./config";
+import { OBB } from "three/examples/jsm/math/OBB";
+
+const { EARTH_RADIUS } = math;
 
 export interface Item3DConstructorOptions {
   // the id of the item
@@ -266,6 +279,23 @@ export class Item3D extends Evented {
    * if "manual", the animation needs to be manually updated by calling the `updateAnimation` method
    */
   public animationMode: AnimationMode = "continuous";
+
+  /**
+   * When true, renders bounding boxes and bounding spheres for each internal mesh (for debugging).
+   */
+  public get debug(): boolean {
+    return this._debug;
+  }
+  public set debug(value: boolean) {
+    if (this._debug === value) return;
+    this._debug = value;
+    this.updateDebugHelpers();
+  }
+  private _debug = false;
+
+  /** Debug helpers (box/sphere) added as children of meshes when debug is true. */
+  private debugHelpers: Object3D[] = [];
+
   /**
    * The renderer of the item the singleton instance of WebGLRenderManager
    */
@@ -323,9 +353,16 @@ export class Item3D extends Evented {
 
     Object.assign(this, options as Item3DConstructorOptions);
 
+    this.initLocalOBB();
+
     this.initDefaultState();
+
     this.applyTransformUpdate();
     this.createDollyForMesh();
+
+    this.updateGroupBoundsIfNeeded();
+
+    if (this.debug) this.updateDebugHelpers();
   }
 
   private createDollyForMesh() {
@@ -342,10 +379,12 @@ export class Item3D extends Evented {
 
     if (typeof this.roll === "number") {
       this.setRoll(this.roll, false);
+      this.needsUpdateBounds = true;
     }
 
     if (typeof this.pitch === "number") {
       this.setPitch(this.pitch, false);
+      this.needsUpdateBounds = true;
     }
 
     dolly.add(pitch);
@@ -353,6 +392,63 @@ export class Item3D extends Evented {
     roll.add(this.mesh);
 
     this.dolly = dolly;
+  }
+
+  /** OBBs in each mesh's local space, paired with the mesh for correct world transform. */
+  private localOBBs: { mesh: Mesh; obb: OBB }[] = [];
+
+  private initLocalOBB() {
+    if (!this.mesh) return;
+
+    this.mesh.traverse((node) => {
+      if (node instanceof Mesh && node.geometry?.attributes?.position) {
+        // AABB in mesh local space (from geometry), so applyMatrix4(mesh.matrixWorld) later gives correct world OBB
+        const localAABB = new Box3().setFromBufferAttribute(node.geometry.attributes.position as BufferAttribute);
+        this.localOBBs.push({ mesh: node, obb: new OBB().fromBox3(localAABB) });
+      }
+    });
+  }
+
+  private updateDebugHelpers() {
+    // Remove existing helpers
+    for (const helper of this.debugHelpers) {
+      helper.parent?.remove(helper);
+      const withResources = helper as Object3D & {
+        geometry?: { dispose: () => void };
+        material?: { dispose: () => void } | { dispose: () => void }[];
+      };
+      if (withResources.geometry?.dispose) withResources.geometry.dispose();
+      if (withResources.material) {
+        const mat = Array.isArray(withResources.material) ? withResources.material : [withResources.material];
+        for (const m of mat) m.dispose();
+      }
+    }
+    this.debugHelpers.length = 0;
+
+    if (!this._debug || !this.mesh) return;
+
+    const localBox = new Box3();
+    const localSphere = new Sphere();
+
+    for (const { mesh } of this.localOBBs) {
+      const posAttr = mesh.geometry?.attributes?.position;
+      if (!posAttr) continue;
+
+      localBox.setFromBufferAttribute(posAttr as BufferAttribute);
+      localBox.getBoundingSphere(localSphere);
+
+      const boxHelper = new Box3Helper(localBox.clone(), 0x00ff00);
+      mesh.add(boxHelper);
+      this.debugHelpers.push(boxHelper);
+
+      const sphereMesh = new Mesh(
+        new SphereGeometry(localSphere.radius, 16, 12),
+        new MeshBasicMaterial({ wireframe: true, color: 0xff8800 }),
+      );
+      sphereMesh.position.copy(localSphere.center);
+      mesh.add(sphereMesh);
+      this.debugHelpers.push(sphereMesh);
+    }
   }
 
   /**
@@ -399,6 +495,67 @@ export class Item3D extends Evented {
   public override off(event: Item3DEventTypes, callback: (event: any) => void) {
     this.registeredEventTypes = this.registeredEventTypes.filter((type) => type !== event);
     return super.off(event, callback);
+  }
+
+  /**
+   * Clone this item and add it to the layer. The cloned item shares the same mesh geometry and animations but has its own materials and transform.
+   * @param newId - The ID for the cloned item. If omitted, defaults to `${this.id}-clone`.
+   * @param options - Options to override properties on the clone (e.g. lngLat, altitude, transform).
+   * @returns The new Item3D instance.
+   */
+  public clone(newId?: string, options: CloneMeshOptions = {}): Item3D {
+    const id = newId ?? `${this.id}-clone`;
+
+    if (!this.mesh) {
+      throw new Error(`Item with ID ${this.id} does not have a mesh.`);
+    }
+
+    const cloneOptions: Partial<MeshOptions> = {
+      lngLat: new LngLat(this.lngLat.lng, this.lngLat.lat),
+      altitude: this.altitude,
+      altitudeReference: this.altitudeReference,
+      visible: this.mesh.visible,
+      sourceOrientation: this.sourceOrientation,
+      scale: this.scale,
+      heading: this.heading,
+      ...options,
+    };
+
+    const clonedObject = this.mesh.clone(true);
+
+    const gltfContent = clonedObject.getObjectByName(`${this.id}_gltfContent_scene`);
+    if (options.transform && gltfContent) {
+      gltfContent.name = `${id}_gltfContent_scene`;
+      const { rotation, offset } = options.transform;
+      if (rotation) {
+        gltfContent.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
+      }
+      if (offset) {
+        gltfContent.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
+      }
+    }
+
+    clonedObject.traverse((child) => {
+      if (child instanceof Mesh) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((mat) => mat.clone());
+        } else {
+          child.material = child.material.clone();
+        }
+      }
+    });
+
+    return this.parentLayer.addClonedMesh({
+      ...cloneOptions,
+      id,
+      mesh: clonedObject,
+      ...(this.animationClips && { animations: [...this.animationClips].map((clip) => clip.clone()) }),
+      animationMode: this.animationMode,
+      states: Array.from(this.currentStates.entries()).reduce((acc, [name, { props }]) => {
+        acc[name as Item3DMeshUIStateName] = props;
+        return acc;
+      }, {} as Item3DMeshUIStates),
+    });
   }
 
   /**
@@ -607,6 +764,7 @@ export class Item3D extends Evented {
   public setTransform(transform?: Partial<Item3DTransform>) {
     if (!transform) {
       this.transform = createDefaultTransform();
+      this.needsUpdateBounds = true;
       return this;
     }
 
@@ -614,6 +772,8 @@ export class Item3D extends Evented {
       ...this.transform,
       ...transform,
     };
+
+    this.needsUpdateBounds = true;
 
     return this;
   }
@@ -634,6 +794,7 @@ export class Item3D extends Evented {
     if ("lngLat" in options) {
       this.lngLat = LngLat.convert(options.lngLat as LngLatLike);
       this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.scale === "number") {
@@ -648,11 +809,13 @@ export class Item3D extends Evented {
 
     if (typeof options.altitude === "number") {
       this.altitude = options.altitude;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.altitudeReference === "number") {
       this.altitudeReference = options.altitudeReference;
       this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.heading === "number") {
@@ -662,14 +825,17 @@ export class Item3D extends Evented {
 
     if (typeof options.pitch === "number") {
       this.setPitch(options.pitch, false);
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.roll === "number") {
       this.setRoll(options.roll, false);
+      this.needsUpdateBounds = true;
     }
 
     if (isTransformNeedUpdate === true) {
       this.applyTransformUpdate();
+      this.needsUpdateBounds = true;
     }
 
     if (typeof options.opacity === "number") {
@@ -689,6 +855,33 @@ export class Item3D extends Evented {
     return this;
   }
 
+  public remove() {
+    const scene = this.dolly?.parent;
+    if (this.dolly && scene) {
+      // Removing the mesh from the scene
+      // Traversing the tree of this Object3D/Group/Mesh
+      // and find all the sub nodes that are THREE.Mesh
+      // so that we can dispose (aka. free GPU memory) of their material and geometries
+      this.dolly.traverse((node) => {
+        if ("isMesh" in node && node.isMesh === true) {
+          const mesh = node as Mesh;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const mat of materials) {
+            mat.dispose();
+          }
+
+          mesh.geometry.dispose();
+        }
+      });
+
+      scene.remove(this.dolly);
+    }
+
+    if (this.parentLayer.getItem3D(this.id)) {
+      this.parentLayer[removeItem3DFromIndexSymbol](this.id);
+    }
+  }
+
   /**
    * Set the lngLat of the item
    * @param lngLat - The lngLat to set
@@ -697,6 +890,8 @@ export class Item3D extends Evented {
    */
   public setLngLat(lngLat: LngLat, cueRepaint = true) {
     this.lngLat = lngLat;
+
+    this.needsUpdateBounds = true;
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -709,6 +904,59 @@ export class Item3D extends Evented {
    */
   public setAltitude(altitude: number, cueRepaint = true) {
     this.altitude = altitude;
+
+    this.needsUpdateBounds = true;
+
+    if (cueRepaint) this.cueUpdate();
+    return this;
+  }
+
+  /**
+   * Set the position of the item relative to another Item3D
+   * @param item {Item3D | Position3D} - The item to set the position relative to can either be another Item3D or an object representing a 3D position.
+   * @param offset - The offset to set the position relative to, can be "x", "y" or "z". where "y" is the altitude offset, "x" is the longitude offset and "z" is the latitude offset
+   * @param units - The units of the offset, can be "meters", "feet", "km" or "miles", defaults to "meters"
+   * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
+   * @returns {Item3D} The item
+   */
+  public setPositionRelativeTo(
+    item: Item3D | Position3D,
+    offset: { x: number; y: number; z: number },
+    units: "meters" | "feet" | "km" | "miles" = "meters",
+    cueRepaint = true,
+  ) {
+    // To avoid flickering / jitter, `cueUpdate` is `false` for both `setLngLat` and `setAltitude` calls
+    // We want to avoid a repaint until the final calc is done (if needed)
+    const newLngLat = item instanceof Item3D ? item.lngLat : new LngLat(item.lon, item.lat);
+    this.setLngLat(new LngLat(newLngLat.lng, newLngLat.lat), false);
+    this.setAltitude(item.altitude, false);
+    return this.moveBy(offset, units, cueRepaint);
+  }
+
+  /**
+   * Move the item by a given offset
+   * @param offset - The offset to move the item by, can be "x", "y" or "z". where "y" is the altitude offset, "x" is the longitude offset and "z" is the latitude offset
+   * @param units - The units of the offset, can be "meters", "feet", "km" or "miles", defaults to "meters"
+   * @param cueRepaint - Whether to cue a repaint, if false, the repaint will be triggered only when the map is updated
+   * @returns {Item3D} The current instance of Item3D
+   */
+  public moveBy(
+    offset: { x: number; y: number; z: number },
+    units: "meters" | "feet" | "km" | "miles" = "meters",
+    cueRepaint = true,
+  ) {
+    const xOffsetInMeters = convertUnitsToMeters(offset.x, units);
+    const zOffsetInMeters = convertUnitsToMeters(offset.z, units);
+    const altitudeOffsetInMeters = convertUnitsToMeters(offset.y, units);
+
+    const newLat = this.lngLat.lat + (zOffsetInMeters / EARTH_RADIUS) * (180 / Math.PI);
+
+    const newLng =
+      this.lngLat.lng +
+      (xOffsetInMeters / (EARTH_RADIUS * Math.cos((this.lngLat.lat * Math.PI) / 180))) * (180 / Math.PI);
+
+    this.lngLat = new LngLat(newLng, newLat);
+    this.altitude = this.altitude + altitudeOffsetInMeters;
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -723,6 +971,9 @@ export class Item3D extends Evented {
     // elevation is the height of the model at ground level,
     // eg the height of the ground below the model
     this.elevation = elevation;
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -741,6 +992,7 @@ export class Item3D extends Evented {
 
     this.relativeScale = (Array.isArray(scale) ? scale : [scale, scale, scale]) as [number, number, number];
     this.applyTransformUpdate();
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -759,6 +1011,9 @@ export class Item3D extends Evented {
     this.scale = Array.isArray(scale) ? scale : [scale, scale, scale];
 
     this.applyTransformUpdate();
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -772,6 +1027,9 @@ export class Item3D extends Evented {
   public setHeading(heading: number, cueRepaint = true) {
     this.heading = heading;
     this.applyTransformUpdate();
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -789,6 +1047,8 @@ export class Item3D extends Evented {
       pitchObject.rotation.x = degreesToRadians(pitchInDegrees);
     }
 
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -805,6 +1065,9 @@ export class Item3D extends Evented {
     if (rollObject) {
       rollObject.rotation.z = degreesToRadians(rollInDegrees);
     }
+
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -817,6 +1080,8 @@ export class Item3D extends Evented {
    */
   public setSourceOrientation(sourceOrientation: SourceOrientation, cueRepaint = true) {
     this.sourceOrientation = sourceOrientation;
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -829,6 +1094,8 @@ export class Item3D extends Evented {
    */
   public setAltitudeReference(altitudeReference: AltitudeReference, cueRepaint = true) {
     this.altitudeReference = altitudeReference;
+    this.needsUpdateBounds = true;
+
     if (cueRepaint) this.cueUpdate();
     return this;
   }
@@ -868,6 +1135,7 @@ export class Item3D extends Evented {
   private applyTransformUpdate() {
     const scale = this.relativeScale.map((s, i) => s * this.scale[i]) as [number, number, number];
     this.additionalTransformationMatrix = getTransformationMatrix(scale, this.heading, this.sourceOrientation);
+    this.needsUpdateBounds = true;
   }
 
   /**
@@ -1054,6 +1322,68 @@ export class Item3D extends Evented {
       this.map.triggerRepaint();
       this.nextUpdateTick = null;
     });
+  }
+
+  private needsUpdateBounds = false;
+
+  protected bounds = {
+    box: new Box3(),
+    sphere: new Sphere(),
+  };
+
+  /**
+   * Check if the item intersects with another item
+   * @param item3D - The item to check intersection with
+   * @param precision - The precision of the intersection check, can be "low" or "medium". "high" is not supported currently.
+   * "low" is the fastest and least accurate check, it only checks the bounding sphere and AABB of the entire group.
+   * "medium" is the default check, it does a broad pass first, then checks the OBB of the individual meshes within the group. This is less and less performant as the number of meshes in the group increases.
+   * @returns {boolean} True if the items intersect, false otherwise
+   */
+  public intersects(item3D: Item3D, precision: "low" | "medium" = "medium") {
+    if (!["low", "medium"].includes(precision)) {
+      throw new Error(`Invalid precision: "${precision}", must be "low" or "medium"`);
+    }
+
+    if (!this.mesh || !item3D.mesh) return false;
+
+    // update the bounds for this and the intersected item
+    this.updateGroupBoundsIfNeeded(true);
+    item3D.updateGroupBoundsIfNeeded(true);
+
+    // check broad intersections
+    if (!this.bounds.sphere.intersectsSphere(item3D.bounds.sphere)) return false;
+    if (!this.bounds.box.intersectsBox(item3D.bounds.box)) return false;
+
+    // if we have reached here, we have a broad intersection
+    // so we can return true if we are using the broad strategy
+    if (precision === "low") return true;
+
+    // if not then we need to check narrower intersections
+    for (const { mesh: meshA, obb: localOBBA } of this.localOBBs) {
+      const worldOBBA = localOBBA.clone().applyMatrix4(meshA.matrixWorld);
+      for (const { mesh: meshB, obb: localOBBB } of item3D.localOBBs) {
+        const worldOBBB = localOBBB.clone().applyMatrix4(meshB.matrixWorld);
+        if (worldOBBA.intersectsOBB(worldOBBB)) return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Update the intersection bounds of the group if needed
+   * @param force - Whether to force the update
+   * @private
+   */
+  protected updateGroupBoundsIfNeeded(force = false) {
+    if (!force && this.needsUpdateBounds === false) return;
+    if (!this.mesh) return;
+
+    this.bounds.box.setFromObject(this.mesh);
+
+    this.bounds.box.getBoundingSphere(this.bounds.sphere);
+
+    this.needsUpdateBounds = false;
   }
 }
 

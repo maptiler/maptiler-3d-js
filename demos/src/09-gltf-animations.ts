@@ -66,7 +66,7 @@ const map = new Map({
   const flamingoIDOne = "flamingo";
   const flamingoIDTwo = "flamingo-clone";
 
-  await layer3D.addMeshFromURL(flamingoIDOne,
+  const flamingoOne =await layer3D.addMeshFromURL(flamingoIDOne,
     // Model by https://mirada.com/ for https://experiments.withgoogle.com/3-dreams-of-black
     "models/Flamingo.glb",
     {
@@ -123,7 +123,7 @@ const map = new Map({
     throw new Error(`No animation found with name '${animationName}'`);
   }
 
-  layer3D.cloneMesh(flamingoIDOne, flamingoIDTwo, {
+  const flamingoTwo = flamingoOne.clone(flamingoIDTwo, {
     animationMode: "manual",
     transform: {
       offset: {
