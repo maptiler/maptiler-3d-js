@@ -5,11 +5,12 @@
 ## ✨ New Features
 - Adds `Item3D.intersects(item: Item3D, precision: "low" | "medium")` to test for intersections of Item3D objects and their associated meshes.
 - Moves cloning logic to `Item3D`, adding `Item3D.clone()` method for easier cloning of 3D items.
-- Adds `remove()` method to `Item3D`
-- Adds new methods `moveBy` and `setPositionRelativeTo` for positioning an `Item3D` relatively to itself or other `Item3D`
+- Adds `remove()` method to `Item3D`.
+- Adds new methods `moveBy` and `setPositionRelativeTo` for positioning an `Item3D` relatively to itself or other `Item3D`.
 
 ## ⚙️ Other
-- Addes e2e tests for intersections
+- Adds e2e tests for intersections.
+- `@maptiler/sdk` is now a peer dependency.
 
 ## 🐞 Bug Fixes
 - Fixes `Layer3D.removeMesh` logic
