@@ -37,7 +37,7 @@ import {
   AltitudeReference,
 } from "./types";
 import addLayerToWebGLRenderManager, { type WebGLRenderManager } from "./WebGLRenderManager";
-import { EPSILON, USE_DEBUG_LOGS } from "./config";
+import { config } from "./config";
 import { Item3D } from "./Item3D";
 import {
   getItem3DEventTypesSymbol,
@@ -51,6 +51,9 @@ import {
   getItem3DDollySymbol,
   removeItem3DFromIndexSymbol,
 } from "./symbols";
+
+const { USE_DEBUG_LOGS, EPSILON } = config;
+
 /**
  * The Layer3D class is the main class for the 3D layer.
  * It is used to add meshes to the layer, and to manage the items in the layer.

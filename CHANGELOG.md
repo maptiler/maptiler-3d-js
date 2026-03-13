@@ -16,6 +16,7 @@
 - Fixes `Layer3D.removeMesh` logic
 - Fixes a bug where mouseenter and mouseleave events were not fired when moving mouse from one mesh directly to another.
 - Fixes a bug where animations were not cloned.
+- Fixes missing type exports.
 
 ### 3.1.0
 

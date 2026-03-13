@@ -38,10 +38,12 @@ import {
 import { convertUnitsToMeters, degreesToRadians, getTransformationMatrix } from "./utils";
 import type { WebGLRenderManager } from "./WebGLRenderManager";
 import { getItem3DEventTypesSymbol, getItem3DDollySymbol, removeItem3DFromIndexSymbol } from "./symbols";
-import { USE_DEBUG_LOGS } from "./config";
+import { config } from "./config";
 import { OBB } from "three/examples/jsm/math/OBB";
 
 const { EARTH_RADIUS } = math;
+
+const { USE_DEBUG_LOGS } = config;
 
 export interface Item3DConstructorOptions {
   // the id of the item
