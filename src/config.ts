@@ -1,4 +1,3 @@
-
 export type MapTiler3DModuleConfig = {
   /**
    * Whether to use debug logs.
@@ -17,4 +16,3 @@ export const config: MapTiler3DModuleConfig = {
   USE_DEBUG_LOGS: false,
   EPSILON: 0.01,
 };
-
