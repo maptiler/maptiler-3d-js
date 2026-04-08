@@ -1,6 +1,6 @@
 # MapTiler 3D Models Changelog
 
-### NEXT
+### 4.0.0
 
 ## ✨ New Features
 - Adds `Item3D.intersects(item: Item3D, precision: "low" | "medium")` to test for intersections of Item3D objects and their associated meshes.
