@@ -11,6 +11,9 @@
       "types": "./dist/maptiler-3d.d.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
   "author": "MapTiler Team",
   "keywords": [
     "maptiler",

@@ -1,5 +1,10 @@
 # MapTiler 3D Models Changelog
 
+## NEXT
+
+### Bug Fixes
+- Fixes content of published npm package to contain only necessary files (no change for UMD)
+
 ### 4.0.0
 
 ## ✨ New Features
