@@ -11,7 +11,7 @@ import {
   type AnimationClip,
   Camera,
   Matrix4,
-  Mesh,
+  type Mesh,
   Scene,
   PointLight,
   AmbientLight,
@@ -37,7 +37,7 @@ import {
   AltitudeReference,
 } from "./types";
 import addLayerToWebGLRenderManager, { type WebGLRenderManager } from "./WebGLRenderManager";
-import { EPSILON, USE_DEBUG_LOGS } from "./config";
+import { config } from "./config";
 import { Item3D } from "./Item3D";
 import {
   getItem3DEventTypesSymbol,
@@ -49,7 +49,11 @@ import {
   handleMeshMouseDownSymbol,
   prepareRenderMethodSymbol,
   getItem3DDollySymbol,
+  removeItem3DFromIndexSymbol,
 } from "./symbols";
+
+const { USE_DEBUG_LOGS, EPSILON } = config;
+
 /**
  * The Layer3D class is the main class for the 3D layer.
  * It is used to add meshes to the layer, and to manage the items in the layer.
@@ -369,7 +373,6 @@ export class Layer3D implements Layer3DInternalAPIInterface {
    */
   [prepareRenderMethodSymbol](options: CustomRenderMethodInput) {
     if (this.isInZoomRange() === false) {
-      console.log("isInZoomRange", this.isInZoomRange());
       return;
     }
 
@@ -381,6 +384,15 @@ export class Layer3D implements Layer3DInternalAPIInterface {
       return;
     }
 
+    this.updateItemMatrices(options.defaultProjectionData.mainMatrix);
+  }
+
+  /**
+   * Updates the world matrices of all Item3D dollies. Must be called before any intersection checks
+   * to ensure bounds are computed with current positions.
+   * @internal
+   */
+  updateItemMatrices(matrix: ArrayLike<number>) {
     const mapCenter = this.map.getCenter();
 
     const sceneOrigin = new LngLat(mapCenter.lng + EPSILON, mapCenter.lat + EPSILON);
@@ -418,6 +430,7 @@ export class Layer3D implements Layer3DInternalAPIInterface {
           .premultiply(sceneInverseMatrix);
 
         model.matrix = modelMatrix;
+        model.updateMatrixWorld(true);
       }
     }
 
@@ -425,7 +438,6 @@ export class Layer3D implements Layer3DInternalAPIInterface {
      * https://github.com/maplibre/maplibre-gl-js/blob/v5.0.0-pre.8/test/examples/globe-3d-model.html#L130-L143
      * `mainMatrix` contains the transformation matrix for the current active projection.
      */
-    const matrix = options.defaultProjectionData.mainMatrix;
     const m = new Matrix4().fromArray(matrix);
 
     const maplibreMatrix = m.multiply(sceneMatrix);
@@ -576,69 +588,35 @@ export class Layer3D implements Layer3DInternalAPIInterface {
     return item;
   }
 
+  /**
+   * Used by Item3D.clone() to add a cloned mesh to the layer.
+   * @internal
+   */
+  public addClonedMesh(
+    params: MeshOptions & { id: string; mesh: Mesh | Group | Object3D; animations?: AnimationClip[] },
+  ): Item3D {
+    return this.addMeshInternal(params);
+  }
+
   public getItem3D(id: string): Item3D | null {
     return this.items3D.get(id) ?? null;
   }
 
   /**
-   *
-   * Clone an existing mesh. Extra options can be provided to overwrite the clone configuration
+   * Clone an existing mesh. Extra options can be provided to overwrite the clone configuration.
+   * Delegates to the source item's clone() method.
    * @param sourceId - The ID of the mesh to clone
    * @param id - The ID of the cloned mesh
    * @param options - The options to clone the mesh with
    */
   cloneMesh(sourceId: string, id: string, options: CloneMeshOptions = {}) {
-    this.throwUniqueID(id);
-    const sourceItem = this.items3D.get(sourceId);
-    if (!sourceItem) return;
-    if (!sourceItem.mesh) return;
+    const sourceItem = this.getItem3D(sourceId);
 
-    // Cloning the source item options and overwriting some with the provided options
-    const cloneOptions: Partial<MeshOptions> = {
-      lngLat: new LngLat(sourceItem.lngLat.lng, sourceItem.lngLat.lat),
-      altitude: sourceItem.altitude,
-      altitudeReference: sourceItem.altitudeReference,
-      visible: sourceItem.mesh.visible,
-      sourceOrientation: sourceItem.sourceOrientation,
-      scale: sourceItem.scale,
-      heading: sourceItem.heading,
-      ...options,
-    };
-
-    /**
-     * Deep cloning the mesh and its materials (otherwise wireframe and opacity would be shared)
-     */
-    const clonedObject = sourceItem.mesh.clone(true);
-
-    const gltfContent = clonedObject.getObjectByName(`${sourceId}_gltfContent_scene`);
-    if (options.transform && gltfContent) {
-      gltfContent.name = `${id}_gltfContent_scene`;
-      const { rotation, offset } = options.transform;
-      if (rotation) {
-        gltfContent.rotation.set(rotation.x ?? 0, rotation.y ?? 0, rotation.z ?? 0);
-      }
-      if (offset) {
-        gltfContent.position.add(new Vector3(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0));
-      }
+    if (!sourceItem) {
+      throw new Error(`Mesh with ID ${sourceId} does not exist.`);
     }
 
-    clonedObject.traverse((child) => {
-      if (child instanceof Mesh) {
-        if (Array.isArray(child.material)) {
-          child.material = child.material.map((mat) => mat.clone());
-        } else {
-          child.material = child.material.clone();
-        }
-      }
-    });
-
-    this.addMeshInternal({
-      ...cloneOptions,
-      id,
-      mesh: clonedObject,
-      ...(sourceItem.animationClips && { animations: sourceItem.animationClips }),
-      animationMode: sourceItem.animationMode,
-    });
+    return sourceItem.clone(id, options);
   }
 
   /**
@@ -762,33 +740,15 @@ export class Layer3D implements Layer3DInternalAPIInterface {
       throw new Error(`Mesh with ID ${id} does not exist.`);
     }
 
-    const mesh = item?.mesh;
-
-    if (mesh) {
-      // Removing the mesh from the scene
-      this.scene.remove(mesh);
-
-      // Traversing the tree of this Object3D/Group/Mesh
-      // and find all the sub nodes that are THREE.Mesh
-      // so that we can dispose (aka. free GPU memory) of their material and geometries
-      mesh.traverse((node) => {
-        if ("isMesh" in node && node.isMesh === true) {
-          const mesh = node as Mesh;
-          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          for (const mat of materials) {
-            mat.dispose();
-          }
-
-          mesh.geometry.dispose();
-        }
-      });
-    }
-
+    item.remove();
     // Removing the item from the index.
-    this.items3D.delete(id);
     this.map.triggerRepaint();
 
     return this;
+  }
+
+  [removeItem3DFromIndexSymbol](id: string) {
+    this.items3D.delete(id);
   }
 
   /**

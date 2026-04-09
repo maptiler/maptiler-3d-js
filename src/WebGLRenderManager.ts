@@ -236,6 +236,7 @@ export class WebGLRenderManager {
    * @param point - The mouse position in screen coordinates.
    */
   handleMouseMove(point: Point2D) {
+    this.map.triggerRepaint();
     this.pointer.set(point.x, point.y);
 
     for (const { layer, scene, camera } of this.layerData.values()) {
@@ -245,20 +246,40 @@ export class WebGLRenderManager {
 
       const group = getTopMostAncestorMesh(intersections[0]?.object);
 
+      // if its the same object, we don't need to do anything
       if (this.currentRaycastIntersection?.object === group) return;
 
       const { object, ...intersection } = this.currentRaycastIntersection ?? { ...intersections[0], object: group };
-
-      const methodSymbol = this.currentRaycastIntersection
-        ? handleMeshMouseLeaveMethodSymbol
-        : handleMeshMouseEnterMethodSymbol;
-
-      if (!object) return;
 
       const mouse = {
         x: this.pointer.x,
         y: this.pointer.y,
       };
+
+      // if we don't have an object, we don't need to do anything
+      if (!object) return;
+
+      // if we have transition from over one object to
+      // over another object, we need to fire the leave event on the previous object
+      // the new object will be set in the next loop
+      if (object && group && object !== group) {
+        const { ...oldIntersection } = this.currentRaycastIntersection;
+        layer[handleMeshMouseLeaveMethodSymbol]({
+          intersection: oldIntersection,
+          object,
+          lngLat: this.map.unproject(mouse as PointLike),
+          point: this.pointer,
+          meshID: object?.userData.meshID,
+          layerID: object?.userData.layerID,
+        });
+
+        this.currentRaycastIntersection = null;
+        return;
+      }
+
+      const methodSymbol = this.currentRaycastIntersection
+        ? handleMeshMouseLeaveMethodSymbol
+        : handleMeshMouseEnterMethodSymbol;
 
       layer[methodSymbol]({
         intersection,

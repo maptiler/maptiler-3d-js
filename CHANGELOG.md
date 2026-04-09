@@ -1,5 +1,23 @@
 # MapTiler 3D Models Changelog
 
+### 4.0.0
+
+## ✨ New Features
+- Adds `Item3D.intersects(item: Item3D, precision: "low" | "medium")` to test for intersections of Item3D objects and their associated meshes.
+- Moves cloning logic to `Item3D`, adding `Item3D.clone()` method for easier cloning of 3D items.
+- Adds `remove()` method to `Item3D`.
+- Adds new methods `moveBy` and `setPositionRelativeTo` for positioning an `Item3D` relatively to itself or other `Item3D`.
+
+## ⚙️ Other
+- Adds e2e tests for intersections.
+- `@maptiler/sdk` is now a peer dependency.
+
+## 🐞 Bug Fixes
+- Fixes `Layer3D.removeMesh` logic
+- Fixes a bug where mouseenter and mouseleave events were not fired when moving mouse from one mesh directly to another.
+- Fixes a bug where animations were not cloned.
+- Fixes missing type exports.
+
 ### 3.1.0
 
 ## ✨ New Features

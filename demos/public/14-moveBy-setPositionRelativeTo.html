@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>MapTiler 3D | moveBy and setPositionRelativeTo</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: sans-serif;
+      }
+
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+
+      #form {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        background: rgba(0, 0, 0, 0.75);
+        color: #eee;
+        padding: 12px 16px;
+        border-radius: 8px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+      }
+      #form label {
+        display: inline-block;
+        margin-right: 8px;
+        margin-bottom: 4px;
+      }
+      #form input,
+      #form select {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        padding: 4px 8px;
+      }
+      #form input[type="number"] {
+        width: 60px;
+      }
+      #form select {
+        width: 80px;
+      }
+      #form button {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+      #form button:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+      #drag-instruction {
+        background: rgba(0, 0, 0, 0.75);
+        color: #eee;
+        padding: 8px 16px;
+        border-radius: 6px;
+        position: absolute;
+        top: 70px;
+        left: 10px;
+        z-index: 1001;
+        font-size: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <script type="module" src="../src/14-moveBy-setPositionRelativeTo.ts"></script>
+    <div id="drag-instruction">
+      🖱️ Drag the axes object to move it directly
+    </div>
+    <form id="form">
+      <label>
+        x: <input type="number" name="x" value="0" step="1" />
+      </label>
+      <label>
+        y: <input type="number" name="y" value="0" step="1" />
+      </label>
+      <label>
+        z: <input type="number" name="z" value="0" step="1" />
+      </label>
+      <label>
+        <select name="units">
+          <option value="meters">meters</option>
+          <option value="feet">feet</option>
+          <option value="km">km</option>
+          <option value="miles">miles</option>
+        </select>
+      </label>
+      <button type="submit">Move anchor</button>
+    </form>
+  </body>
+</html>
