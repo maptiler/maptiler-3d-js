@@ -61,8 +61,8 @@ jobs:
           r2-bucket: cdn-storage
           source-dir: build
           destination-dir: maptiler-3d/v${{ env.PACKAGE_VERSION }}/
-    
-      - name: Dispatch e2e request to maptiler-sdk-e2e-testing
+
+      - name: Dispatch fixture publish request to maptiler-sdk-e2e-testing
         continue-on-error: true # if the dispatch fails, we don't want to fail the job
         if: success()
         run: |
