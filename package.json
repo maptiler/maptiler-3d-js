@@ -1,6 +1,6 @@
 {
   "name": "@maptiler/3d",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Add 3D things to your map, plugin for MapTiler SDK",
   "module": "dist/maptiler-3d.js",
   "types": "dist/maptiler-3d.d.ts",
@@ -11,6 +11,9 @@
       "types": "./dist/maptiler-3d.d.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
   "author": "MapTiler Team",
   "keywords": [
     "maptiler",
