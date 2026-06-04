@@ -48,7 +48,7 @@
     "type": "git",
     "url": "https://github.com/maptiler/maptiler-3d-js.git"
   },
-  "license": "",
+  "license": "See LICENSE.md",
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@playwright/test": "^1.51.0",
