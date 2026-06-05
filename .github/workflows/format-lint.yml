@@ -29,5 +29,5 @@ jobs:
       - name: Formatting and linting with Biome
         run: npm run biome
 
-      - name: Typechecking with TypeScript
-        run: npm run tsc
+      - name: TypeScript Type Check
+        run: npx tsc --noEmit
