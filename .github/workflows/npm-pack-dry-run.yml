@@ -5,11 +5,24 @@ name: Node.js Package
 
 on:
   pull_request:
-    types: [opened]
+    types: [opened, synchronize]
+    branches: [ main, next ]
+    paths:
+       - 'package.json'
+       - 'package-lock.json'
+       - 'src/**'
+       - 'playwright.config.ts'
+       - 'vite.config-e2e.ts'
+       - 'vite.config-umd.ts'
+       - 'vite.config-es.ts'
+       - 'vite.config-dev.ts'
 
 jobs:
   test-build-and-publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -18,8 +31,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org/
+          node-version: lts/*
+          cache: 'npm'
+          cache-dependency-path: ./package-lock.json
 
       - name: Clear NPM cache
         run: npm cache clean --force
