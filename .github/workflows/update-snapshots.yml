@@ -7,7 +7,10 @@ on:
 
 jobs:
   update-snapshots:
-    # This is the magic "if" block
+    timeout-minutes: 30
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     if: >
       github.event.issue.pull_request &&
       startsWith(github.event.comment.body, '/update-snapshots') &&
@@ -46,6 +49,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
+          cache: 'npm'
+          cache-dependency-path: ./package-lock.json
           node-version: lts/*
 
       - name: Install dependencies
