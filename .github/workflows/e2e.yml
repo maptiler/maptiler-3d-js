@@ -2,16 +2,31 @@ name: Playwright Tests
 on:
   pull_request:
     branches: [ main, next ]
+    types: [opened, synchronize]
+    paths:
+       - 'e2e/**'
+       - 'src/**'
+       - 'playwright.config.ts'
+       - 'package.json'
+       - 'package-lock.json'
+       - 'tsconfig.json'
+       - 'vite.config-e2e.ts'
+
 jobs:
   e2e:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
           - name: Log Tests
             run: echo "Running Playwright tests"
           - uses: actions/checkout@v4
           - uses: actions/setup-node@v4
             with:
+              cache: 'npm'
+              cache-dependency-path: ./package-lock.json
               node-version: lts/*
 
           - name: Debug file structure
