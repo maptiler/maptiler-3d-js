@@ -375,8 +375,9 @@ export class WebGLRenderManager {
 
     // we need to normalize the pointer to normalized device coordinates (NDC)
     // for use with the Raycaster
-    mouseNDC.x = (point.x / this.map.transform.width) * 2 - 1;
-    mouseNDC.y = 1 - (point.y / this.map.transform.height) * 2;
+    const { clientWidth, clientHeight } = this.map.getCanvas();
+    mouseNDC.x = (point.x / clientWidth) * 2 - 1;
+    mouseNDC.y = 1 - (point.y / clientHeight) * 2;
 
     // Because the three.js camera is not updated normally by setting position etc,
     // (it's `projectionMatrix` is updated manually in `prepareRender`)
