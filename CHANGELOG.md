@@ -10,6 +10,7 @@
 - Replaces MapLibre's removed `transform.getMatrixForModel` with an internal implementation for globe and mercator projections.
 - Exports the new `Item3DEvent` and `Item3DEventMap` types.
 - Demos read the MapTiler API key from `VITE_MAPTILER_API_KEY` in a git-ignored `.env.local` at the root of the repo.
+- The release version is set from the GitHub release tag. `package.json` holds the `0.0.0-PLACEHOLDER` version.
 
 ## 4.0.1
 
