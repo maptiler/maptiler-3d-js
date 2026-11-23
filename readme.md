@@ -617,6 +617,10 @@ We love contributions from the community! Whether it's bug reports, feature requ
 
 Instead of `.env.local`, you can add `?key=YOUR_KEY` to a demo URL once, and the browser stores the key for all demos. If several keys are set, the demos use the first of: the key in `.env.local`, the key stored in the browser, the `key` URL parameter.
 
+### Releasing
+
+The version in `package.json` is a placeholder (`0.0.0-PLACEHOLDER`). Creating a GitHub release sets the version from the release tag (e.g. `v4.1.0`) before building and publishing to npm and the CDN. Mark the release as a pre-release to publish it under the npm `next` tag.
+
 ### E2E Testing
 
 This project uses a combination of [Vite](https://vitejs.dev/) for building and serving fixtures and [Playwright](https://playwright.dev) for browser automation to perform end-to-end testing.
