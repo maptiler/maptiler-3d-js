@@ -123,6 +123,11 @@ const item3DStateEventMap = new Map<
   ],
 ]);
 
+/**
+ * Signature of the Item3D setters that UI state properties are mapped to.
+ */
+type Item3DStatePropertySetter = (value: any, cueRepaint?: boolean) => unknown;
+
 const item3DSetStatePropertyToMethodMap = new Map<keyof Item3DMeshUIStateProperties, keyof Item3D>([
   ["opacity", "setOpacity"],
   ["scale", "setRelativeScale"],
@@ -632,7 +637,7 @@ export class Item3D extends Evented<Item3DEventMap> {
       for (const [propertyName, propertyValue] of Object.entries(sumOfAllStatesProps)) {
         const propName = propertyName as keyof Item3DMeshUIStateProperties;
         const methodName = item3DSetStatePropertyToMethodMap.get(propName);
-        const method = this[methodName as keyof Item3D];
+        const method = this[methodName as keyof Item3D] as Item3DStatePropertySetter | undefined;
 
         if (method && typeof propertyValue !== "undefined") {
           // call the method with the property value and cue a repaint
@@ -663,7 +668,7 @@ export class Item3D extends Evented<Item3DEventMap> {
       // iterate over the properties, map to the correct method and call it
       for (const [propertyName, propertyValue] of Object.entries(sumOfAllStates ?? {})) {
         const methodName = item3DSetStatePropertyToMethodMap.get(propertyName as keyof Item3DMeshUIStateProperties);
-        const method = this[methodName as keyof Item3D];
+        const method = this[methodName as keyof Item3D] as Item3DStatePropertySetter | undefined;
         if (method) {
           // call the method with the property value and cue a repaint
           method.call(this, propertyValue, true);
