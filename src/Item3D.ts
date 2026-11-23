@@ -28,6 +28,7 @@ import {
   type Item3DMeshUIStateName,
   type Item3DMeshUIStateProperties,
   type Item3DEventTypes,
+  type Item3DEventMap,
   type Item3DTransform,
   type Position3D,
   AltitudeReference,
@@ -163,7 +164,7 @@ export const item3DDefaultValuesMap = new Map<keyof Item3DMeshUIStateProperties 
   ["transform", createDefaultTransform()],
 ]);
 
-export class Item3D extends Evented {
+export class Item3D extends Evented<Item3DEventMap> {
   /**
    * The id of the item, this is used to identify the item in the layer and set in the constructor
    * when the item is created in the Layer3D class
@@ -483,7 +484,7 @@ export class Item3D extends Evented {
    * @param callback - The callback to call when the event is triggered
    * @returns {Item3D} The item
    */
-  public override on(event: Item3DEventTypes, callback: (event: any) => void) {
+  public override on<T extends Item3DEventTypes>(event: T, callback: (event: Item3DEventMap[T]) => void) {
     this.registeredEventTypes.push(event);
     return super.on(event, callback);
   }
@@ -494,7 +495,7 @@ export class Item3D extends Evented {
    * @param callback - The callback to unregister
    * @returns {Item3D} The item
    */
-  public override off(event: Item3DEventTypes, callback: (event: any) => void) {
+  public override off<T extends Item3DEventTypes>(event: T, callback: (event: Item3DEventMap[T]) => void) {
     this.registeredEventTypes = this.registeredEventTypes.filter((type) => type !== event);
     return super.off(event, callback);
   }
