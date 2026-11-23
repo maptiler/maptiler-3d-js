@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { LngLat, Map, MapStyle, MercatorCoordinate, config } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Item3D, Layer3D } from "../../src";
+import { AltitudeReference, Item3D, Layer3D } from "../../src/maptiler-3d";
 import { SourceOrientation } from "../../src/types";
 import { ConeGeometry, CylinderGeometry, Group, Mesh, MeshStandardMaterial, SphereGeometry } from "three";
 
