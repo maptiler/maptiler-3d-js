@@ -1,5 +1,10 @@
 # MapTiler 3D Models Changelog
 
+## Unreleased
+
+## ⚙️ Other
+- Demos read the MapTiler API key from `VITE_MAPTILER_API_KEY` in a git-ignored `.env.local` at the root of the repo.
+
 ## 4.0.1
 
 ### Bug Fixes
