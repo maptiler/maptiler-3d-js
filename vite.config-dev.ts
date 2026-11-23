@@ -55,6 +55,8 @@ const entrypoints = readdirSync(resolve(__dirname, 'demos/public')).filter((file
 export default defineConfig({
   mode: "development",
   root: "./demos",
+  // `.env.local` (e.g. `VITE_MAPTILER_API_KEY`) is read from the root of the repo, not from `demos`
+  envDir: __dirname,
   build: {
     minify: false,
     sourcemap: true,
@@ -94,6 +96,12 @@ export default defineConfig({
         console.log('┗' + '━'.repeat(lineLength) + '┛')
 
         console.log('\n')
+
+        // `server.config.env` holds the `VITE_` variables loaded from `envDir`
+        if (!server.config.env.VITE_MAPTILER_API_KEY) {
+          console.warn(yellow('⚠ No MapTiler API key set. The demos will need one: add `VITE_MAPTILER_API_KEY=<key>` to `.env.local` at the root of the repo (then restart the dev server), or open a demo with `?key=<key>` once to store it in the browser.'))
+          console.log('\n')
+        }
       }
     }
   ],

@@ -613,6 +613,14 @@ We love contributions from the community! Whether it's bug reports, feature requ
 - Give your pull request a clear, descriptive summary
 - Open a Pull Request with a comprehensive description
 
+### Run the demos
+
+1. Create a `.env.local` file at the root of the repo (git ignores it) with your MapTiler API key: `VITE_MAPTILER_API_KEY=YOUR_KEY`.
+2. Run `npm run dev`.
+3. Open one of the printed URLs.
+
+Instead of `.env.local`, you can add `?key=YOUR_KEY` to a demo URL once, and the browser stores the key for all demos. If several keys are set, the demos use the first of: the key in `.env.local`, the key stored in the browser, the `key` URL parameter.
+
 ### E2E Testing
 
 This project uses a combination of [Vite](https://vitejs.dev/) for building and serving fixtures and [Playwright](https://playwright.dev) for browser automation to perform end-to-end testing.

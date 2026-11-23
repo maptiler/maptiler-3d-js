@@ -93,15 +93,6 @@ function createUI() {
   return gui;
 }
 
-config.apiKey = new URLSearchParams(location.search).get("key") || "API_KEY";
-
-if (config.apiKey === "API_KEY") {
-  const errorMessage = "MapTiler API key is missing. Please use URL `key` parameter to set it (`?key=XXXXX`).";
-
-  alert(errorMessage);
-  throw new Error(errorMessage);
-}
-
 const mapElement = document.getElementById("map");
 
 if (mapElement === null) {
