@@ -1,5 +1,15 @@
 # MapTiler 3D Models Changelog
 
+## Unreleased
+
+## ⚠️ Breaking Changes
+- Requires `@maptiler/sdk` v5 (MapLibre GL JS v6). The `@maptiler/sdk` peer dependency is now `^5.0.0`.
+- `Item3D` now extends `Evented<Item3DEventMap>`. `Item3D.on` and `Item3D.off` listeners receive a typed `Item3DEvent`.
+
+## ⚙️ Other
+- Replaces MapLibre's removed `transform.getMatrixForModel` with an internal implementation for globe and mercator projections.
+- Exports the new `Item3DEvent` and `Item3DEventMap` types.
+
 ## 4.0.1
 
 ### Bug Fixes
