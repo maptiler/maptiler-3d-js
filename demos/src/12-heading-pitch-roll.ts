@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { LngLat, Map, MapStyle, config, math } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src";
+import { AltitudeReference, Layer3D } from "../../src/maptiler-3d";
 import { Mesh, MeshStandardMaterial, OctahedronGeometry, Vector3 } from "three";
 
 const center: [number, number] = [2.3492790851936776, 48.85417501375531];

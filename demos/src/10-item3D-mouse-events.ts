@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { LngLat, type LngLatLike, Map, MapStyle, config, math } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src";
+import { AltitudeReference, Layer3D } from "../../src/maptiler-3d";
 import GUI from "lil-gui";
 import { BoxGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, SphereGeometry, TorusGeometry, TorusKnotGeometry, Vector3 } from "three";
 import { LTC_Evaluate } from "three/src/nodes/functions/BSDF/LTC.js";
