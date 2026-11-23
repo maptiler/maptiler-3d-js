@@ -24,7 +24,7 @@ import {
 
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
-import { getTransformationMatrix, isPointLight } from "./utils";
+import { getMatrixForModel, getTransformationMatrix, isPointLight } from "./utils";
 import {
   type Layer3DOptions,
   type MeshOptions,
@@ -384,15 +384,20 @@ export class Layer3D implements Layer3DInternalAPIInterface {
       return;
     }
 
-    this.updateItemMatrices(options.defaultProjectionData.mainMatrix);
+    this.updateItemMatrices(
+      options.defaultProjectionData.mainMatrix,
+      options.defaultProjectionData.projectionTransition === 1,
+    );
   }
 
   /**
    * Updates the world matrices of all Item3D dollies. Must be called before any intersection checks
    * to ensure bounds are computed with current positions.
+   * @param matrix - The custom layer projection matrix (`defaultProjectionData.mainMatrix`).
+   * @param isGlobe - Whether the map is currently rendering as a globe.
    * @internal
    */
-  updateItemMatrices(matrix: ArrayLike<number>) {
+  updateItemMatrices(matrix: ArrayLike<number>, isGlobe: boolean) {
     const mapCenter = this.map.getCenter();
 
     const sceneOrigin = new LngLat(mapCenter.lng + EPSILON, mapCenter.lat + EPSILON);
@@ -401,8 +406,7 @@ export class Layer3D implements Layer3DInternalAPIInterface {
     /**
      * `getMatrixForModel` returns transformation matrix for current active projection, which can be used to set correct position and orientation of the model.
      */
-    const sceneMatrixData = this.map.transform.getMatrixForModel(sceneOrigin, sceneElevation);
-    const sceneMatrix = new Matrix4().fromArray(sceneMatrixData);
+    const sceneMatrix = getMatrixForModel(sceneOrigin, sceneElevation, isGlobe);
     const sceneInverseMatrix = sceneMatrix.clone().invert();
 
     for (const [_, item] of this.items3D) {
@@ -423,9 +427,7 @@ export class Layer3D implements Layer3DInternalAPIInterface {
          * We are using transformation of scene origin and model for finding relative transofmration of the model to avoid precision issues.
          * Center of the map is used as an origin of the scene.
          */
-        const modelMatrixData = this.map.transform.getMatrixForModel(item.lngLat, modelAltitude);
-        const modelMatrix = new Matrix4()
-          .fromArray(modelMatrixData)
+        const modelMatrix = getMatrixForModel(item.lngLat, modelAltitude, isGlobe)
           .multiply(item.additionalTransformationMatrix)
           .premultiply(sceneInverseMatrix);
 

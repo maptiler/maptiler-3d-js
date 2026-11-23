@@ -1,4 +1,5 @@
 import { Quaternion, Vector3, Matrix4, type Object3D, type PointLight, MathUtils } from "three";
+import { type LngLatLike, MercatorCoordinate, LngLat } from "@maptiler/sdk";
 import { SourceOrientation } from "./types";
 
 export function degreesToRadians(degrees: number): number {
@@ -75,3 +76,41 @@ export function convertUnitsToMeters(value: number, units: "meters" | "feet" | "
 }
 
 export { isPointLight, getTransformationMatrix };
+
+/**
+ * Earth radius in meters, as used by MapLibre GL JS for the globe projection.
+ */
+const MAPLIBRE_EARTH_RADIUS = 6371008.8;
+
+/**
+ * Returns a matrix that places, rotates and scales a model at the given location and altitude,
+ * to be projected by the custom layer `defaultProjectionData.mainMatrix`.
+ * Port of MapLibre GL JS v5 `transform.getMatrixForModel`, which was removed in v6.
+ * @param location - Location of the model.
+ * @param altitude - Altitude of the model in meters.
+ * @param isGlobe - `true` when the map is rendering as a globe (projection transition of 1),
+ * `false` when rendering as mercator (projection transition of 0).
+ * @returns {Matrix4} The model matrix.
+ */
+export function getMatrixForModel(location: LngLatLike, altitude: number, isGlobe: boolean): Matrix4 {
+  if (isGlobe) {
+    const lngLat = LngLat.convert(location);
+    const scale = 1 / MAPLIBRE_EARTH_RADIUS;
+
+    return new Matrix4()
+      .multiply(new Matrix4().makeRotationY(degreesToRadians(lngLat.lng)))
+      .multiply(new Matrix4().makeRotationX(-degreesToRadians(lngLat.lat)))
+      .multiply(new Matrix4().makeTranslation(0, 0, 1 + altitude / MAPLIBRE_EARTH_RADIUS))
+      .multiply(new Matrix4().makeRotationX(Math.PI / 2))
+      .multiply(new Matrix4().makeScale(scale, scale, scale));
+  }
+
+  const mercatorCoordinate = MercatorCoordinate.fromLngLat(location, altitude);
+  const scale = mercatorCoordinate.meterInMercatorCoordinateUnits();
+
+  return new Matrix4()
+    .multiply(new Matrix4().makeTranslation(mercatorCoordinate.x, mercatorCoordinate.y, mercatorCoordinate.z))
+    .multiply(new Matrix4().makeRotationZ(Math.PI))
+    .multiply(new Matrix4().makeRotationX(Math.PI / 2))
+    .multiply(new Matrix4().makeScale(-scale, scale, scale));
+}
