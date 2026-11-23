@@ -32,6 +32,10 @@ jobs:
       - name: Install dependencies and build
         run: npm ci
 
+      # The version comes from the release tag. It must be set before building, as it is baked into the bundles
+      - name: Update NPM version
+        run: npm version ${{ github.event.release.tag_name }} --no-git-tag-version
+
       - name: Make release
         run: npm run make
         id: makeRelease
