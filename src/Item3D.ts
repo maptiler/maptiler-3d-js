@@ -898,6 +898,7 @@ export class Item3D extends Evented<Item3DEventMap> {
    */
   public setLngLat(lngLat: LngLat, cueRepaint = true) {
     this.lngLat = lngLat;
+    this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
 
     this.needsUpdateBounds = true;
     if (cueRepaint) this.cueUpdate();
@@ -1102,6 +1103,7 @@ export class Item3D extends Evented<Item3DEventMap> {
    */
   public setAltitudeReference(altitudeReference: AltitudeReference, cueRepaint = true) {
     this.altitudeReference = altitudeReference;
+    this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
     this.needsUpdateBounds = true;
 
     if (cueRepaint) this.cueUpdate();
