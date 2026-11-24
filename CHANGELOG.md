@@ -5,6 +5,7 @@
 ## ⚙️ Other
 - Demos read the MapTiler API key from `VITE_MAPTILER_API_KEY` in a git-ignored `.env.local` at the root of the repo.
 - The release version is set from the GitHub release tag. `package.json` holds the `0.0.0-PLACEHOLDER` version.
+- Updates `@playwright/test` to 1.65.1.
 
 ## 4.0.1
 
