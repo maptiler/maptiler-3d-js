@@ -64,7 +64,7 @@ const map = new Map({
   const guiObj = {
     opacity: 1,
     pointSize: 1,
-    fov: map.transform.fov,
+    fov: map.getVerticalFieldOfView(),
   };
 
   const item = layer3D.getItem3D(meshId);

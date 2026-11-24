@@ -28,6 +28,7 @@ import {
   type Item3DMeshUIStateName,
   type Item3DMeshUIStateProperties,
   type Item3DEventTypes,
+  type Item3DEventMap,
   type Item3DTransform,
   type Position3D,
   AltitudeReference,
@@ -122,6 +123,11 @@ const item3DStateEventMap = new Map<
   ],
 ]);
 
+/**
+ * Signature of the Item3D setters that UI state properties are mapped to.
+ */
+type Item3DStatePropertySetter = (value: any, cueRepaint?: boolean) => unknown;
+
 const item3DSetStatePropertyToMethodMap = new Map<keyof Item3DMeshUIStateProperties, keyof Item3D>([
   ["opacity", "setOpacity"],
   ["scale", "setRelativeScale"],
@@ -163,7 +169,7 @@ export const item3DDefaultValuesMap = new Map<keyof Item3DMeshUIStateProperties 
   ["transform", createDefaultTransform()],
 ]);
 
-export class Item3D extends Evented {
+export class Item3D extends Evented<Item3DEventMap> {
   /**
    * The id of the item, this is used to identify the item in the layer and set in the constructor
    * when the item is created in the Layer3D class
@@ -483,7 +489,7 @@ export class Item3D extends Evented {
    * @param callback - The callback to call when the event is triggered
    * @returns {Item3D} The item
    */
-  public override on(event: Item3DEventTypes, callback: (event: any) => void) {
+  public override on<T extends Item3DEventTypes>(event: T, callback: (event: Item3DEventMap[T]) => void) {
     this.registeredEventTypes.push(event);
     return super.on(event, callback);
   }
@@ -494,7 +500,7 @@ export class Item3D extends Evented {
    * @param callback - The callback to unregister
    * @returns {Item3D} The item
    */
-  public override off(event: Item3DEventTypes, callback: (event: any) => void) {
+  public override off<T extends Item3DEventTypes>(event: T, callback: (event: Item3DEventMap[T]) => void) {
     this.registeredEventTypes = this.registeredEventTypes.filter((type) => type !== event);
     return super.off(event, callback);
   }
@@ -631,7 +637,7 @@ export class Item3D extends Evented {
       for (const [propertyName, propertyValue] of Object.entries(sumOfAllStatesProps)) {
         const propName = propertyName as keyof Item3DMeshUIStateProperties;
         const methodName = item3DSetStatePropertyToMethodMap.get(propName);
-        const method = this[methodName as keyof Item3D];
+        const method = this[methodName as keyof Item3D] as Item3DStatePropertySetter | undefined;
 
         if (method && typeof propertyValue !== "undefined") {
           // call the method with the property value and cue a repaint
@@ -662,7 +668,7 @@ export class Item3D extends Evented {
       // iterate over the properties, map to the correct method and call it
       for (const [propertyName, propertyValue] of Object.entries(sumOfAllStates ?? {})) {
         const methodName = item3DSetStatePropertyToMethodMap.get(propertyName as keyof Item3DMeshUIStateProperties);
-        const method = this[methodName as keyof Item3D];
+        const method = this[methodName as keyof Item3D] as Item3DStatePropertySetter | undefined;
         if (method) {
           // call the method with the property value and cue a repaint
           method.call(this, propertyValue, true);
@@ -892,6 +898,7 @@ export class Item3D extends Evented {
    */
   public setLngLat(lngLat: LngLat, cueRepaint = true) {
     this.lngLat = lngLat;
+    this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
 
     this.needsUpdateBounds = true;
     if (cueRepaint) this.cueUpdate();
@@ -1096,6 +1103,7 @@ export class Item3D extends Evented {
    */
   public setAltitudeReference(altitudeReference: AltitudeReference, cueRepaint = true) {
     this.altitudeReference = altitudeReference;
+    this.elevation = this.map.queryTerrainElevation(this.lngLat) || 0;
     this.needsUpdateBounds = true;
 
     if (cueRepaint) this.cueUpdate();

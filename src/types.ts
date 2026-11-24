@@ -345,6 +345,21 @@ export interface Layer3DInternalApiEvent {
 
 export type Item3DEventTypes = "click" | "mouseenter" | "mouseleave" | "mousedown" | "mouseup" | "dblclick";
 
+/**
+ * The event passed to Item3D event listeners.
+ * Carries the event `type`, the `target` item and the event data fired by the layer.
+ */
+export type Item3DEvent<T extends Item3DEventTypes = Item3DEventTypes> = {
+  readonly type: T;
+  target?: unknown;
+  [key: string]: any;
+};
+
+/**
+ * Maps each Item3D event type to the event its listeners receive.
+ */
+export type Item3DEventMap = { [K in Item3DEventTypes]: Item3DEvent<K> };
+
 export interface Layer3DInternalAPIInterface extends CustomLayerInterface {
   [handleMeshClickMethodSymbol]: (event: Layer3DInternalApiEvent) => void;
   [handleMeshMouseEnterMethodSymbol]: (event: Layer3DInternalApiEvent) => void;

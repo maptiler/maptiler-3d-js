@@ -2,7 +2,13 @@
 
 ## Next
 
+## ⚠️ Breaking Changes
+- Requires `@maptiler/sdk` v5 (MapLibre GL JS v6). The `@maptiler/sdk` peer dependency is now `^5.0.0`.
+- `Item3D` now extends `Evented<Item3DEventMap>`. `Item3D.on` and `Item3D.off` listeners receive a typed `Item3DEvent`.
+
 ## ⚙️ Other
+- Replaces MapLibre's removed `transform.getMatrixForModel` with an internal implementation for globe and mercator projections.
+- Exports the new `Item3DEvent` and `Item3DEventMap` types.
 - Demos read the MapTiler API key from `VITE_MAPTILER_API_KEY` in a git-ignored `.env.local` at the root of the repo.
 - The release version is set from the GitHub release tag. `package.json` holds the `0.0.0-PLACEHOLDER` version.
 - Updates `@playwright/test` to 1.65.1.

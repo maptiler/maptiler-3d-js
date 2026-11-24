@@ -13,6 +13,8 @@ export {
   type Item3DMeshUIStateProperties,
   type Item3DMeshUIStates,
   type Item3DEventTypes,
+  type Item3DEvent,
+  type Item3DEventMap,
   type AddMeshFromURLOptions,
   type CloneMeshOptions,
   type PointLightOptions,

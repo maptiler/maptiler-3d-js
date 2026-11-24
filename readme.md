@@ -39,8 +39,10 @@ With this [MapTiler SDK](https://docs.maptiler.com/sdk-js) module, you can add 3
 From NPM and using the ES module, in a terminal, in your project:
 
 ```shell
-npm install @maptiler/3d
+npm install @maptiler/3d @maptiler/sdk
 ```
+
+`@maptiler/3d` requires `@maptiler/sdk` v5 or later as a peer dependency.
 
 Then to import:
 
@@ -55,6 +57,8 @@ From CDN and using the UMD bundle, in the `<head></head>` section of your HTML f
 ```html
 <script src="https://cdn.maptiler.com/maptiler-3d/<VERSION>/maptiler-3d.umd.js"></script>
 ```
+
+The UMD bundle expects the MapTiler SDK v5 UMD bundle to be loaded first. See the [MapTiler SDK changelog](https://github.com/maptiler/maptiler-sdk-js/blob/main/CHANGELOG.md) for the MapLibre worker files and CSP directives (`worker-src 'self' blob: https://cdn.maptiler.com`) that SDK v5 needs.
 
 To generate the typedoc documentation and serve them locally:
 

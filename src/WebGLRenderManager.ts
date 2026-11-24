@@ -375,18 +375,21 @@ export class WebGLRenderManager {
 
     // we need to normalize the pointer to normalized device coordinates (NDC)
     // for use with the Raycaster
-    mouseNDC.x = (point.x / this.map.transform.width) * 2 - 1;
-    mouseNDC.y = 1 - (point.y / this.map.transform.height) * 2;
+    const { clientWidth, clientHeight } = this.map.getCanvas();
+    mouseNDC.x = (point.x / clientWidth) * 2 - 1;
+    mouseNDC.y = 1 - (point.y / clientHeight) * 2;
 
     // Because the three.js camera is not updated normally by setting position etc,
     // (it's `projectionMatrix` is updated manually in `prepareRender`)
-    // we have to do some matrix math to correctly raycast into "map space"
+    // we have to do some matrix math to correctly raycast into "map space".
+    // Unprojecting the pointer at the near (z = -1) and far (z = 1) planes gives two points
+    // on the pointer's line of sight, which define the ray.
     const camInverseProjection = new Matrix4().copy(camera.projectionMatrix).invert();
-    const cameraPosition = new Vector3().applyMatrix4(camInverseProjection);
-    const mousePosition = new Vector3(mouseNDC.x, mouseNDC.y, 1).applyMatrix4(camInverseProjection);
-    const viewDirection = mousePosition.clone().sub(cameraPosition).normalize();
+    const nearPoint = new Vector3(mouseNDC.x, mouseNDC.y, -1).applyMatrix4(camInverseProjection);
+    const farPoint = new Vector3(mouseNDC.x, mouseNDC.y, 1).applyMatrix4(camInverseProjection);
+    const viewDirection = farPoint.sub(nearPoint).normalize();
 
-    this.raycaster.set(cameraPosition, viewDirection);
+    this.raycaster.set(nearPoint, viewDirection);
 
     return this.raycaster.intersectObjects(scene.children);
   }
