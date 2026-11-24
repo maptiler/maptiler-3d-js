@@ -99,8 +99,7 @@ export default defineConfig({
 
         // `server.config.env` holds the `VITE_` variables loaded from `envDir`
         if (!server.config.env.VITE_MAPTILER_API_KEY) {
-          console.warn(yellow('⚠ No MapTiler API key set. The demos will need one: add `VITE_MAPTILER_API_KEY=<key>` to `.env.local` at the root of the repo (then restart the dev server), or open a demo with `?key=<key>` once to store it in the browser.'))
-          console.log('\n')
+          console.warn(`${yellow('⚠ No MapTiler API key set. The demos will need one: add `VITE_MAPTILER_API_KEY=<key>` to `.env.local` at the root of the repo (then restart the dev server), or open a demo with `?key=<key>` once to store it in the browser.')}\n\n`)
         }
       }
     }
