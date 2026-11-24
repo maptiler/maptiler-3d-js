@@ -1,6 +1,6 @@
 import "@maptiler/sdk/style.css";
 import { Map, MapStyle, config } from "@maptiler/sdk";
-import { AltitudeReference, Layer3D } from "../../src";
+import { AltitudeReference, Layer3D } from "../../src/maptiler-3d";
 import GUI from "lil-gui";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
 

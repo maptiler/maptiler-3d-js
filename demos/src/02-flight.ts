@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { type LngLatLike, Map, MapStyle, config, math } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src";
+import { AltitudeReference, Layer3D } from "../../src/maptiler-3d";
 import GUI from "lil-gui";
 
 // const newYorkCity: [number, number] = [-73.98918779556983, 40.74072950731568];

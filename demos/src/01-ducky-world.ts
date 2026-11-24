@@ -2,7 +2,7 @@ import "@maptiler/sdk/style.css";
 
 import { LngLat, Map, MapStyle, config } from "@maptiler/sdk";
 import { addPerformanceStats, setupMapTilerApiKey } from "./demo-utils";
-import { AltitudeReference, Layer3D } from "../../src";
+import { AltitudeReference, Layer3D } from "../../src/maptiler-3d";
 import GUI from "lil-gui";
 import { SourceOrientation } from "../../src/types";
 
@@ -91,15 +91,6 @@ function createUI() {
     .name("What the Quack?");
 
   return gui;
-}
-
-config.apiKey = new URLSearchParams(location.search).get("key") || "API_KEY";
-
-if (config.apiKey === "API_KEY") {
-  const errorMessage = "MapTiler API key is missing. Please use URL `key` parameter to set it (`?key=XXXXX`).";
-
-  alert(errorMessage);
-  throw new Error(errorMessage);
 }
 
 const mapElement = document.getElementById("map");

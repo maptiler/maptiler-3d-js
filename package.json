@@ -1,6 +1,6 @@
 {
   "name": "@maptiler/3d",
-  "version": "4.0.1",
+  "version": "0.0.0-PLACEHOLDER",
   "description": "Add 3D things to your map, plugin for MapTiler SDK",
   "module": "dist/maptiler-3d.js",
   "types": "dist/maptiler-3d.d.ts",
@@ -51,7 +51,7 @@
   "license": "See LICENSE.md",
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@playwright/test": "^1.51.0",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^22.18.1",
     "@types/three": "^0.171.0",
     "concurrently": "^9.1.2",
