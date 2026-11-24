@@ -84,11 +84,11 @@ const map = new Map({
   gui.add(guiObj, "projection", ["mercator", "globe"]).onChange((projection) => {
     switch (projection) {
       case "mercator":
-        map.enableMercatorProjection();
+        map.setProjection("mercator");
         break;
 
       case "globe":
-        map.enableGlobeProjection();
+        map.setProjection("globe");
         break;
 
       default:
