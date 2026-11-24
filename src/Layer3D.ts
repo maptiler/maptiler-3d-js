@@ -143,10 +143,15 @@ export class Layer3D implements Layer3DInternalAPIInterface {
    */
   private onRemoveCallbacks: Array<() => void> = [];
   /**
-   * Whether the elevation needs to be updated.
-   * This is used to update the elevation of the items in the layer.
+   * Whether the terrain is animating (growing or flattening).
+   * While it is, the elevation of GROUND items is updated on every frame.
    */
-  private isElevationNeedUpdate = false;
+  private isTerrainAnimating = false;
+  /**
+   * Whether the elevation of GROUND items needs a one-off update on the next frame,
+   * eg because the terrain was enabled or terrain tiles were loaded.
+   */
+  private isElevationNeedUpdate = true;
 
   constructor(id: string, options: Layer3DOptions = {}) {
     if (USE_DEBUG_LOGS === true) {
@@ -197,14 +202,32 @@ export class Layer3D implements Layer3DInternalAPIInterface {
     });
 
     const { unsubscribe: unsubscribeOnTerrainAnimationStart } = this.map.on("terrainAnimationStart", () => {
-      this.isElevationNeedUpdate = true;
+      this.isTerrainAnimating = true;
     });
 
     const { unsubscribe: unsubscribeOnTerrainAnimationStop } = this.map.on("terrainAnimationStop", () => {
-      this.isElevationNeedUpdate = false;
+      this.isTerrainAnimating = false;
+      this.isElevationNeedUpdate = true;
     });
 
-    this.onRemoveCallbacks = [unsubscribeOnTerrainAnimationStart, unsubscribeOnTerrainAnimationStop];
+    const { unsubscribe: unsubscribeOnTerrain } = this.map.on("terrain", () => {
+      this.isElevationNeedUpdate = true;
+    });
+
+    // Items added before the terrain tiles under them have loaded get an elevation of 0,
+    // so the elevation is updated again whenever a terrain tile loads
+    const { unsubscribe: unsubscribeOnSourceData } = this.map.on("sourcedata", (event) => {
+      if (event.tile && event.sourceId === this.map.getTerrain()?.source) {
+        this.isElevationNeedUpdate = true;
+      }
+    });
+
+    this.onRemoveCallbacks = [
+      unsubscribeOnTerrainAnimationStart,
+      unsubscribeOnTerrainAnimationStop,
+      unsubscribeOnTerrain,
+      unsubscribeOnSourceData,
+    ];
   }
 
   /**
@@ -409,6 +432,8 @@ export class Layer3D implements Layer3DInternalAPIInterface {
     const sceneMatrix = getMatrixForModel(sceneOrigin, sceneElevation, isGlobe);
     const sceneInverseMatrix = sceneMatrix.clone().invert();
 
+    const shouldUpdateElevation = this.isTerrainAnimating || this.isElevationNeedUpdate;
+
     for (const [_, item] of this.items3D) {
       const model = item[getItem3DDollySymbol]();
 
@@ -416,7 +441,7 @@ export class Layer3D implements Layer3DInternalAPIInterface {
         let modelAltitude = item.altitude;
 
         if (item.altitudeReference === AltitudeReference.GROUND) {
-          if (this.isElevationNeedUpdate === true) {
+          if (shouldUpdateElevation) {
             item.setElevation(this.map.queryTerrainElevation(item.lngLat) || 0);
           }
 
@@ -435,6 +460,8 @@ export class Layer3D implements Layer3DInternalAPIInterface {
         model.updateMatrixWorld(true);
       }
     }
+
+    this.isElevationNeedUpdate = false;
 
     /**
      * https://github.com/maplibre/maplibre-gl-js/blob/v5.0.0-pre.8/test/examples/globe-3d-model.html#L130-L143
