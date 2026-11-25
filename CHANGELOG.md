@@ -6,6 +6,9 @@
 - Requires `@maptiler/sdk` v5 (MapLibre GL JS v6). The `@maptiler/sdk` peer dependency is now `^5.0.0`.
 - `Item3D` now extends `Evented<Item3DEventMap>`. `Item3D.on` and `Item3D.off` listeners receive a typed `Item3DEvent`.
 
+## ✨ New Features
+- Adds an ES module build on the MapTiler CDN, `maptiler-3d.min.mjs`, to import the plugin straight from a browser without a bundler. three.js is bundled. `@maptiler/sdk` is not: an import map points it to the SDK's ES module bundle on the CDN (`maptiler-sdk.min.mjs`).
+
 ## ⚙️ Other
 - Replaces MapLibre's removed `transform.getMatrixForModel` with an internal implementation for globe and mercator projections.
 - Exports the new `Item3DEvent` and `Item3DEventMap` types.

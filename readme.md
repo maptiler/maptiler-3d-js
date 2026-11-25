@@ -55,10 +55,27 @@ import * as maptiler3d from "@maptiler/3d";
 From CDN and using the UMD bundle, in the `<head></head>` section of your HTML file:
 
 ```html
-<script src="https://cdn.maptiler.com/maptiler-3d/<VERSION>/maptiler-3d.umd.js"></script>
+<script src="https://cdn.maptiler.com/maptiler-3d/<VERSION>/maptiler-3d.umd.min.js"></script>
 ```
 
 The UMD bundle expects the MapTiler SDK v5 UMD bundle to be loaded first. See the [MapTiler SDK changelog](https://github.com/maptiler/maptiler-sdk-js/blob/main/CHANGELOG.md) for the MapLibre worker files and CSP directives (`worker-src 'self' blob: https://cdn.maptiler.com`) that SDK v5 needs.
+
+Or from CDN and using the ES module bundle. It imports `@maptiler/sdk`, so an import map points it to the SDK's own ES module bundle, which the page imports as well:
+
+```html
+<link href="https://cdn.maptiler.com/maptiler-sdk-js/<SDK_VERSION>/maptiler-sdk.css" rel="stylesheet" />
+<script type="importmap">
+  {
+    "imports": {
+      "@maptiler/sdk": "https://cdn.maptiler.com/maptiler-sdk-js/<SDK_VERSION>/maptiler-sdk.min.mjs"
+    }
+  }
+</script>
+<script type="module">
+  import { config, Map } from "@maptiler/sdk";
+  import { Layer3D } from "https://cdn.maptiler.com/maptiler-3d/<VERSION>/maptiler-3d.min.mjs";
+</script>
+```
 
 To generate the typedoc documentation and serve them locally:
 
