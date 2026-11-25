@@ -11,6 +11,7 @@ on:
        - 'package-lock.json'
        - 'tsconfig.json'
        - 'vite.config-e2e.ts'
+       - 'vite.config-esm-cdn.ts'
 
 jobs:
   e2e:
