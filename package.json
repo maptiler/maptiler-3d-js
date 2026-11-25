@@ -27,19 +27,20 @@
     "biome:fix": "biome check --max-diagnostics=1000 --write",
     "doc": "rm -rf docs/* && typedoc --entryPoints src/index.ts --out docs && cp -r images docs/",
     "make": "npm run biome:fix && npm run build",
-    "build": "npm run build-es; npm run build-umd",
-    "build-dev": "NODE_ENV=development npm run build-es; NODE_ENV=development npm run build-umd",
-    "build-umd": "tsc && vite build -c vite.config-umd.ts",
-    "build-es": "tsc && vite build -c vite.config-es.ts",
+    "build": "tsc && npm run build-es && npm run build-umd && npm run build-esm-cdn",
+    "build-dev": "tsc && NODE_ENV=development npm run build-es && NODE_ENV=development npm run build-umd && NODE_ENV=development npm run build-esm-cdn",
+    "build-umd": "vite build -c vite.config-umd.ts",
+    "build-es": "vite build -c vite.config-es.ts",
+    "build-esm-cdn": "vite build -c vite.config-esm-cdn.ts",
     "dev": "concurrently \"vite -c vite.config-dev.ts\" \"npm run dev-umd\"",
     "dev-umd": "tsc && NODE_ENV=development vite build -w -c vite.config-umd.ts",
     "dev-es": "tsc && NODE_ENV=development vite build -w -c vite.config-es.ts",
     "ncu": "npx npm-check-updates",
     "prepare": "husky",
-    "e2e:serve": "tsc --project ./e2e && NODE_ENV=development vite -c vite.config-e2e.ts",
+    "e2e:serve": "tsc --project ./e2e && npm run build-esm-cdn && NODE_ENV=development vite -c vite.config-e2e.ts",
     "e2e:local": "npx playwright test --config=playwright.config.ts --ui",
-    "e2e:ci": "concurrently --kill-others --success first \"tsc --project ./e2e && NODE_ENV=production vite -c vite.config-e2e.ts\" \"npx playwright test --config=playwright.config.ts\"",
-    "e2e:ci-update": "concurrently --kill-others --success first \"tsc --project ./e2e && NODE_ENV=production vite -c vite.config-e2e.ts\" \"npx playwright test --config=playwright.config.ts -u\""
+    "e2e:ci": "npm run build-esm-cdn && concurrently --kill-others --success first \"tsc --project ./e2e && NODE_ENV=production vite -c vite.config-e2e.ts\" \"npx playwright test --config=playwright.config.ts\"",
+    "e2e:ci-update": "npm run build-esm-cdn && concurrently --kill-others --success first \"tsc --project ./e2e && NODE_ENV=production vite -c vite.config-e2e.ts\" \"npx playwright test --config=playwright.config.ts -u\""
   },
   "lint-staged": {
     "*.ts": "npm run biome:fix"

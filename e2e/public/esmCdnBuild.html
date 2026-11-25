@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MapTiler E2E ESM CDN Build</title>
+  <style>
+    #map {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+  <!--
+    This page is served as is (no Vite transforms), so the bundle's bare `@maptiler/sdk` import
+    is resolved by the import map, as it would be on a page using the CDN.
+    The SDK version is set by the test (`window.__sdkCdnVersion`), to match the installed SDK.
+  -->
+  <script>
+    const importMap = document.createElement("script");
+    importMap.type = "importmap";
+    importMap.textContent = JSON.stringify({
+      imports: {
+        "@maptiler/sdk": `https://cdn.maptiler.com/maptiler-sdk-js/v${window.__sdkCdnVersion}/maptiler-sdk.min.mjs`,
+      },
+    });
+    document.currentScript.after(importMap);
+  </script>
+</head>
+<body>
+  <div id="map"></div>
+  <script type="module">
+    import { Map, MapStyle, Evented } from "@maptiler/sdk";
+    // routed by the test to `build/maptiler-3d.min.mjs`
+    import { Layer3D, AltitudeReference } from "/cdn/maptiler-3d/maptiler-3d.min.mjs";
+
+    const map = new Map({
+      container: "map",
+      apiKey: "DOESNT_MATTER",
+      style: MapStyle.SATELLITE,
+      projection: "mercator",
+      zoom: 17,
+      center: [0, 0],
+      pitch: 60,
+    });
+
+    window.__map = map;
+    window.__pageObjects = { Evented };
+
+    await map.onReadyAsync();
+
+    const layer3d = new Layer3D("layer3d");
+    map.addLayer(layer3d);
+
+    await layer3d.addMeshFromURL("duck", "models/rubber_duck/scene.gltf", {
+      lngLat: [0, 0],
+      altitude: 50,
+      altitudeReference: AltitudeReference.GROUND,
+      scale: 100,
+    });
+
+    window.__layer3D = layer3d;
+  </script>
+</body>
+</html>
